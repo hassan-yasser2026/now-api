@@ -20,10 +20,13 @@ import {
 } from 'react-native';
 
 import { Ionicons } from '@expo/vector-icons';
+import * as Location from 'expo-location';
 
 import { COLORS } from '../../constants/colors';
 import useAppStore from '../../store/appStore';
 import { orderService } from '../../services/orderService';
+import deliveryService from '../../services/deliveryService';
+import AppMap from '../../components/AppMap';
 
 
 /* =========================================================
@@ -272,6 +275,12 @@ const DeliveryDashboard = ({ navigation }) => {
   const [expandedOrderId, setExpandedOrderId] =
     useState(null);
 
+  const [myLocation, setMyLocation] =
+    useState(null);
+
+  const [locationDenied, setLocationDenied] =
+    useState(false);
+
   const mountedRef = useRef(true);
 
   /* =======================================================
@@ -283,6 +292,81 @@ const DeliveryDashboard = ({ navigation }) => {
 
     return () => {
       mountedRef.current = false;
+    };
+  }, []);
+
+  /* =======================================================
+     LIVE LOCATION
+     تتبع موقع المندوب وإرساله للسيرفر ليظهر للعميل
+  ======================================================= */
+
+  useEffect(() => {
+    let subscription = null;
+    let cancelled = false;
+
+    const startTracking = async () => {
+      try {
+        const { status } =
+          await Location.requestForegroundPermissionsAsync();
+
+        if (cancelled) {
+          return;
+        }
+
+        if (status !== 'granted') {
+          setLocationDenied(true);
+          return;
+        }
+
+        subscription =
+          await Location.watchPositionAsync(
+            {
+              accuracy:
+                Location.Accuracy.Balanced,
+              timeInterval: 15000,
+              distanceInterval: 30,
+            },
+            (position) => {
+              if (!mountedRef.current) {
+                return;
+              }
+
+              const coords = {
+                latitude:
+                  position.coords.latitude,
+                longitude:
+                  position.coords.longitude,
+              };
+
+              setMyLocation(coords);
+
+              deliveryService
+                .updateLocation(coords)
+                .catch((error) => {
+                  console.warn(
+                    'UPDATE LOCATION ERROR:',
+                    error?.response?.data ||
+                      error?.message
+                  );
+                });
+            }
+          );
+      } catch (error) {
+        console.warn(
+          'LOCATION TRACKING ERROR:',
+          error?.message || error
+        );
+      }
+    };
+
+    startTracking();
+
+    return () => {
+      cancelled = true;
+
+      if (subscription) {
+        subscription.remove();
+      }
     };
   }, []);
 
@@ -432,6 +516,71 @@ const DeliveryDashboard = ({ navigation }) => {
       total: orders.length,
     };
   }, [orders, user?.id]);
+
+  /* =======================================================
+     MAP MARKERS
+     موقعي الحالي + متاجر الطلبات المتاحة والجارية
+  ======================================================= */
+
+  const mapMarkers = useMemo(() => {
+    const markers = [];
+
+    if (myLocation) {
+      markers.push({
+        id: 'me',
+        latitude: myLocation.latitude,
+        longitude: myLocation.longitude,
+        title: 'موقعي الحالي',
+        type: 'driver',
+      });
+    }
+
+    const seenStores = new Set();
+
+    orders.forEach((order) => {
+      const isAvailable =
+        order?.status === ORDER_STATUS.READY &&
+        !order?.deliveryId;
+
+      const isMine =
+        ACTIVE_STATUSES.includes(order?.status) &&
+        normalizeId(order?.deliveryId) ===
+          normalizeId(user?.id);
+
+      if (!isAvailable && !isMine) {
+        return;
+      }
+
+      const store = order?.store;
+
+      if (
+        store?.latitude == null ||
+        store?.longitude == null
+      ) {
+        return;
+      }
+
+      const storeKey = String(
+        store.id ?? store.name
+      );
+
+      if (seenStores.has(storeKey)) {
+        return;
+      }
+
+      seenStores.add(storeKey);
+
+      markers.push({
+        id: `store-${storeKey}`,
+        latitude: store.latitude,
+        longitude: store.longitude,
+        title: store.name || 'متجر',
+        type: 'store',
+      });
+    });
+
+    return markers;
+  }, [orders, myLocation, user?.id]);
 
   /* =======================================================
      FILTER + SEARCH
@@ -1559,6 +1708,45 @@ const DeliveryDashboard = ({ navigation }) => {
           </View>
         </View>
 
+        {/* MAP */}
+
+        <View style={styles.mapCard}>
+          <View style={styles.mapHeader}>
+            <Text style={styles.mapTitle}>
+              الخريطة
+            </Text>
+
+            <Text style={styles.mapSubtitle}>
+              🛵 موقعك • 🏪 متاجر الطلبات
+            </Text>
+          </View>
+
+          {mapMarkers.length > 0 ? (
+            <AppMap
+              markers={mapMarkers}
+              height={230}
+            />
+          ) : (
+            <View style={styles.mapPlaceholder}>
+              <Ionicons
+                name="map-outline"
+                size={34}
+                color={COLORS.textLight}
+              />
+
+              <Text
+                style={
+                  styles.mapPlaceholderText
+                }
+              >
+                {locationDenied
+                  ? 'فعّل إذن الموقع من إعدادات الجهاز لعرض موقعك على الخريطة.'
+                  : 'جاري تحديد موقعك...'}
+              </Text>
+            </View>
+          )}
+        </View>
+
         {/* SEARCH */}
 
         <View style={styles.searchContainer}>
@@ -1671,6 +1859,8 @@ const DeliveryDashboard = ({ navigation }) => {
       navigation,
       handleLogout,
       statistics,
+      mapMarkers,
+      locationDenied,
       search,
       filter,
       filteredOrders.length,
@@ -1975,6 +2165,62 @@ const styles = StyleSheet.create({
     fontWeight: '900',
     marginTop: 2,
     textAlign: 'right',
+  },
+
+  mapCard: {
+    marginHorizontal: 14,
+    marginTop: 14,
+    borderRadius: 17,
+    borderWidth: 1,
+    borderColor:
+      COLORS.border,
+    backgroundColor:
+      COLORS.white ||
+      '#FFFFFF',
+    padding: 12,
+  },
+
+  mapHeader: {
+    flexDirection:
+      'row-reverse',
+    alignItems: 'center',
+    justifyContent:
+      'space-between',
+    marginBottom: 10,
+  },
+
+  mapTitle: {
+    fontSize: 15,
+    fontWeight: '900',
+    color:
+      COLORS.textPrimary,
+  },
+
+  mapSubtitle: {
+    fontSize: 11,
+    color:
+      COLORS.textSecondary,
+    fontWeight: '600',
+  },
+
+  mapPlaceholder: {
+    minHeight: 110,
+    borderRadius: 13,
+    backgroundColor:
+      '#F8FAFC',
+    alignItems: 'center',
+    justifyContent:
+      'center',
+    padding: 16,
+    gap: 8,
+  },
+
+  mapPlaceholderText: {
+    fontSize: 12,
+    color:
+      COLORS.textSecondary,
+    textAlign: 'center',
+    lineHeight: 19,
   },
 
   searchContainer: {

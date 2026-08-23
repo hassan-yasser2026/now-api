@@ -789,6 +789,139 @@ app.get(
 );
 
 // ------------------------------------------------------------
+// Update Store (البائع صاحب المتجر أو الأدمن)
+// ------------------------------------------------------------
+
+app.patch(
+  '/api/stores/:id',
+  authMiddleware,
+  async (req, res) => {
+    const storeId = normalizeId(
+      req.params.id
+    );
+
+    if (!storeId) {
+      return errorResponse(
+        res,
+        'رقم المتجر غير صالح',
+        400
+      );
+    }
+
+    try {
+      const store = await prisma.store.findUnique({
+        where: {
+          id: storeId,
+        },
+        select: {
+          vendorId: true,
+        },
+      });
+
+      if (!store) {
+        return errorResponse(
+          res,
+          'المتجر غير موجود',
+          404
+        );
+      }
+
+      const isOwner =
+        store.vendorId === req.user.userId;
+
+      const isAdmin =
+        req.user.role === ROLES.ADMIN;
+
+      if (!isOwner && !isAdmin) {
+        return errorResponse(
+          res,
+          'غير مصرح لك بتعديل هذا المتجر',
+          403
+        );
+      }
+
+      const {
+        name,
+        description,
+        isOpen,
+        latitude,
+        longitude,
+        image,
+      } = req.body;
+
+      const data = {};
+
+      if (name !== undefined) {
+        const normalizedName =
+          normalizeString(name);
+
+        if (!normalizedName) {
+          return errorResponse(
+            res,
+            'اسم المتجر غير صالح',
+            422
+          );
+        }
+
+        data.name = normalizedName;
+      }
+
+      if (description !== undefined) {
+        data.description = description;
+      }
+
+      if (isOpen !== undefined) {
+        data.isOpen = Boolean(isOpen);
+      }
+
+      if (image !== undefined) {
+        data.image = image;
+      }
+
+      if (
+        latitude !== undefined ||
+        longitude !== undefined
+      ) {
+        const lat = Number(latitude);
+        const lng = Number(longitude);
+
+        if (
+          !Number.isFinite(lat) ||
+          !Number.isFinite(lng) ||
+          lat < -90 ||
+          lat > 90 ||
+          lng < -180 ||
+          lng > 180
+        ) {
+          return errorResponse(
+            res,
+            'إحداثيات الموقع غير صالحة',
+            422
+          );
+        }
+
+        data.latitude = lat;
+        data.longitude = lng;
+      }
+
+      const updatedStore = await prisma.store.update({
+        where: {
+          id: storeId,
+        },
+        data,
+      });
+
+      return successResponse(
+        res,
+        updatedStore
+      );
+    } catch (error) {
+      return handlePrismaError(error, res);
+    }
+  }
+);
+
+// ------------------------------------------------------------
 // Get Menu
 // ------------------------------------------------------------
 
@@ -1176,7 +1309,10 @@ const orderInclude = {
 
   store: {
     select: {
+      id: true,
       name: true,
+      latitude: true,
+      longitude: true,
     },
   },
 

@@ -15,6 +15,9 @@ import CustomerProfile from '../screens/customer/CustomerProfile';
 import AssistantScreen from '../screens/customer/AssisantScreen';
 import CartScreen from '../screens/customer/CartScreen';
 import AboutScreen from '../screens/auth/AboutScreen';
+import CustomerLoginScreen from '../screens/auth/CustomerLoginScreen';
+import PartnerJoinScreen from '../screens/auth/PartnerJoinScreen';
+import RegisterScreen from '../screens/auth/RegisterScreen';
 
 const Tab = createBottomTabNavigator();
 const Stack = createNativeStackNavigator();
@@ -93,6 +96,10 @@ const CustomerNavigator = () => (
     <Stack.Screen name="OrderConfirmation" component={OrderConfirmation} />
     <Stack.Screen name="OrderTracking" component={OrderTracking} />
     <Stack.Screen name="About" component={AboutScreen} />
+    {/* شاشات تسجيل الدخول / الانضمام داخل لوحة العميل */}
+    <Stack.Screen name="Login" component={CustomerLoginScreen} />
+    <Stack.Screen name="PartnerJoin" component={PartnerJoinScreen} />
+    <Stack.Screen name="Register" component={RegisterScreen} />
   </Stack.Navigator>
 );
 

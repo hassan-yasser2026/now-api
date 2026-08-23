@@ -1,7 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import useAppStore from '../store/appStore';
-import AuthNavigator from './AuthNavigator';
 import CustomerNavigator from './CustomerNavigator';
 import VendorNavigator from './VendorNavigator';
 import DeliveryNavigator from './DeliveryNavigator';
@@ -26,7 +25,10 @@ const RootNavigator = () => {
     return <Loading text="جاري تحميل التطبيق..." />;
   }
 
-  const getNavigator = () => {
+  // الزوار والعملاء كلاهم يستخدم CustomerNavigator
+  // الأدوار الأخرى تحصل على Navigator خاص بها عند تسجيل الدخول
+  const getNavigatorForRole = () => {
+    if (!isAuthenticated) return CustomerNavigator;
     switch (role) {
       case 'admin':
         return AdminNavigator;
@@ -34,19 +36,16 @@ const RootNavigator = () => {
         return VendorNavigator;
       case 'delivery':
         return DeliveryNavigator;
-      case 'customer':
       default:
         return CustomerNavigator;
     }
   };
 
+  const ActiveNavigator = getNavigatorForRole();
+
   return (
     <Stack.Navigator screenOptions={{ headerShown: false }}>
-      {isAuthenticated ? (
-        <Stack.Screen name="App" component={getNavigator()} />
-      ) : (
-        <Stack.Screen name="Auth" component={AuthNavigator} />
-      )}
+      <Stack.Screen name="App" component={ActiveNavigator} />
     </Stack.Navigator>
   );
 };

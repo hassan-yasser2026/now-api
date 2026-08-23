@@ -18,7 +18,10 @@ import { Ionicons } from '@expo/vector-icons';
 import { COLORS } from '../../constants/colors';
 import { authService } from '../../services/authService';
 
-const RegisterScreen = ({ navigation }) => {
+const RegisterScreen = ({ navigation, route }) => {
+  const initialRole = route?.params?.initialRole || 'customer';
+  const roleFixed = Boolean(route?.params?.initialRole);
+
   const [name, setName] = useState('');
   const [phone, setPhone] = useState('');
   const [email, setEmail] = useState('');
@@ -26,7 +29,7 @@ const RegisterScreen = ({ navigation }) => {
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
 
-  const [role, setRole] = useState('customer');
+  const [role, setRole] = useState(initialRole);
   const [storeName, setStoreName] = useState('');
 
   const [loading, setLoading] = useState(false);
@@ -382,29 +385,37 @@ const RegisterScreen = ({ navigation }) => {
               ROLE
           ==================================== */}
 
-          <Text style={styles.label}>
-            نوع الحساب
-          </Text>
+          {/* ====================================
+              ROLE (مخفي لو الدور محدد مسبقاً)
+          ==================================== */}
 
-          <View style={styles.rolesContainer}>
-            <RoleButton
-              value="customer"
-              label="عميل"
-              icon="bag-handle-outline"
-            />
+          {!roleFixed && (
+            <>
+              <Text style={styles.label}>
+                نوع الحساب
+              </Text>
 
-            <RoleButton
-              value="vendor"
-              label="بائع / مطعم"
-              icon="storefront-outline"
-            />
+              <View style={styles.rolesContainer}>
+                <RoleButton
+                  value="customer"
+                  label="عميل"
+                  icon="bag-handle-outline"
+                />
 
-            <RoleButton
-              value="delivery"
-              label="مندوب توصيل"
-              icon="bicycle-outline"
-            />
-          </View>
+                <RoleButton
+                  value="vendor"
+                  label="بائع"
+                  icon="storefront-outline"
+                />
+
+                <RoleButton
+                  value="delivery"
+                  label="مندوب توصيل"
+                  icon="bicycle-outline"
+                />
+              </View>
+            </>
+          )}
 
           {/* ====================================
               STORE
@@ -436,7 +447,7 @@ const RegisterScreen = ({ navigation }) => {
 
                 <TextInput
                   style={styles.input}
-                  placeholder="مثال: مطعم ناو"
+                  placeholder="اسم متجرك أو نشاطك التجاري"
                   placeholderTextColor={
                     COLORS.textLight
                   }

@@ -14,6 +14,7 @@ import { useIsFocused } from '@react-navigation/native';
 
 import { COLORS } from '../../constants/colors';
 import { orderService } from '../../services/orderService';
+import AppMap from '../../components/AppMap';
 
 const POLLING_INTERVAL = 10000;
 
@@ -148,9 +149,30 @@ const OrderTracking = ({ route, navigation }) => {
   const orderId = route?.params?.orderId;
 
   const [order, setOrder] = useState(null);
+  const [tracking, setTracking] = useState(null);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState('');
+
+  const fetchTracking = useCallback(async () => {
+    if (!orderId) return;
+
+    try {
+      const result = await orderService.getOrderTracking(orderId);
+
+      if (result?.success) {
+        const payload =
+          result.tracking?.data || result.tracking;
+
+        if (payload) {
+          setTracking(payload);
+        }
+      }
+    } catch (err) {
+      // الخريطة إضافة اختيارية — لا نعرض خطأ لو فشل جلب التتبع
+      console.warn('OrderTracking map fetch error:', err?.message);
+    }
+  }, [orderId]);
 
   const fetchOrder = useCallback(
     async ({ showLoader = false } = {}) => {
@@ -206,20 +228,23 @@ const OrderTracking = ({ route, navigation }) => {
     if (!isFocused) return;
 
     fetchOrder({ showLoader: true });
+    fetchTracking();
 
     const interval = setInterval(() => {
       fetchOrder();
+      fetchTracking();
     }, POLLING_INTERVAL);
 
     return () => {
       clearInterval(interval);
     };
-  }, [isFocused, fetchOrder]);
+  }, [isFocused, fetchOrder, fetchTracking]);
 
   const handleRefresh = useCallback(() => {
     setRefreshing(true);
     fetchOrder();
-  }, [fetchOrder]);
+    fetchTracking();
+  }, [fetchOrder, fetchTracking]);
 
   const currentStatus = useMemo(
     () => normalizeStatus(order?.status),
@@ -240,6 +265,44 @@ const OrderTracking = ({ route, navigation }) => {
 
   const statusInfo =
     STATUS_CONFIG[currentStatus] || STATUS_CONFIG.PENDING;
+
+  const mapMarkers = useMemo(() => {
+    const markers = [];
+
+    const store = tracking?.store || order?.store;
+
+    if (store?.latitude != null && store?.longitude != null) {
+      markers.push({
+        id: 'store',
+        latitude: store.latitude,
+        longitude: store.longitude,
+        title: store.name || 'المتجر',
+        type: 'store',
+      });
+    }
+
+    const driverProfile = tracking?.delivery?.deliveryProfile;
+    const driverOnTheWay =
+      currentStatus === 'PICKED_UP' || currentStatus === 'ON_THE_WAY';
+
+    if (
+      driverOnTheWay &&
+      driverProfile?.latitude != null &&
+      driverProfile?.longitude != null
+    ) {
+      markers.push({
+        id: 'driver',
+        latitude: driverProfile.latitude,
+        longitude: driverProfile.longitude,
+        title: tracking?.delivery?.name
+          ? `المندوب: ${tracking.delivery.name}`
+          : 'المندوب',
+        type: 'driver',
+      });
+    }
+
+    return markers;
+  }, [tracking, order?.store, currentStatus]);
 
   const orderItems = useMemo(() => {
     if (!Array.isArray(order?.items)) {
@@ -633,6 +696,33 @@ const OrderTracking = ({ route, navigation }) => {
                   </View>
                 );
               })}
+            </View>
+          </View>
+        )}
+
+        {/* Live Map */}
+        {currentStatus !== 'CANCELLED' && mapMarkers.length > 0 && (
+          <View style={styles.sectionCard}>
+            <Text style={styles.sectionTitle}>
+              الطلب على الخريطة
+            </Text>
+
+            <AppMap
+              markers={mapMarkers}
+              height={240}
+              showRoute={mapMarkers.length > 1}
+            />
+
+            <View style={styles.mapLegend}>
+              <View style={styles.mapLegendItem}>
+                <Text style={styles.mapLegendText}>🏪 المتجر</Text>
+              </View>
+
+              {mapMarkers.some((m) => m.type === 'driver') && (
+                <View style={styles.mapLegendItem}>
+                  <Text style={styles.mapLegendText}>🛵 المندوب</Text>
+                </View>
+              )}
             </View>
           </View>
         )}
@@ -1038,6 +1128,26 @@ const styles = StyleSheet.create({
     paddingHorizontal: 9,
     paddingVertical: 5,
     borderRadius: 10,
+  },
+
+  mapLegend: {
+    flexDirection: 'row-reverse',
+    flexWrap: 'wrap',
+    gap: 8,
+    marginTop: 10,
+  },
+
+  mapLegendItem: {
+    backgroundColor: COLORS.background,
+    borderRadius: 10,
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+  },
+
+  mapLegendText: {
+    fontSize: 12,
+    color: COLORS.textSecondary,
+    fontWeight: '600',
   },
 
   timeline: {
