@@ -165,6 +165,30 @@ const CustomerHome = ({ navigation }) => {
     [navigation]
   );
 
+  const cartByStore = useMemo(() => {
+    if (!cart || cart.length === 0) return [];
+
+    const grouped = cart.reduce((acc, item) => {
+      const storeId = item.storeId;
+      if (!acc[storeId]) {
+        const storeDetails = stores.find(s => s.id === storeId);
+        acc[storeId] = {
+          storeId,
+          storeName: storeDetails?.name || 'متجر غير معروف',
+          items: [],
+          totalItems: 0,
+          totalPrice: 0,
+        };
+      }
+      acc[storeId].items.push(item);
+      acc[storeId].totalItems += item.quantity;
+      acc[storeId].totalPrice += item.price * item.quantity;
+      return acc;
+    }, {});
+
+    return Object.values(grouped);
+  }, [cart, stores]);
+
   const handleCartPress = useCallback(() => {
     if (isGuest) {
       navigation.navigate('Login');
@@ -253,30 +277,6 @@ const CustomerHome = ({ navigation }) => {
   const getStatusLabel = (orderStatus) => {
     return STATUS_LABELS[orderStatus] || orderStatus || 'غير معروف';
   };
-
-  const cartByStore = useMemo(() => {
-    if (!cart || cart.length === 0) return [];
-
-    const grouped = cart.reduce((acc, item) => {
-      const storeId = item.storeId;
-      if (!acc[storeId]) {
-        const storeDetails = stores.find(s => s.id === storeId);
-        acc[storeId] = {
-          storeId,
-          storeName: storeDetails?.name || 'متجر غير معروف',
-          items: [],
-          totalItems: 0,
-          totalPrice: 0,
-        };
-      }
-      acc[storeId].items.push(item);
-      acc[storeId].totalItems += item.quantity;
-      acc[storeId].totalPrice += item.price * item.quantity;
-      return acc;
-    }, {});
-
-    return Object.values(grouped);
-  }, [cart, stores]);
 
   if (status === 'loading') {
     return <Loading text="جاري تحميل المتاجر..." />;

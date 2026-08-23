@@ -1,36 +1,71 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import {
   View, Text, FlatList, TouchableOpacity, StyleSheet,
-  RefreshControl, TextInput, Modal, Alert,
+  RefreshControl, Alert,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { COLORS } from '../../constants/colors';
 import EmptyState from '../../components/EmptyState';
+import Loading from '../../components/Loading';
+import adminService from '../../services/adminService';
 
 const StoresManagement = ({ navigation }) => {
-  const [stores, setStores] = useState([
-    { id: 1, name: 'مطعم الأهرام', owner: 'أحمد', status: 'active', orders: 45 },
-    { id: 2, name: 'كافيه نايس', owner: 'سارة', status: 'pending', orders: 12 },
-    { id: 3, name: 'بيتزا إيطاليا', owner: 'محمد', status: 'active', orders: 78 },
-  ]);
+  const [stores, setStores] = useState([]);
+  const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
-  const [modalVisible, setModalVisible] = useState(false);
 
-  const onRefresh = () => {
+  const loadStores = async () => {
+    const response = await adminService.getStores();
+    setStores(response.data);
+  };
+
+  useEffect(() => {
+    loadStores()
+      .catch(() => Alert.alert('خطأ', 'تعذر تحميل المتاجر'))
+      .finally(() => setLoading(false));
+  }, []);
+
+  const onRefresh = async () => {
     setRefreshing(true);
-    setTimeout(() => setRefreshing(false), 1000);
+    try {
+      await loadStores();
+    } catch (error) {
+      Alert.alert('خطأ', 'تعذر تحديث المتاجر');
+    } finally {
+      setRefreshing(false);
+    }
   };
 
-  const toggleStoreStatus = (id) => {
-    setStores(stores.map(s =>
-      s.id === id ? { ...s, status: s.status === 'active' ? 'suspended' : 'active' } : s
-    ));
+  const toggleStoreStatus = async (store) => {
+    try {
+      const response = store.isActive
+        ? await adminService.suspendStore(store.id)
+        : await adminService.activateStore(store.id);
+      setStores((currentStores) => currentStores.map((item) =>
+        item.id === store.id ? response.data : item
+      ));
+    } catch (error) {
+      Alert.alert('خطأ', 'تعذر تحديث حالة المتجر');
+    }
   };
 
-  const deleteStore = (id) => {
-    Alert.alert('تأكيد الحذف', 'هل أنت متأكد من حذف هذا المتجر؟', [
+  const disableStore = (store) => {
+    Alert.alert('تأكيد التعطيل', 'هل أنت متأكد من تعطيل هذا المتجر؟', [
       { text: 'إلغاء', style: 'cancel' },
-      { text: 'حذف', style: 'destructive', onPress: () => setStores(stores.filter(s => s.id !== id)) },
+      {
+        text: 'تعطيل',
+        style: 'destructive',
+        onPress: async () => {
+          try {
+            const response = await adminService.deleteStore(store.id);
+            setStores((currentStores) => currentStores.map((item) =>
+              item.id === store.id ? response.data : item
+            ));
+          } catch (error) {
+            Alert.alert('خطأ', 'تعذر تعطيل المتجر');
+          }
+        },
+      },
     ]);
   };
 
@@ -39,28 +74,34 @@ const StoresManagement = ({ navigation }) => {
       <View style={styles.cardContent}>
         <View style={styles.storeInfo}>
           <Text style={styles.storeName}>{item.name}</Text>
-          <Text style={styles.storeOwner}>👤 {item.owner}</Text>
+          <Text style={styles.storeOwner}>المالك: {item.vendor.name}</Text>
         </View>
-        <Text style={styles.storeOrders}>📦 {item.orders} طلب</Text>
+        <Text style={styles.storeOrders}>{item._count.orders} طلب</Text>
       </View>
       <View style={styles.cardActions}>
-        <TouchableOpacity onPress={() => toggleStoreStatus(item.id)} style={styles.actionBtn}>
+        <TouchableOpacity onPress={() => toggleStoreStatus(item)} style={styles.actionBtn}>
           <Ionicons
-            name={item.status === 'active' ? 'checkmark-circle-outline' : 'close-circle-outline'}
+            name={item.isActive ? 'checkmark-circle-outline' : 'close-circle-outline'}
             size={22}
-            color={item.status === 'active' ? COLORS.success : COLORS.error}
+            color={item.isActive ? COLORS.success : COLORS.error}
           />
-          <Text style={[styles.actionText, item.status === 'active' ? styles.activeText : styles.blockedText]}>
-            {item.status === 'active' ? 'نشط' : item.status === 'pending' ? 'قيد المراجعة' : 'موقف'}
+          <Text style={[styles.actionText, item.isActive ? styles.activeText : styles.blockedText]}>
+            {item.isActive ? 'نشط' : 'معطل'}
           </Text>
         </TouchableOpacity>
-        <TouchableOpacity onPress={() => deleteStore(item.id)} style={styles.actionBtn}>
-          <Ionicons name="trash-outline" size={22} color={COLORS.error} />
-          <Text style={[styles.actionText, styles.deleteText]}>حذف</Text>
-        </TouchableOpacity>
+        {item.isActive && (
+          <TouchableOpacity onPress={() => disableStore(item)} style={styles.actionBtn}>
+            <Ionicons name="ban-outline" size={22} color={COLORS.error} />
+            <Text style={[styles.actionText, styles.deleteText]}>تعطيل</Text>
+          </TouchableOpacity>
+        )}
       </View>
     </View>
   );
+
+  if (loading) {
+    return <Loading text="جاري تحميل المتاجر..." />;
+  }
 
   return (
     <View style={styles.container}>
@@ -69,9 +110,7 @@ const StoresManagement = ({ navigation }) => {
           <Ionicons name="arrow-back" size={28} color={COLORS.textPrimary} />
         </TouchableOpacity>
         <Text style={styles.headerTitle}>إدارة المتاجر</Text>
-        <TouchableOpacity onPress={() => setModalVisible(true)} style={styles.addBtn}>
-          <Ionicons name="add-circle" size={28} color={COLORS.primary} />
-        </TouchableOpacity>
+        <View style={styles.headerSpacer} />
       </View>
 
       <FlatList
@@ -95,7 +134,7 @@ const styles = StyleSheet.create({
   header: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', padding: 16, borderBottomWidth: 1, borderBottomColor: COLORS.border },
   backBtn: { padding: 4 },
   headerTitle: { fontSize: 18, fontWeight: 'bold', color: COLORS.textPrimary },
-  addBtn: { padding: 4 },
+  headerSpacer: { width: 36 },
   list: { padding: 16 },
   card: { backgroundColor: '#fff', padding: 16, borderRadius: 12, marginBottom: 10, borderWidth: 1, borderColor: COLORS.border },
   cardContent: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },

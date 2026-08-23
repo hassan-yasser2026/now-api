@@ -1,25 +1,57 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import {
   View, Text, ScrollView, TouchableOpacity, StyleSheet,
-  RefreshControl,
+  RefreshControl, Alert,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { COLORS } from '../../constants/colors';
+import Loading from '../../components/Loading';
+import adminService from '../../services/adminService';
 
 const Reports = ({ navigation }) => {
+  const [report, setReport] = useState({
+    totalOrders: 0,
+    revenue: 0,
+    newUsers: 0,
+    activeStores: 0,
+    topStores: [],
+    topItems: [],
+  });
+  const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
 
-  const onRefresh = () => {
+  const loadReport = async () => {
+    const response = await adminService.getReports();
+    setReport(response.data);
+  };
+
+  useEffect(() => {
+    loadReport()
+      .catch(() => Alert.alert('خطأ', 'تعذر تحميل التقارير'))
+      .finally(() => setLoading(false));
+  }, []);
+
+  const onRefresh = async () => {
     setRefreshing(true);
-    setTimeout(() => setRefreshing(false), 1000);
+    try {
+      await loadReport();
+    } catch (error) {
+      Alert.alert('خطأ', 'تعذر تحديث التقارير');
+    } finally {
+      setRefreshing(false);
+    }
   };
 
   const reportCards = [
-    { label: 'إجمالي الطلبات', value: '324', change: '+12%', icon: 'bag-outline', color: COLORS.primary },
-    { label: 'الإيرادات', value: '48,750 ج.م', change: '+8%', icon: 'cash-outline', color: COLORS.success },
-    { label: 'المستخدمين الجدد', value: '28', change: '+15%', icon: 'people-outline', color: COLORS.secondary },
-    { label: 'متوسط التقييم', value: '4.6 ★', change: '+0.2', icon: 'star-outline', color: COLORS.warning },
+    { label: 'إجمالي الطلبات', value: report.totalOrders, icon: 'bag-outline', color: COLORS.primary },
+    { label: 'الإيرادات', value: `${Number(report.revenue).toFixed(2)} ج.م`, icon: 'cash-outline', color: COLORS.success },
+    { label: 'مستخدمو الشهر', value: report.newUsers, icon: 'people-outline', color: COLORS.secondary },
+    { label: 'المتاجر النشطة', value: report.activeStores, icon: 'storefront-outline', color: COLORS.warning },
   ];
+
+  if (loading) {
+    return <Loading text="جاري تحميل التقارير..." />;
+  }
 
   return (
     <View style={styles.container}>
@@ -45,33 +77,36 @@ const Reports = ({ navigation }) => {
                 <Text style={[styles.statValue, { color: card.color }]}>{card.value}</Text>
               </View>
               <Text style={styles.statLabel}>{card.label}</Text>
-              <Text style={[styles.statChange, card.change.startsWith('+') ? styles.positive : styles.negative]}>
-                {card.change}
-              </Text>
             </View>
           ))}
         </View>
 
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>أكثر المتاجر مبيعاً</Text>
-          {['بيتزا إيطاليا', 'مطعم الأهرام', 'سوشي بار'].map((store, index) => (
-            <View key={index} style={styles.rankItem}>
+          {report.topStores.map((store, index) => (
+            <View key={store.id} style={styles.rankItem}>
               <Text style={styles.rankNumber}>#{index + 1}</Text>
-              <Text style={styles.rankName}>{store}</Text>
-              <Text style={styles.rankValue}>{[78, 45, 32][index]} طلب</Text>
+              <Text style={styles.rankName}>{store.name}</Text>
+              <Text style={styles.rankValue}>{store.orders} طلب</Text>
             </View>
           ))}
+          {report.topStores.length === 0 && (
+            <Text style={styles.emptyText}>لا توجد طلبات لعرض ترتيب المتاجر</Text>
+          )}
         </View>
 
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>أكثر المنتجات طلباً</Text>
-          {['بيتزا مارجريتا', 'شاورما دجاج', 'كابتشينو'].map((item, index) => (
-            <View key={index} style={styles.rankItem}>
+          {report.topItems.map((item, index) => (
+            <View key={item.id} style={styles.rankItem}>
               <Text style={styles.rankNumber}>#{index + 1}</Text>
-              <Text style={styles.rankName}>{item}</Text>
-              <Text style={styles.rankValue}>{[156, 89, 67][index]} طلب</Text>
+              <Text style={styles.rankName}>{item.name}</Text>
+              <Text style={styles.rankValue}>{item.quantity} قطعة</Text>
             </View>
           ))}
+          {report.topItems.length === 0 && (
+            <Text style={styles.emptyText}>لا توجد طلبات لعرض ترتيب المنتجات</Text>
+          )}
         </View>
       </ScrollView>
     </View>
@@ -89,15 +124,13 @@ const styles = StyleSheet.create({
   statHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
   statValue: { fontSize: 18, fontWeight: 'bold' },
   statLabel: { fontSize: 14, color: COLORS.textSecondary, marginTop: 4 },
-  statChange: { fontSize: 13, fontWeight: 'bold', marginTop: 4 },
-  positive: { color: COLORS.success },
-  negative: { color: COLORS.error },
   section: { marginBottom: 20 },
   sectionTitle: { fontSize: 18, fontWeight: 'bold', color: COLORS.textPrimary, marginBottom: 12 },
   rankItem: { flexDirection: 'row', alignItems: 'center', backgroundColor: '#fff', padding: 14, borderRadius: 10, borderWidth: 1, borderColor: COLORS.border, marginBottom: 6 },
   rankNumber: { width: 32, fontSize: 14, fontWeight: 'bold', color: COLORS.textSecondary },
   rankName: { flex: 1, fontSize: 15, color: COLORS.textPrimary },
   rankValue: { fontSize: 14, color: COLORS.primary, fontWeight: 'bold' },
+  emptyText: { color: COLORS.textSecondary, textAlign: 'center', paddingVertical: 20 },
 });
 
 export default Reports;

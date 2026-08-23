@@ -1,38 +1,72 @@
 import React, { useState, useEffect } from 'react';
 import {
   View, Text, FlatList, TouchableOpacity, StyleSheet,
-  RefreshControl, TextInput, Modal, Alert,
+  RefreshControl, TextInput, Alert,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { COLORS } from '../../constants/colors';
-import PrimaryButton from '../../components/PrimaryButton';
 import EmptyState from '../../components/EmptyState';
+import Loading from '../../components/Loading';
+import adminService from '../../services/adminService';
 
 const UsersManagement = ({ navigation }) => {
-  const [users, setUsers] = useState([
-    { id: 1, name: 'أحمد العميل', phone: '01000000000', role: 'customer', status: 'active' },
-    { id: 2, name: 'مطعم البيت', phone: '01000000001', role: 'vendor', status: 'active' },
-    { id: 3, name: 'سعيد المندوب', phone: '01000000002', role: 'delivery', status: 'active' },
-  ]);
+  const [users, setUsers] = useState([]);
+  const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
-  const [modalVisible, setModalVisible] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
 
-  const onRefresh = () => {
+  const loadUsers = async () => {
+    const response = await adminService.getUsers();
+    setUsers(response.data);
+  };
+
+  useEffect(() => {
+    loadUsers()
+      .catch(() => Alert.alert('خطأ', 'تعذر تحميل المستخدمين'))
+      .finally(() => setLoading(false));
+  }, []);
+
+  const onRefresh = async () => {
     setRefreshing(true);
-    setTimeout(() => setRefreshing(false), 1000);
+    try {
+      await loadUsers();
+    } catch (error) {
+      Alert.alert('خطأ', 'تعذر تحديث المستخدمين');
+    } finally {
+      setRefreshing(false);
+    }
   };
 
-  const toggleUserStatus = (id) => {
-    setUsers(users.map(u =>
-      u.id === id ? { ...u, status: u.status === 'active' ? 'blocked' : 'active' } : u
-    ));
+  const toggleUserStatus = async (user) => {
+    try {
+      const response = user.isActive
+        ? await adminService.suspendUser(user.id)
+        : await adminService.activateUser(user.id);
+      setUsers((currentUsers) => currentUsers.map((item) =>
+        item.id === user.id ? response.data : item
+      ));
+    } catch (error) {
+      Alert.alert('خطأ', 'تعذر تحديث حالة المستخدم');
+    }
   };
 
-  const deleteUser = (id) => {
-    Alert.alert('تأكيد الحذف', 'هل أنت متأكد من حذف هذا المستخدم؟', [
+  const disableUser = (user) => {
+    Alert.alert('تأكيد التعطيل', 'هل أنت متأكد من تعطيل هذا المستخدم؟', [
       { text: 'إلغاء', style: 'cancel' },
-      { text: 'حذف', style: 'destructive', onPress: () => setUsers(users.filter(u => u.id !== id)) },
+      {
+        text: 'تعطيل',
+        style: 'destructive',
+        onPress: async () => {
+          try {
+            const response = await adminService.deleteUser(user.id);
+            setUsers((currentUsers) => currentUsers.map((item) =>
+              item.id === user.id ? response.data : item
+            ));
+          } catch (error) {
+            Alert.alert('خطأ', 'تعذر تعطيل المستخدم');
+          }
+        },
+      },
     ]);
   };
 
@@ -44,30 +78,36 @@ const UsersManagement = ({ navigation }) => {
     <View style={styles.card}>
       <View style={styles.cardContent}>
         <View style={styles.userInfo}>
-          <View style={[styles.statusDot, item.status === 'active' ? styles.activeDot : styles.blockedDot]} />
+          <View style={[styles.statusDot, item.isActive ? styles.activeDot : styles.blockedDot]} />
           <Text style={styles.userName}>{item.name}</Text>
         </View>
         <Text style={styles.userPhone}>{item.phone}</Text>
-        <Text style={styles.userRole}>{item.role}</Text>
+        <Text style={styles.userRole}>{item.role.name}</Text>
       </View>
       <View style={styles.cardActions}>
-        <TouchableOpacity onPress={() => toggleUserStatus(item.id)} style={styles.actionBtn}>
+        <TouchableOpacity onPress={() => toggleUserStatus(item)} style={styles.actionBtn}>
           <Ionicons
-            name={item.status === 'active' ? 'checkmark-circle-outline' : 'close-circle-outline'}
+            name={item.isActive ? 'checkmark-circle-outline' : 'close-circle-outline'}
             size={22}
-            color={item.status === 'active' ? COLORS.success : COLORS.error}
+            color={item.isActive ? COLORS.success : COLORS.error}
           />
-          <Text style={[styles.actionText, item.status === 'active' ? styles.activeText : styles.blockedText]}>
-            {item.status === 'active' ? 'نشط' : 'محظور'}
+          <Text style={[styles.actionText, item.isActive ? styles.activeText : styles.blockedText]}>
+            {item.isActive ? 'نشط' : 'معطل'}
           </Text>
         </TouchableOpacity>
-        <TouchableOpacity onPress={() => deleteUser(item.id)} style={styles.actionBtn}>
-          <Ionicons name="trash-outline" size={22} color={COLORS.error} />
-          <Text style={[styles.actionText, styles.deleteText]}>حذف</Text>
-        </TouchableOpacity>
+        {item.isActive && (
+          <TouchableOpacity onPress={() => disableUser(item)} style={styles.actionBtn}>
+            <Ionicons name="ban-outline" size={22} color={COLORS.error} />
+            <Text style={[styles.actionText, styles.deleteText]}>تعطيل</Text>
+          </TouchableOpacity>
+        )}
       </View>
     </View>
   );
+
+  if (loading) {
+    return <Loading text="جاري تحميل المستخدمين..." />;
+  }
 
   return (
     <View style={styles.container}>
@@ -76,9 +116,7 @@ const UsersManagement = ({ navigation }) => {
           <Ionicons name="arrow-back" size={28} color={COLORS.textPrimary} />
         </TouchableOpacity>
         <Text style={styles.headerTitle}>إدارة المستخدمين</Text>
-        <TouchableOpacity onPress={() => setModalVisible(true)} style={styles.addBtn}>
-          <Ionicons name="add-circle" size={28} color={COLORS.primary} />
-        </TouchableOpacity>
+        <View style={styles.headerSpacer} />
       </View>
 
       <View style={styles.searchContainer}>
@@ -104,25 +142,6 @@ const UsersManagement = ({ navigation }) => {
           <RefreshControl refreshing={refreshing} onRefresh={onRefresh} colors={[COLORS.primary]} />
         }
       />
-
-      <Modal visible={modalVisible} transparent animationType="slide">
-        <View style={styles.modalOverlay}>
-          <View style={styles.modalContent}>
-            <Text style={styles.modalTitle}>إضافة مستخدم جديد</Text>
-            <TextInput style={styles.input} placeholder="الاسم" placeholderTextColor={COLORS.textLight} />
-            <TextInput style={styles.input} placeholder="رقم الهاتف" placeholderTextColor={COLORS.textLight} keyboardType="phone-pad" />
-            <TextInput style={styles.input} placeholder="كلمة المرور" placeholderTextColor={COLORS.textLight} secureTextEntry />
-            <View style={styles.modalActions}>
-              <TouchableOpacity style={[styles.modalBtn, styles.cancelBtn]} onPress={() => setModalVisible(false)}>
-                <Text>إلغاء</Text>
-              </TouchableOpacity>
-              <TouchableOpacity style={[styles.modalBtn, styles.saveBtn]} onPress={() => setModalVisible(false)}>
-                <Text style={styles.saveText}>حفظ</Text>
-              </TouchableOpacity>
-            </View>
-          </View>
-        </View>
-      </Modal>
     </View>
   );
 };
@@ -132,7 +151,7 @@ const styles = StyleSheet.create({
   header: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', padding: 16, borderBottomWidth: 1, borderBottomColor: COLORS.border },
   backBtn: { padding: 4 },
   headerTitle: { fontSize: 18, fontWeight: 'bold', color: COLORS.textPrimary },
-  addBtn: { padding: 4 },
+  headerSpacer: { width: 36 },
   searchContainer: { flexDirection: 'row', alignItems: 'center', margin: 16, paddingHorizontal: 12, backgroundColor: COLORS.surface, borderRadius: 12, borderWidth: 1, borderColor: COLORS.border },
   searchIcon: { marginRight: 8 },
   searchInput: { flex: 1, paddingVertical: 12, fontSize: 16, color: COLORS.textPrimary },
@@ -152,15 +171,6 @@ const styles = StyleSheet.create({
   activeText: { color: COLORS.success },
   blockedText: { color: COLORS.error },
   deleteText: { color: COLORS.error },
-  modalOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.5)', justifyContent: 'center', alignItems: 'center' },
-  modalContent: { backgroundColor: '#fff', padding: 24, borderRadius: 20, width: '85%' },
-  modalTitle: { fontSize: 20, fontWeight: 'bold', textAlign: 'center', marginBottom: 20 },
-  input: { backgroundColor: COLORS.surface, padding: 14, borderRadius: 12, borderWidth: 1, borderColor: COLORS.border, marginBottom: 12, fontSize: 16 },
-  modalActions: { flexDirection: 'row', justifyContent: 'space-between', marginTop: 10 },
-  modalBtn: { paddingVertical: 12, paddingHorizontal: 24, borderRadius: 30, minWidth: 80, alignItems: 'center' },
-  cancelBtn: { backgroundColor: COLORS.surface, borderWidth: 1, borderColor: COLORS.border },
-  saveBtn: { backgroundColor: COLORS.primary },
-  saveText: { color: '#fff', fontWeight: 'bold' },
 });
 
 export default UsersManagement;

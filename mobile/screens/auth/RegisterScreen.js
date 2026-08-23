@@ -17,10 +17,17 @@ import { Ionicons } from '@expo/vector-icons';
 
 import { COLORS } from '../../constants/colors';
 import { authService } from '../../services/authService';
+import PhoneInput from '../../components/PhoneInput';
+import useAppStore from '../../store/appStore';
 
 const RegisterScreen = ({ navigation }) => {
+  const storeCountry = useAppStore((state) => state.country);
+
   const [name, setName] = useState('');
   const [phone, setPhone] = useState('');
+  const [phoneE164, setPhoneE164] = useState('');
+  const [phoneValid, setPhoneValid] = useState(false);
+  const [country, setCountry] = useState(storeCountry);
   const [email, setEmail] = useState('');
 
   const [password, setPassword] = useState('');
@@ -36,11 +43,17 @@ const RegisterScreen = ({ navigation }) => {
     useState(false);
 
   const [nameFocused, setNameFocused] = useState(false);
-  const [phoneFocused, setPhoneFocused] = useState(false);
   const [emailFocused, setEmailFocused] = useState(false);
   const [storeFocused, setStoreFocused] = useState(false);
   const [passwordFocused, setPasswordFocused] = useState(false);
   const [confirmFocused, setConfirmFocused] = useState(false);
+
+  const handlePhoneChange = ({ national, e164, isValid, countryCode }) => {
+    setPhone(national);
+    setPhoneE164(e164);
+    setPhoneValid(isValid);
+    setCountry(countryCode);
+  };
 
   // ==========================================
   // VALIDATION
@@ -48,7 +61,6 @@ const RegisterScreen = ({ navigation }) => {
 
   const validateForm = () => {
     const cleanName = name.trim();
-    const cleanPhone = phone.trim();
     const cleanEmail = email.trim();
     const cleanStoreName = storeName.trim();
 
@@ -65,7 +77,7 @@ const RegisterScreen = ({ navigation }) => {
       return false;
     }
 
-    if (!cleanPhone) {
+    if (!phone) {
       Alert.alert(
         'تنبيه',
         'من فضلك أدخل رقم الهاتف'
@@ -73,10 +85,10 @@ const RegisterScreen = ({ navigation }) => {
       return false;
     }
 
-    if (cleanPhone.length < 8) {
+    if (!phoneValid) {
       Alert.alert(
         'تنبيه',
-        'رقم الهاتف غير صحيح'
+        'رقم الهاتف غير صحيح لهذه الدولة'
       );
       return false;
     }
@@ -110,10 +122,10 @@ const RegisterScreen = ({ navigation }) => {
       return false;
     }
 
-    if (password.length < 6) {
+    if (password.length < 8) {
       Alert.alert(
         'تنبيه',
-        'كلمة المرور يجب أن تكون 6 أحرف على الأقل'
+        'كلمة المرور يجب أن تكون 8 أحرف على الأقل'
       );
       return false;
     }
@@ -151,7 +163,8 @@ const RegisterScreen = ({ navigation }) => {
 
       const userData = {
         name: name.trim(),
-        phone: phone.trim(),
+        phone: phoneE164,
+        country,
         password,
         email: email.trim() || undefined,
         role,
@@ -506,44 +519,11 @@ const RegisterScreen = ({ navigation }) => {
             رقم الهاتف
           </Text>
 
-          <View
-            style={[
-              styles.inputContainer,
-              phoneFocused &&
-                styles.inputContainerFocused,
-            ]}
-          >
-            <Ionicons
-              name="call-outline"
-              size={21}
-              color={
-                phoneFocused
-                  ? COLORS.primary
-                  : COLORS.textSecondary
-              }
-              style={styles.inputIcon}
-            />
-
-            <TextInput
-              style={styles.input}
-              placeholder="مثال: 01012345678"
-              placeholderTextColor={
-                COLORS.textLight
-              }
-              value={phone}
-              onChangeText={setPhone}
-              keyboardType="phone-pad"
-              maxLength={15}
-              autoComplete="tel"
-              textContentType="telephoneNumber"
-              onFocus={() =>
-                setPhoneFocused(true)
-              }
-              onBlur={() =>
-                setPhoneFocused(false)
-              }
-            />
-          </View>
+          <PhoneInput
+            value={phone}
+            countryCode={country}
+            onChange={handlePhoneChange}
+          />
 
           {/* ====================================
               EMAIL
@@ -625,7 +605,7 @@ const RegisterScreen = ({ navigation }) => {
 
             <TextInput
               style={styles.input}
-              placeholder="6 أحرف على الأقل"
+              placeholder="8 أحرف على الأقل"
               placeholderTextColor={
                 COLORS.textLight
               }

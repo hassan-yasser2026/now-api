@@ -1,23 +1,39 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import {
   View, Text, FlatList, TouchableOpacity, StyleSheet,
-  RefreshControl,
+  RefreshControl, Alert,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { COLORS } from '../../constants/colors';
 import EmptyState from '../../components/EmptyState';
+import Loading from '../../components/Loading';
+import adminService from '../../services/adminService';
 
 const DeliveryManagement = ({ navigation }) => {
-  const [deliveries, setDeliveries] = useState([
-    { id: 1, name: 'سعيد المندوب', phone: '01000000002', status: 'active', orders: 35, rating: 4.8 },
-    { id: 2, name: 'خالد', phone: '01000000003', status: 'active', orders: 22, rating: 4.5 },
-    { id: 3, name: 'يوسف', phone: '01000000004', status: 'inactive', orders: 8, rating: 4.2 },
-  ]);
+  const [deliveries, setDeliveries] = useState([]);
+  const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
 
-  const onRefresh = () => {
+  const loadDeliveries = async () => {
+    const response = await adminService.getDeliveries();
+    setDeliveries(response.data);
+  };
+
+  useEffect(() => {
+    loadDeliveries()
+      .catch(() => Alert.alert('خطأ', 'تعذر تحميل المندوبين'))
+      .finally(() => setLoading(false));
+  }, []);
+
+  const onRefresh = async () => {
     setRefreshing(true);
-    setTimeout(() => setRefreshing(false), 1000);
+    try {
+      await loadDeliveries();
+    } catch (error) {
+      Alert.alert('خطأ', 'تعذر تحديث المندوبين');
+    } finally {
+      setRefreshing(false);
+    }
   };
 
   const renderItem = ({ item }) => (
@@ -30,21 +46,21 @@ const DeliveryManagement = ({ navigation }) => {
         <View style={styles.stats}>
           <View style={styles.stat}>
             <Ionicons name="bag-outline" size={16} color={COLORS.textSecondary} />
-            <Text style={styles.statText}>{item.orders}</Text>
-          </View>
-          <View style={styles.stat}>
-            <Ionicons name="star" size={16} color="#F59E0B" />
-            <Text style={styles.statText}>{item.rating}</Text>
+            <Text style={styles.statText}>{item._count.deliveries}</Text>
           </View>
         </View>
       </View>
       <View style={styles.statusBar}>
-        <Text style={[styles.statusText, item.status === 'active' ? styles.activeText : styles.inactiveText]}>
-          {item.status === 'active' ? '🟢 نشط' : '🔴 غير نشط'}
+        <Text style={[styles.statusText, item.isActive ? styles.activeText : styles.inactiveText]}>
+          {item.isActive ? item.deliveryProfile?.status || 'OFFLINE' : 'معطل'}
         </Text>
       </View>
     </View>
   );
+
+  if (loading) {
+    return <Loading text="جاري تحميل المندوبين..." />;
+  }
 
   return (
     <View style={styles.container}>

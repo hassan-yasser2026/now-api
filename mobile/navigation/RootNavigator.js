@@ -29,6 +29,7 @@ const RootNavigator = () => {
   const getNavigator = () => {
     switch (role) {
       case 'admin':
+      case 'sub_admin':
         return AdminNavigator;
       case 'vendor':
         return VendorNavigator;

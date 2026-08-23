@@ -2,7 +2,14 @@ import { create } from 'zustand';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { I18nManager } from 'react-native';
 
+import {
+  DEFAULT_COUNTRY_CODE,
+  getCountry,
+} from '../constants/countries';
+
 const normalizeLanguage = (lang) => (lang === 'en' ? 'en' : 'ar');
+
+const normalizeCountry = (code) => getCountry(code).code;
 
 const applyLanguageDirection = (lang) => {
   const normalizedLang = normalizeLanguage(lang);
@@ -37,6 +44,7 @@ const useAppStore = create((set, get) => ({
   themePreference: 'system',
   language: 'ar',
   isRTL: true,
+  country: DEFAULT_COUNTRY_CODE,
 
   setThemePreference: (preference) => {
     if (!['system', 'light', 'dark'].includes(preference)) {
@@ -58,6 +66,20 @@ const useAppStore = create((set, get) => ({
     } catch (error) {
       console.error('Error saving language:', error);
     }
+  },
+
+  setCountry: async (code) => {
+    const normalizedCountry = normalizeCountry(code);
+
+    set({ country: normalizedCountry });
+
+    try {
+      await AsyncStorage.setItem('country', normalizedCountry);
+    } catch (error) {
+      console.error('Error saving country:', error);
+    }
+
+    return normalizedCountry;
   },
 
   // =========================
@@ -122,6 +144,7 @@ const useAppStore = create((set, get) => ({
       const token = await AsyncStorage.getItem('token');
       const userStr = await AsyncStorage.getItem('user');
       const savedLang = await AsyncStorage.getItem('language');
+      const savedCountry = await AsyncStorage.getItem('country');
 
       const updates = {};
       if (token && userStr) {
@@ -137,6 +160,10 @@ const useAppStore = create((set, get) => ({
         const normalizedLang = applyLanguageDirection(savedLang);
         updates.language = normalizedLang;
         updates.isRTL = normalizedLang === 'ar';
+      }
+
+      if (savedCountry) {
+        updates.country = normalizeCountry(savedCountry);
       }
 
       set({

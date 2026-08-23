@@ -27,7 +27,7 @@ type PermissionGroup = {
 };
 
 type SubAdminData = {
-  id?: string;
+  id?: string | number;
   name: string;
   phone: string;
   email?: string;
@@ -96,6 +96,7 @@ const SubAdminPermissions: React.FC<{ route: any; navigation: any }> = ({
   const [name, setName] = useState<string>(editingSubAdmin?.name || '');
   const [phone, setPhone] = useState<string>(editingSubAdmin?.phone || '');
   const [email, setEmail] = useState<string>(editingSubAdmin?.email || '');
+  const [password, setPassword] = useState<string>('');
   const [selectedPermissions, setSelectedPermissions] = useState<Set<string>>(
     () => new Set(editingSubAdmin?.permissions || [])
   );
@@ -159,6 +160,14 @@ const SubAdminPermissions: React.FC<{ route: any; navigation: any }> = ({
       Alert.alert('خطأ', 'رقم الهاتف مطلوب');
       return false;
     }
+    if (!subAdminId && !editingSubAdmin?.id && password.length < 8) {
+      Alert.alert('خطأ', 'كلمة المرور يجب أن تكون 8 أحرف على الأقل');
+      return false;
+    }
+    if (password && password.length < 8) {
+      Alert.alert('خطأ', 'كلمة المرور يجب أن تكون 8 أحرف على الأقل');
+      return false;
+    }
     if (selectedPermissions.size === 0) {
       Alert.alert('خطأ', 'يجب اختيار صلاحية واحدة على الأقل');
       return false;
@@ -178,6 +187,7 @@ const SubAdminPermissions: React.FC<{ route: any; navigation: any }> = ({
         email: email.trim() || undefined,
         role: 'sub_admin' as const,
         permissions: Array.from(selectedPermissions),
+        ...(password && { password }),
       };
 
       let result;
@@ -268,6 +278,23 @@ const SubAdminPermissions: React.FC<{ route: any; navigation: any }> = ({
               onChangeText={setEmail}
               keyboardType="email-address"
               autoCapitalize="none"
+            />
+          </View>
+        </View>
+
+        <View style={styles.fieldContainer}>
+          <Text style={styles.fieldLabel}>
+            {subAdminId || editingSubAdmin?.id ? 'كلمة مرور جديدة (اختياري)' : 'كلمة المرور'}
+          </Text>
+          <View style={styles.inputWrapper}>
+            <Ionicons name="lock-closed-outline" size={20} color={COLORS.secondaryText} />
+            <TextInput
+              style={styles.input}
+              placeholder="8 أحرف على الأقل"
+              placeholderTextColor={COLORS.textLight}
+              value={password}
+              onChangeText={setPassword}
+              secureTextEntry
             />
           </View>
         </View>

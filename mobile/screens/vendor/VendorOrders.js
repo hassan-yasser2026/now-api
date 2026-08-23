@@ -51,7 +51,7 @@ export default function VendorOrders({ navigation }) {
       style={styles.card}
       onPress={() => navigation.navigate('VendorOrderDetails', { order: item, orderId: item.id })}
     >
-      <Image source={item.image ? { uri: item.image } : require('../../assets/placeholder.png')} style={styles.thumb} onError={() => {}} />
+      <Image source={item.image ? { uri: item.image } : require('../../assets/images/icon.png')} style={styles.thumb} onError={() => {}} />
       <View style={styles.info}>
         <View style={styles.row}>
           <Text style={styles.orderId}>طلب #{item.id}</Text>

@@ -20,10 +20,12 @@ import {
 } from 'react-native';
 
 import { Ionicons } from '@expo/vector-icons';
+import * as Location from 'expo-location';
 
 import { COLORS } from '../../constants/colors';
 import useAppStore from '../../store/appStore';
 import { orderService } from '../../services/orderService';
+import deliveryService from '../../services/deliveryService';
 
 
 /* =========================================================
@@ -782,18 +784,79 @@ const DeliveryDashboard = ({ navigation }) => {
   );
 
   /* =======================================================
+     SHARE MY LOCATION
+     يرسل موقع المندوب الحالي ليظهر للعميل على خريطة التتبع.
+  ======================================================= */
+
+  const [sharingLocation, setSharingLocation] = useState(false);
+
+  const handleShareLocation = useCallback(async () => {
+    if (sharingLocation) return;
+
+    setSharingLocation(true);
+
+    try {
+      const { status } =
+        await Location.requestForegroundPermissionsAsync();
+
+      if (status !== 'granted') {
+        Alert.alert(
+          'تنبيه',
+          'لم يتم منح إذن الوصول إلى الموقع'
+        );
+        return;
+      }
+
+      const position =
+        await Location.getCurrentPositionAsync({
+          accuracy: Location.Accuracy.Balanced,
+        });
+
+      await deliveryService.updateLocation({
+        latitude: position.coords.latitude,
+        longitude: position.coords.longitude,
+      });
+
+      Alert.alert(
+        'تم',
+        'تم تحديث موقعك وسيظهر للعميل على خريطة التتبع.'
+      );
+    } catch (error) {
+      console.error(
+        'SHARE LOCATION ERROR:',
+        error
+      );
+
+      Alert.alert(
+        'خطأ',
+        'تعذر تحديث موقعك الحالي'
+      );
+    } finally {
+      setSharingLocation(false);
+    }
+  }, [sharingLocation]);
+
+  /* =======================================================
      OPEN MAP
   ======================================================= */
 
   const openAddress = useCallback(
     async (order) => {
+      // نفضل إحداثيات الخريطة إن حددها العميل، وإلا نبحث بالعنوان النصي.
+      const lat = Number(order?.deliveryLat);
+      const lng = Number(order?.deliveryLng);
+      const hasPoint =
+        Number.isFinite(lat) &&
+        Number.isFinite(lng);
+
       const address =
         getOrderAddress(order);
 
       if (
-        !address ||
-        address ===
-          'العنوان غير محدد'
+        !hasPoint &&
+        (!address ||
+          address ===
+            'العنوان غير محدد')
       ) {
         Alert.alert(
           'غير متاح',
@@ -802,11 +865,9 @@ const DeliveryDashboard = ({ navigation }) => {
         return;
       }
 
-      const encoded =
-        encodeURIComponent(address);
-
-      const url =
-        `https://www.google.com/maps/search/?api=1&query=${encoded}`;
+      const url = hasPoint
+        ? `https://www.google.com/maps/dir/?api=1&destination=${lat},${lng}`
+        : `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(address)}`;
 
       try {
         const supported =
@@ -1431,6 +1492,25 @@ const DeliveryDashboard = ({ navigation }) => {
           <View style={styles.headerActions}>
             <TouchableOpacity
               style={styles.headerButton}
+              onPress={handleShareLocation}
+              disabled={sharingLocation}
+            >
+              {sharingLocation ? (
+                <ActivityIndicator
+                  size="small"
+                  color={COLORS.primary}
+                />
+              ) : (
+                <Ionicons
+                  name="locate-outline"
+                  size={26}
+                  color={COLORS.primary}
+                />
+              )}
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              style={styles.headerButton}
               onPress={() =>
                 navigation.navigate(
                   'DeliveryProfile'
@@ -1670,6 +1750,8 @@ const DeliveryDashboard = ({ navigation }) => {
       user?.name,
       navigation,
       handleLogout,
+      handleShareLocation,
+      sharingLocation,
       statistics,
       search,
       filter,

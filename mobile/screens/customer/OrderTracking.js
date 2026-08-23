@@ -14,6 +14,7 @@ import { useIsFocused } from '@react-navigation/native';
 
 import { COLORS } from '../../constants/colors';
 import { orderService } from '../../services/orderService';
+import LocationMap from '../../components/LocationMap';
 
 const POLLING_INTERVAL = 10000;
 
@@ -225,6 +226,57 @@ const OrderTracking = ({ route, navigation }) => {
     () => normalizeStatus(order?.status),
     [order?.status]
   );
+
+  /*
+   * علامات الخريطة: المتجر، موقع التوصيل، والمندوب أثناء الطريق.
+   */
+  const trackingMarkers = useMemo(() => {
+    if (!order) return [];
+
+    const markers = [];
+
+    const storeLat = Number(order.store?.latitude);
+    const storeLng = Number(order.store?.longitude);
+    if (Number.isFinite(storeLat) && Number.isFinite(storeLng)) {
+      markers.push({
+        lat: storeLat,
+        lng: storeLng,
+        label: order.store?.name || 'المتجر',
+        color: 'blue',
+      });
+    }
+
+    const dropLat = Number(order.deliveryLat);
+    const dropLng = Number(order.deliveryLng);
+    if (Number.isFinite(dropLat) && Number.isFinite(dropLng)) {
+      markers.push({
+        lat: dropLat,
+        lng: dropLng,
+        label: 'موقع التوصيل',
+        color: 'primary',
+      });
+    }
+
+    const courierLat = Number(order.delivery?.deliveryProfile?.latitude);
+    const courierLng = Number(order.delivery?.deliveryProfile?.longitude);
+    const enRoute = ['PICKED_UP', 'ON_THE_WAY'].includes(
+      normalizeStatus(order.status)
+    );
+    if (
+      enRoute &&
+      Number.isFinite(courierLat) &&
+      Number.isFinite(courierLng)
+    ) {
+      markers.push({
+        lat: courierLat,
+        lng: courierLng,
+        label: order.delivery?.name || 'المندوب',
+        color: 'success',
+      });
+    }
+
+    return markers;
+  }, [order]);
 
   const currentStepIndex = useMemo(() => {
     if (currentStatus === 'CANCELLED') {
@@ -741,6 +793,15 @@ const OrderTracking = ({ route, navigation }) => {
             معلومات التوصيل
           </Text>
 
+          {trackingMarkers.length > 0 && (
+            <LocationMap
+              markers={trackingMarkers}
+              zoom={14}
+              height={210}
+              style={styles.trackingMap}
+            />
+          )}
+
           <View style={styles.infoRow}>
             <View style={styles.infoIcon}>
               <Ionicons
@@ -1015,6 +1076,10 @@ const styles = StyleSheet.create({
     marginBottom: 14,
     borderWidth: 1,
     borderColor: COLORS.border,
+  },
+
+  trackingMap: {
+    marginBottom: 14,
   },
 
   sectionTitleRow: {

@@ -23,6 +23,8 @@ import { COLORS } from '../../constants/colors';
 import useAppStore from '../../store/appStore';
 import { orderService } from '../../services/orderService';
 import PrimaryButton from '../../components/PrimaryButton';
+import LocationMap from '../../components/LocationMap';
+import LocationPickerModal from '../../components/LocationPickerModal';
 
 const DELIVERY_FEE = 25;
 
@@ -37,6 +39,8 @@ const OrderConfirmation = ({ route, navigation }) => {
   } = useAppStore();
 
   const [address, setAddress] = useState('');
+  const [deliveryPoint, setDeliveryPoint] = useState(null);
+  const [mapPickerVisible, setMapPickerVisible] = useState(false);
   const [loading, setLoading] = useState(false);
 
   /*
@@ -259,6 +263,12 @@ const OrderConfirmation = ({ route, navigation }) => {
       address: cleanAddress,
 
       /*
+       * إحداثيات الموقع من الخريطة (اختيارية).
+       */
+      latitude: deliveryPoint?.lat ?? null,
+      longitude: deliveryPoint?.lng ?? null,
+
+      /*
        * الموعد اختياري.
        */
       scheduledAt: scheduledDate || null,
@@ -359,6 +369,7 @@ const OrderConfirmation = ({ route, navigation }) => {
     loading,
     validateOrder,
     address,
+    deliveryPoint,
     storeId,
     storeItems,
     scheduledDate,
@@ -610,6 +621,48 @@ const OrderConfirmation = ({ route, navigation }) => {
             <Text style={styles.characterCount}>
               {address.length}/500
             </Text>
+
+            {/* ==============================
+                الموقع على الخريطة
+            ============================== */}
+            <TouchableOpacity
+              style={styles.mapPickButton}
+              onPress={() => setMapPickerVisible(true)}
+              disabled={loading}
+            >
+              <Ionicons
+                name="map-outline"
+                size={19}
+                color={COLORS.primary}
+              />
+              <Text style={styles.mapPickText}>
+                {deliveryPoint
+                  ? 'تعديل الموقع على الخريطة'
+                  : 'تحديد الموقع على الخريطة'}
+              </Text>
+              {deliveryPoint && (
+                <Ionicons
+                  name="checkmark-circle"
+                  size={18}
+                  color={COLORS.success}
+                />
+              )}
+            </TouchableOpacity>
+
+            {deliveryPoint && (
+              <LocationMap
+                markers={[
+                  {
+                    ...deliveryPoint,
+                    label: 'موقع التوصيل',
+                    color: 'primary',
+                  },
+                ]}
+                zoom={16}
+                height={160}
+                style={styles.mapPreview}
+              />
+            )}
           </View>
 
           {/* ==================================
@@ -768,6 +821,14 @@ const OrderConfirmation = ({ route, navigation }) => {
           </Text>
         </ScrollView>
       </KeyboardAvoidingView>
+
+      <LocationPickerModal
+        visible={mapPickerVisible}
+        title="تحديد موقع التوصيل"
+        initial={deliveryPoint}
+        onConfirm={setDeliveryPoint}
+        onClose={() => setMapPickerVisible(false)}
+      />
 
       {/* Loading Overlay */}
       {loading && (
@@ -977,6 +1038,29 @@ const styles = StyleSheet.create({
     fontSize: 10,
     color: COLORS.textLight,
     textAlign: 'left',
+  },
+
+  mapPickButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 7,
+    marginTop: 12,
+    paddingVertical: 12,
+    borderRadius: 13,
+    borderWidth: 1.5,
+    borderColor: COLORS.primary,
+    backgroundColor: COLORS.surface,
+  },
+
+  mapPickText: {
+    color: COLORS.primary,
+    fontWeight: '700',
+    fontSize: 13,
+  },
+
+  mapPreview: {
+    marginTop: 10,
   },
 
   scheduleButton: {

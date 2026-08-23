@@ -11,30 +11,59 @@ import { Ionicons } from '@expo/vector-icons';
 import { COLORS } from '../../constants/colors';
 import useAppStore from '../../store/appStore';
 import { authService } from '../../services/authService';
+import adminService from '../../services/adminService';
 
 const AdminDashboard = ({ navigation }) => {
   const { user } = useAppStore();
   const [refreshing, setRefreshing] = useState(false);
+  const [dashboard, setDashboard] = useState({
+    users: 0,
+    stores: 0,
+    orders: 0,
+    deliveries: 0,
+  });
 
   const stats = [
-    { label: 'المستخدمين', value: 128, icon: 'people-outline', color: COLORS.primary },
-    { label: 'المتاجر', value: 45, icon: 'storefront-outline', color: COLORS.secondary },
-    { label: 'الطلبات', value: 320, icon: 'bag-outline', color: COLORS.warning },
-    { label: 'المندوبين', value: 18, icon: 'bicycle-outline', color: COLORS.success },
+    { label: 'المستخدمين', value: dashboard.users, icon: 'people-outline', color: COLORS.primary },
+    { label: 'المتاجر', value: dashboard.stores, icon: 'storefront-outline', color: COLORS.secondary },
+    { label: 'الطلبات', value: dashboard.orders, icon: 'bag-outline', color: COLORS.warning },
+    { label: 'المندوبين', value: dashboard.deliveries, icon: 'bicycle-outline', color: COLORS.success },
   ];
+
+  const canAccess = (permission) =>
+    user?.role === 'admin' || user?.permissions?.includes(permission);
 
   const menuItems = [
-    { label: 'إدارة المستخدمين', icon: 'people-outline', screen: 'UsersManagement' },
-    { label: 'إدارة المتاجر', icon: 'storefront-outline', screen: 'StoresManagement' },
-    { label: 'إدارة الطلبات', icon: 'bag-outline', screen: 'OrdersManagement' },
-    { label: 'إدارة المندوبين', icon: 'bicycle-outline', screen: 'DeliveryManagement' },
-    { label: 'المشرفين الفرعيين', icon: 'person-add-outline', screen: 'SubAdminsManagement' },
-    { label: 'التقارير', icon: 'bar-chart-outline', screen: 'Reports' },
-  ];
+    { label: 'إدارة المستخدمين', icon: 'people-outline', screen: 'UsersManagement', permission: 'users.read' },
+    { label: 'إدارة المتاجر', icon: 'storefront-outline', screen: 'StoresManagement', permission: 'stores.read' },
+    { label: 'إدارة الطلبات', icon: 'bag-outline', screen: 'OrdersManagement', permission: 'orders.read' },
+    { label: 'إدارة المندوبين', icon: 'bicycle-outline', screen: 'DeliveryManagement', permission: 'delivery.read' },
+    { label: 'المشرفين الفرعيين', icon: 'person-add-outline', screen: 'SubAdminsManagement', adminOnly: true },
+    { label: 'التقارير', icon: 'bar-chart-outline', screen: 'Reports', permission: 'reports.read' },
+  ].filter((item) => item.adminOnly
+    ? user?.role === 'admin'
+    : canAccess(item.permission));
 
-  const onRefresh = () => {
+  const loadDashboard = async () => {
+    const response = await adminService.getDashboard();
+    setDashboard(response.data);
+  };
+
+  useEffect(() => {
+    loadDashboard().catch((error) => {
+      console.error('Failed to load admin dashboard:', error);
+    });
+  }, []);
+
+  const onRefresh = async () => {
     setRefreshing(true);
-    setTimeout(() => setRefreshing(false), 1000);
+    try {
+      await loadDashboard();
+    } catch (error) {
+      console.error('Failed to refresh admin dashboard:', error);
+    } finally {
+      setRefreshing(false);
+    }
   };
 
   const handleLogout = async () => {

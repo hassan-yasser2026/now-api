@@ -12,6 +12,7 @@ import {
 import { Ionicons } from '@expo/vector-icons';
 import { COLORS } from '../../constants/colors';
 import { orderService } from '../../services/orderService';
+import LocationMap from '../../components/LocationMap';
 
 // ========== Types ==========
 type OrderStatus =
@@ -39,6 +40,8 @@ type OrderDetails = {
   customerAddress?: string;
   address?: string;
   deliveryAddress?: string;
+  deliveryLat?: number | string | null;
+  deliveryLng?: number | string | null;
   items?: OrderItem[];
   orderItems?: OrderItem[];
   total?: number;
@@ -188,6 +191,23 @@ const VendorOrderDetails: React.FC<{ route: any; navigation: any }> = ({
           </View>
           <Text style={styles.detailText}>{order.customer?.name || order.customerName || 'غير معروف'}</Text>
           <Text style={styles.detailSubText}>{order.address || order.deliveryAddress || order.customerAddress || 'غير محدد'}</Text>
+
+          {Number.isFinite(Number(order.deliveryLat)) &&
+            Number.isFinite(Number(order.deliveryLng)) && (
+              <LocationMap
+                markers={[
+                  {
+                    lat: Number(order.deliveryLat),
+                    lng: Number(order.deliveryLng),
+                    label: 'موقع التوصيل',
+                    color: 'primary',
+                  },
+                ]}
+                zoom={15}
+                height={170}
+                style={{ marginTop: 12 }}
+              />
+            )}
         </View>
 
         {/* وقت الطلب والجدولة */}

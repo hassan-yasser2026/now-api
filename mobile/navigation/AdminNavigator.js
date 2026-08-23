@@ -9,6 +9,7 @@ import DeliveryManagement from '../screens/admin/DeliveryManagement';
 import SubAdminsManagement from '../screens/admin/SubAdminsManagement';
 import SubAdminPermissions from '../screens/admin/SubAdminPermissions';
 import Reports from '../screens/admin/Reports';
+import AboutScreen from '../screens/auth/AboutScreen';
 
 const Stack = createNativeStackNavigator();
 
@@ -23,6 +24,7 @@ const AdminNavigator = () => {
       <Stack.Screen name="SubAdminsManagement" component={SubAdminsManagement} />
       <Stack.Screen name="SubAdminPermissions" component={SubAdminPermissions} />
       <Stack.Screen name="Reports" component={Reports} />
+      <Stack.Screen name="About" component={AboutScreen} />
     </Stack.Navigator>
   );
 };

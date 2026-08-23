@@ -1,41 +1,63 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import {
   View, Text, FlatList, TouchableOpacity, StyleSheet,
-  RefreshControl, TextInput,
+  RefreshControl, Alert,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { COLORS } from '../../constants/colors';
 import EmptyState from '../../components/EmptyState';
+import Loading from '../../components/Loading';
+import adminService from '../../services/adminService';
 
 const OrdersManagement = ({ navigation }) => {
-  const [orders, setOrders] = useState([
-    { id: 1, customer: 'أحمد', store: 'مطعم الأهرام', total: 120, status: 'Pending', date: '2026-08-15' },
-    { id: 2, customer: 'سارة', store: 'بيتزا إيطاليا', total: 200, status: 'Delivered', date: '2026-08-15' },
-    { id: 3, customer: 'محمد', store: 'كافيه نايس', total: 80, status: 'PickedUp', date: '2026-08-14' },
-  ]);
+  const [orders, setOrders] = useState([]);
+  const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
 
-  const onRefresh = () => {
+  const loadOrders = async () => {
+    const response = await adminService.getOrders();
+    setOrders(response.data);
+  };
+
+  useEffect(() => {
+    loadOrders()
+      .catch(() => Alert.alert('خطأ', 'تعذر تحميل الطلبات'))
+      .finally(() => setLoading(false));
+  }, []);
+
+  const onRefresh = async () => {
     setRefreshing(true);
-    setTimeout(() => setRefreshing(false), 1000);
+    try {
+      await loadOrders();
+    } catch (error) {
+      Alert.alert('خطأ', 'تعذر تحديث الطلبات');
+    } finally {
+      setRefreshing(false);
+    }
   };
 
   const getStatusColor = (status) => {
     switch(status) {
-      case 'Pending': return COLORS.warning;
-      case 'Preparing': return COLORS.secondary;
-      case 'PickedUp': return COLORS.primary;
-      case 'Delivered': return COLORS.success;
+      case 'PENDING': return COLORS.warning;
+      case 'PREPARING': return COLORS.secondary;
+      case 'PICKED_UP':
+      case 'ON_THE_WAY': return COLORS.primary;
+      case 'DELIVERED': return COLORS.success;
+      case 'CANCELLED': return COLORS.error;
       default: return COLORS.textSecondary;
     }
   };
 
   const getStatusText = (status) => {
     switch(status) {
-      case 'Pending': return 'قيد الانتظار';
-      case 'Preparing': return 'قيد التحضير';
-      case 'PickedUp': return 'في الطريق';
-      case 'Delivered': return 'تم التوصيل';
+      case 'PENDING': return 'قيد الانتظار';
+      case 'ACCEPTED': return 'تم القبول';
+      case 'PREPARING': return 'قيد التحضير';
+      case 'READY': return 'جاهز للاستلام';
+      case 'PICKED_UP': return 'تم الاستلام';
+      case 'ON_THE_WAY': return 'في الطريق';
+      case 'DELIVERED': return 'تم التوصيل';
+      case 'CANCELLED': return 'ملغي';
       default: return status;
     }
   };
@@ -48,14 +70,18 @@ const OrdersManagement = ({ navigation }) => {
           {getStatusText(item.status)}
         </Text>
       </View>
-      <Text style={styles.customer}>👤 {item.customer}</Text>
-      <Text style={styles.store}>🏪 {item.store}</Text>
+      <Text style={styles.customer}>العميل: {item.customer.name}</Text>
+      <Text style={styles.store}>المتجر: {item.store.name}</Text>
       <View style={styles.cardFooter}>
-        <Text style={styles.total}>💵 {item.total} ج.م</Text>
-        <Text style={styles.date}>📅 {item.date}</Text>
+        <Text style={styles.total}>{Number(item.totalPrice).toFixed(2)} ج.م</Text>
+        <Text style={styles.date}>{new Date(item.createdAt).toLocaleDateString('ar-EG')}</Text>
       </View>
     </TouchableOpacity>
   );
+
+  if (loading) {
+    return <Loading text="جاري تحميل الطلبات..." />;
+  }
 
   return (
     <View style={styles.container}>

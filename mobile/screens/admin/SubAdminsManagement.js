@@ -1,27 +1,68 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import {
   View, Text, FlatList, TouchableOpacity, StyleSheet,
-  RefreshControl, TextInput, Modal,
+  RefreshControl, Alert,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { COLORS } from '../../constants/colors';
 import EmptyState from '../../components/EmptyState';
+import Loading from '../../components/Loading';
+import adminService from '../../services/adminService';
 
 const SubAdminsManagement = ({ navigation }) => {
-  const [subAdmins, setSubAdmins] = useState([
-    { id: 1, name: 'مروان', phone: '01000000005', permissions: ['orders', 'stores'], status: 'active' },
-    { id: 2, name: 'ليلى', phone: '01000000006', permissions: ['users'], status: 'active' },
-  ]);
+  const [subAdmins, setSubAdmins] = useState([]);
+  const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
-  const [modalVisible, setModalVisible] = useState(false);
 
-  const onRefresh = () => {
+  const loadSubAdmins = async () => {
+    const response = await adminService.getSubAdmins();
+    setSubAdmins(response.data);
+  };
+
+  useEffect(() => {
+    const unsubscribe = navigation.addListener('focus', () => {
+      loadSubAdmins()
+        .catch(() => Alert.alert('خطأ', 'تعذر تحميل المشرفين الفرعيين'))
+        .finally(() => setLoading(false));
+    });
+
+    return unsubscribe;
+  }, [navigation]);
+
+  const onRefresh = async () => {
     setRefreshing(true);
-    setTimeout(() => setRefreshing(false), 1000);
+    try {
+      await loadSubAdmins();
+    } catch (error) {
+      Alert.alert('خطأ', 'تعذر تحديث المشرفين الفرعيين');
+    } finally {
+      setRefreshing(false);
+    }
+  };
+
+  const disableSubAdmin = (subAdmin) => {
+    Alert.alert('تأكيد التعطيل', 'هل أنت متأكد من تعطيل هذا المشرف؟', [
+      { text: 'إلغاء', style: 'cancel' },
+      {
+        text: 'تعطيل',
+        style: 'destructive',
+        onPress: async () => {
+          try {
+            await adminService.deleteSubAdmin(subAdmin.id);
+            await loadSubAdmins();
+          } catch (error) {
+            Alert.alert('خطأ', 'تعذر تعطيل المشرف');
+          }
+        },
+      },
+    ]);
   };
 
   const renderItem = ({ item }) => (
-    <View style={styles.card}>
+    <TouchableOpacity
+      style={styles.card}
+      onPress={() => navigation.navigate('SubAdminPermissions', { subAdmin: item })}
+    >
       <View style={styles.cardContent}>
         <Text style={styles.name}>{item.name}</Text>
         <Text style={styles.phone}>{item.phone}</Text>
@@ -31,11 +72,21 @@ const SubAdminsManagement = ({ navigation }) => {
           <Text key={index} style={styles.permissionBadge}>{p}</Text>
         ))}
       </View>
-      <Text style={[styles.status, item.status === 'active' ? styles.active : styles.inactive]}>
-        {item.status === 'active' ? '🟢 نشط' : '🔴 غير نشط'}
+      <Text style={[styles.status, item.isActive ? styles.active : styles.inactive]}>
+        {item.isActive ? 'نشط' : 'معطل'}
       </Text>
-    </View>
+      {item.isActive && (
+        <TouchableOpacity style={styles.disableButton} onPress={() => disableSubAdmin(item)}>
+          <Ionicons name="ban-outline" size={18} color={COLORS.error} />
+          <Text style={styles.disableText}>تعطيل</Text>
+        </TouchableOpacity>
+      )}
+    </TouchableOpacity>
   );
+
+  if (loading) {
+    return <Loading text="جاري تحميل المشرفين..." />;
+  }
 
   return (
     <View style={styles.container}>
@@ -44,7 +95,10 @@ const SubAdminsManagement = ({ navigation }) => {
           <Ionicons name="arrow-back" size={28} color={COLORS.textPrimary} />
         </TouchableOpacity>
         <Text style={styles.headerTitle}>المشرفين الفرعيين</Text>
-        <TouchableOpacity onPress={() => setModalVisible(true)} style={styles.addBtn}>
+        <TouchableOpacity
+          onPress={() => navigation.navigate('SubAdminPermissions')}
+          style={styles.addBtn}
+        >
           <Ionicons name="add-circle" size={28} color={COLORS.primary} />
         </TouchableOpacity>
       </View>
@@ -81,6 +135,8 @@ const styles = StyleSheet.create({
   status: { fontSize: 14, marginTop: 8, textAlign: 'center' },
   active: { color: COLORS.success },
   inactive: { color: COLORS.error },
+  disableButton: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', marginTop: 10, paddingTop: 10, borderTopWidth: 1, borderTopColor: COLORS.border },
+  disableText: { color: COLORS.error, marginLeft: 6, fontWeight: '600' },
 });
 
 export default SubAdminsManagement;

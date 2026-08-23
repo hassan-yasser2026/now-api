@@ -32,6 +32,8 @@ export const orderService = {
     storeId,
     items,
     address,
+    latitude,
+    longitude,
     scheduledAt,
     paymentMethod = 'CASH_ON_DELIVERY',
   }) => {
@@ -48,9 +50,18 @@ export const orderService = {
       if (Number.isNaN(scheduledDate.getTime()))
         return { success: false, message: 'موعد التوصيل غير صحيح' };
 
+      const hasPoint =
+        Number.isFinite(Number(latitude)) &&
+        Number.isFinite(Number(longitude)) &&
+        latitude !== null &&
+        longitude !== null;
+
       const payload = {
         storeId,
         address: address.trim(),
+        ...(hasPoint
+          ? { latitude: Number(latitude), longitude: Number(longitude) }
+          : {}),
         scheduledAt: scheduledDate.toISOString(),
         paymentMethod,
         items: items.map((item) => ({

@@ -12,18 +12,25 @@ import {
 
 import {
   I18nManager,
+  View,
   useColorScheme,
 } from 'react-native';
 
 import * as Localization from 'expo-localization';
 
 import RootNavigator from './navigation/RootNavigator';
+import GlobalLanguageButton from './components/GlobalLanguageButton';
 import useAppStore from './store/appStore';
+import installGlobalTranslation from './utils/globalTranslation';
 
 import {
   lightTheme,
   darkTheme,
 } from './constants/theme';
+
+// Patch Text / TextInput / Alert before any screen mounts so every panel is
+// translated from the app shell instead of screen by screen.
+installGlobalTranslation();
 
 export default function App() {
   const systemScheme = useColorScheme();
@@ -31,6 +38,8 @@ export default function App() {
   const themePreference = useAppStore(
     (state) => state.themePreference
   );
+
+  const language = useAppStore((state) => state.language);
 
   const isDark =
     themePreference === 'dark' ||
@@ -71,18 +80,37 @@ export default function App() {
       }
     };
 
+    const initializeCountry = async () => {
+      const persistedCountry = await AsyncStorage.getItem('country');
+      if (persistedCountry) return;
+
+      const region = Localization.getLocales?.()[0]?.regionCode;
+      if (region) {
+        await useAppStore.getState().setCountry(region);
+      }
+    };
+
     initializeLanguage();
+    initializeCountry();
   }, []);
 
   return (
     <SafeAreaProvider>
-      <NavigationContainer theme={theme}>
-        <StatusBar
-          style={isDark ? 'light' : 'dark'}
-        />
+      <View style={{ flex: 1 }}>
+        {/*
+          Remounting on language change re-renders every screen through the
+          translation layer, so a switch applies to all panels at once.
+        */}
+        <NavigationContainer key={language} theme={theme}>
+          <StatusBar
+            style={isDark ? 'light' : 'dark'}
+          />
 
-        <RootNavigator />
-      </NavigationContainer>
+          <RootNavigator />
+        </NavigationContainer>
+
+        <GlobalLanguageButton />
+      </View>
     </SafeAreaProvider>
   );
 }

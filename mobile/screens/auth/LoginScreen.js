@@ -17,25 +17,36 @@ import { Ionicons } from '@expo/vector-icons';
 
 import { COLORS } from '../../constants/colors';
 import { authService } from '../../services/authService';
+import PhoneInput from '../../components/PhoneInput';
+import useAppStore from '../../store/appStore';
 
 const LoginScreen = ({ navigation }) => {
+  const storeCountry = useAppStore((state) => state.country);
+
   const [phone, setPhone] = useState('');
+  const [phoneE164, setPhoneE164] = useState('');
+  const [phoneValid, setPhoneValid] = useState(false);
+  const [country, setCountry] = useState(storeCountry);
   const [password, setPassword] = useState('');
 
   const [loading, setLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
 
-  const [phoneFocused, setPhoneFocused] = useState(false);
   const [passwordFocused, setPasswordFocused] = useState(false);
+
+  const handlePhoneChange = ({ national, e164, isValid, countryCode }) => {
+    setPhone(national);
+    setPhoneE164(e164);
+    setPhoneValid(isValid);
+    setCountry(countryCode);
+  };
 
   // ==========================================
   // LOGIN
   // ==========================================
 
   const handleLogin = async () => {
-    const cleanPhone = phone.trim();
-
-    if (!cleanPhone) {
+    if (!phone) {
       Alert.alert('تنبيه', 'من فضلك أدخل رقم الهاتف');
       return;
     }
@@ -45,8 +56,8 @@ const LoginScreen = ({ navigation }) => {
       return;
     }
 
-    if (cleanPhone.length < 8) {
-      Alert.alert('تنبيه', 'رقم الهاتف غير صحيح');
+    if (!phoneValid) {
+      Alert.alert('تنبيه', 'رقم الهاتف غير صحيح لهذه الدولة');
       return;
     }
 
@@ -55,7 +66,7 @@ const LoginScreen = ({ navigation }) => {
 
       // السيرفر هو المسؤول عن تحديد Role المستخدم
       const result = await authService.login(
-        cleanPhone,
+        phoneE164,
         password
       );
 
@@ -181,42 +192,11 @@ const LoginScreen = ({ navigation }) => {
             رقم الهاتف
           </Text>
 
-          <View
-            style={[
-              styles.inputContainer,
-              phoneFocused &&
-                styles.inputContainerFocused,
-            ]}
-          >
-            <Ionicons
-              name="call-outline"
-              size={21}
-              color={
-                phoneFocused
-                  ? COLORS.primary
-                  : COLORS.textSecondary
-              }
-              style={styles.inputIcon}
-            />
-
-            <TextInput
-              style={styles.input}
-              placeholder="مثال: 01012345678"
-              placeholderTextColor={COLORS.textLight}
-              value={phone}
-              onChangeText={setPhone}
-              keyboardType="phone-pad"
-              autoComplete="tel"
-              textContentType="telephoneNumber"
-              maxLength={15}
-              onFocus={() =>
-                setPhoneFocused(true)
-              }
-              onBlur={() =>
-                setPhoneFocused(false)
-              }
-            />
-          </View>
+          <PhoneInput
+            value={phone}
+            countryCode={country}
+            onChange={handlePhoneChange}
+          />
 
           {/* ====================================
               PASSWORD

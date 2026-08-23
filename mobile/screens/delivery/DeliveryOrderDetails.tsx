@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import {
   View,
   Text,
@@ -8,10 +8,13 @@ import {
   SafeAreaView,
   ActivityIndicator,
   Alert,
+  Linking,
+  Platform,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { COLORS } from '../../constants/colors';
 import deliveryService from '../../services/deliveryService';
+import LocationMap from '../../components/LocationMap';
 
 // ========== Types ==========
 type OrderStatus =
@@ -35,13 +38,20 @@ type OrderItem = {
 type OrderDetails = {
   id: string;
   storeName?: string;
-  store?: { name: string; address?: string };
+  store?: {
+    name: string;
+    address?: string;
+    latitude?: number | string | null;
+    longitude?: number | string | null;
+  };
   storeAddress?: string;
   customerName?: string;
   customer?: { name: string; phone?: string };
   customerAddress?: string;
   address?: string;
   deliveryAddress?: string;
+  deliveryLat?: number | string | null;
+  deliveryLng?: number | string | null;
   items?: OrderItem[];
   orderItems?: OrderItem[];
   total?: number;
@@ -50,6 +60,49 @@ type OrderDetails = {
   status: OrderStatus;
   distance?: number;
   createdAt: string;
+};
+
+type MapMarker = {
+  lat: number;
+  lng: number;
+  label?: string;
+  color?: 'primary' | 'success' | 'blue';
+};
+
+const toPoint = (
+  lat?: number | string | null,
+  lng?: number | string | null
+): { lat: number; lng: number } | null => {
+  const parsedLat = Number(lat);
+  const parsedLng = Number(lng);
+  if (!Number.isFinite(parsedLat) || !Number.isFinite(parsedLng)) return null;
+  return { lat: parsedLat, lng: parsedLng };
+};
+
+/** يفتح تطبيق الخرائط للملاحة إلى نقطة أو عنوان نصي. */
+const openNavigation = async (
+  point: { lat: number; lng: number } | null,
+  address?: string
+) => {
+  const url = point
+    ? Platform.select({
+        ios: `maps:0,0?q=${point.lat},${point.lng}`,
+        default: `https://www.google.com/maps/dir/?api=1&destination=${point.lat},${point.lng}`,
+      })
+    : `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(
+        address || ''
+      )}`;
+
+  if (!point && !address) {
+    Alert.alert('تنبيه', 'لا يوجد موقع أو عنوان لهذا الطلب');
+    return;
+  }
+
+  try {
+    await Linking.openURL(url as string);
+  } catch {
+    Alert.alert('خطأ', 'لا يمكن فتح الخرائط.');
+  }
 };
 
 // ========== Component ==========
@@ -113,6 +166,35 @@ const DeliveryOrderDetails: React.FC<{ route: any; navigation: any }> = ({
 
   const nextAction = getNextAction();
 
+  const storePoint = useMemo(
+    () => toPoint(order?.store?.latitude, order?.store?.longitude),
+    [order?.store?.latitude, order?.store?.longitude]
+  );
+
+  const customerPoint = useMemo(
+    () => toPoint(order?.deliveryLat, order?.deliveryLng),
+    [order?.deliveryLat, order?.deliveryLng]
+  );
+
+  const mapMarkers = useMemo<MapMarker[]>(() => {
+    const markers: MapMarker[] = [];
+    if (storePoint) {
+      markers.push({
+        ...storePoint,
+        label: order?.store?.name || 'المتجر',
+        color: 'blue',
+      });
+    }
+    if (customerPoint) {
+      markers.push({
+        ...customerPoint,
+        label: 'موقع التسليم',
+        color: 'primary',
+      });
+    }
+    return markers;
+  }, [storePoint, customerPoint, order?.store?.name]);
+
   if (loading) {
     return (
       <SafeAreaView style={styles.center}>
@@ -151,6 +233,17 @@ const DeliveryOrderDetails: React.FC<{ route: any; navigation: any }> = ({
           <Text style={styles.statusValue}>{order.status}</Text>
         </View>
 
+        {/* الخريطة */}
+        {mapMarkers.length > 0 && (
+          <View style={styles.card}>
+            <View style={styles.cardHeader}>
+              <Ionicons name="map-outline" size={20} color={COLORS.primary} />
+              <Text style={styles.cardTitle}>خريطة الطلب</Text>
+            </View>
+            <LocationMap markers={mapMarkers} height={210} style={styles.map} />
+          </View>
+        )}
+
         {/* المتجر */}
         <View style={styles.card}>
           <View style={styles.cardHeader}>
@@ -159,6 +252,15 @@ const DeliveryOrderDetails: React.FC<{ route: any; navigation: any }> = ({
           </View>
           <Text style={styles.detailText}>{order.store?.name || order.storeName || 'متجر'}</Text>
           <Text style={styles.detailSubText}>{order.store?.address || order.storeAddress || ''}</Text>
+          {(storePoint || order.store?.address) && (
+            <TouchableOpacity
+              style={styles.navigateBtn}
+              onPress={() => openNavigation(storePoint, order.store?.address)}
+            >
+              <Ionicons name="navigate-outline" size={17} color={COLORS.primary} />
+              <Text style={styles.navigateText}>الملاحة إلى المتجر</Text>
+            </TouchableOpacity>
+          )}
         </View>
 
         {/* العميل */}
@@ -169,6 +271,18 @@ const DeliveryOrderDetails: React.FC<{ route: any; navigation: any }> = ({
           </View>
           <Text style={styles.detailText}>{order.customer?.name || order.customerName || 'عميل'}</Text>
           <Text style={styles.detailSubText}>{order.address || order.deliveryAddress || order.customerAddress || 'غير محدد'}</Text>
+          <TouchableOpacity
+            style={styles.navigateBtn}
+            onPress={() =>
+              openNavigation(
+                customerPoint,
+                order.address || order.deliveryAddress || order.customerAddress
+              )
+            }
+          >
+            <Ionicons name="navigate-outline" size={17} color={COLORS.primary} />
+            <Text style={styles.navigateText}>الملاحة إلى العميل</Text>
+          </TouchableOpacity>
         </View>
 
         {/* المسافة */}
@@ -328,6 +442,26 @@ const styles = StyleSheet.create({
   detailSubText: {
     fontSize: 13,
     color: COLORS.secondaryText,
+  },
+  map: {
+    marginTop: 4,
+  },
+  navigateBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 6,
+    marginTop: 10,
+    paddingVertical: 10,
+    borderRadius: 12,
+    borderWidth: 1.5,
+    borderColor: COLORS.primary,
+    backgroundColor: '#fff',
+  },
+  navigateText: {
+    color: COLORS.primary,
+    fontWeight: '700',
+    fontSize: 13,
   },
   itemRow: {
     flexDirection: 'row',
