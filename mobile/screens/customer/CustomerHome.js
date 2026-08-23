@@ -296,6 +296,16 @@ const CustomerHome = ({ navigation }) => {
         </View>
 
         <View style={styles.headerActions}>
+          {/* زر انضم كشريك */}
+          <TouchableOpacity
+            style={styles.partnerFab}
+            onPress={() => navigation.navigate('PartnerJoin')}
+            activeOpacity={0.8}
+          >
+            <Ionicons name="briefcase-outline" size={18} color={COLORS.primary} />
+            <Text style={styles.partnerFabText}>شريك</Text>
+          </TouchableOpacity>
+
           <TouchableOpacity
             style={styles.iconButton}
             onPress={handleCartPress}
@@ -367,7 +377,7 @@ const CustomerHome = ({ navigation }) => {
         <Ionicons name="search-outline" size={22} color={COLORS.textSecondary} />
         <TextInput
           style={[styles.searchInput, isRTL ? styles.searchInputRTL : styles.searchInputLTR]}
-          placeholder="ابحث عن مطعم أو متجر..."
+          placeholder="ابحث عن متجر أو خدمة..."
           placeholderTextColor={COLORS.textLight}
           value={searchText}
           onChangeText={setSearchText}
@@ -557,7 +567,13 @@ const CustomerHome = ({ navigation }) => {
             <TouchableOpacity
               key={cartStore.storeId}
               style={styles.cartBar}
-              onPress={() => navigation.navigate('OrderConfirmation', { storeId: cartStore.storeId })}
+              onPress={() => {
+                if (isGuest) {
+                  navigation.navigate('Login');
+                  return;
+                }
+                navigation.navigate('OrderConfirmation', { storeId: cartStore.storeId });
+              }}
               activeOpacity={0.9}
             >
               <View style={styles.cartInfo}>
@@ -612,6 +628,22 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     gap: 10,
     marginLeft: 10,
+  },
+  partnerFab: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 5,
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    borderRadius: 20,
+    backgroundColor: '#FCE7F3',
+    borderWidth: 1,
+    borderColor: '#F9A8D4',
+  },
+  partnerFabText: {
+    fontSize: 12,
+    fontWeight: '800',
+    color: COLORS.primary,
   },
   iconButton: {
     width: 42,
