@@ -1,5 +1,4 @@
 import React, { useEffect, useState } from 'react';
-import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import useAppStore from '../store/appStore';
 import AuthNavigator from './AuthNavigator';
 import CustomerNavigator from './CustomerNavigator';
@@ -8,19 +7,24 @@ import DeliveryNavigator from './DeliveryNavigator';
 import AdminNavigator from './AdminNavigator';
 import Loading from '../components/Loading';
 
-const Stack = createNativeStackNavigator();
-
 const RootNavigator = () => {
   const { isAuthenticated, role, restoreSession } = useAppStore();
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
+    let isMounted = true;
     const init = async () => {
-      await restoreSession();
-      setLoading(false);
+      try {
+        await restoreSession();
+      } catch (error) {
+        console.error("Session restore error:", error);
+      } finally {
+        if (isMounted) setLoading(false);
+      }
     };
     init();
-  }, []);
+    return () => { isMounted = false; };
+  }, [isAuthenticated, restoreSession]);
 
   if (loading) {
     return <Loading text="جاري تحميل التطبيق..." />;
@@ -41,15 +45,8 @@ const RootNavigator = () => {
     }
   };
 
-  return (
-    <Stack.Navigator screenOptions={{ headerShown: false }}>
-      {isAuthenticated ? (
-        <Stack.Screen name="App" component={getNavigator()} />
-      ) : (
-        <Stack.Screen name="Auth" component={AuthNavigator} />
-      )}
-    </Stack.Navigator>
-  );
+  const ActiveNavigator = isAuthenticated ? getNavigator() : AuthNavigator;
+  return <ActiveNavigator key={isAuthenticated ? `app-${role}` : 'auth'} />;
 };
 
 export default RootNavigator;

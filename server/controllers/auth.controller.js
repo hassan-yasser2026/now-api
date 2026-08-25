@@ -11,6 +11,19 @@ const {
   generateToken,
 } = require('../utils/jwt');
 
+// دالة لتنظيف وتوحيد شكل رقم الهاتف المصري
+function cleanPhoneNumber(phone) {
+  if (!phone) return '';
+  // لو الرقم جاي بـ +20 أو 0020 نشيلها ونحط مكانها 0
+  let cleaned = phone.trim();
+  if (cleaned.startsWith('+20')) {
+    cleaned = '0' + cleaned.slice(3);
+  } else if (cleaned.startsWith('0020')) {
+    cleaned = '0' + cleaned.slice(4);
+  }
+  return cleaned;
+}
+
 function validatePhone(phone) {
   return /^01[0125][0-9]{8}$/.test(phone);
 }
@@ -27,12 +40,15 @@ function validatePassword(password) {
 
 async function register(req, res) {
   try {
-    const {
+    let {
       name,
       phone,
       password,
       email,
     } = req.body;
+
+    // تنظيف الرقم لتوحيد الصيغة (حتى لو اتبعت بـ رمز دولة)
+    phone = cleanPhoneNumber(phone);
 
     if (!name || !phone || !password) {
       return res.status(400).json({
@@ -121,10 +137,13 @@ async function register(req, res) {
 
 async function login(req, res) {
   try {
-    const {
+    let {
       phone,
       password,
     } = req.body;
+
+    // تنظيف رقم الهاتف الوارد من التطبيق ليتم مطابقته مع الداتا بصيغة تبدأ بـ 01 مباشرة
+    phone = cleanPhoneNumber(phone);
 
     if (!phone || !password) {
       return res.status(400).json({

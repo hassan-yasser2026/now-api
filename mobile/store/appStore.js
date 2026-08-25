@@ -7,29 +7,53 @@ import {
   getCountry,
 } from '../constants/countries';
 
+/**
+ * توحيد صيغة اللغة
+ */
 const normalizeLanguage = (lang) => (lang === 'en' ? 'en' : 'ar');
 
-const normalizeCountry = (code) => getCountry(code).code;
+/**
+ * التثبت من وجود الدولة
+ */
+const normalizeCountry = (code) => {
+  const country = getCountry(code);
+  return country ? country.code : DEFAULT_COUNTRY_CODE;
+};
 
+/**
+ * تطبيق اتجاه الواجهة بناءً على اللغة
+ */
 const applyLanguageDirection = (lang) => {
   const normalizedLang = normalizeLanguage(lang);
+  const isRTL = normalizedLang === 'ar';
 
   if (typeof I18nManager?.allowRTL === 'function') {
     I18nManager.allowRTL(true);
   }
   if (typeof I18nManager?.forceRTL === 'function') {
-    I18nManager.forceRTL(normalizedLang === 'ar');
+    I18nManager.forceRTL(isRTL);
   }
   if (typeof I18nManager?.swapLeftAndRightInRTL === 'function') {
-    I18nManager.swapLeftAndRightInRTL(normalizedLang === 'ar');
+    I18nManager.swapLeftAndRightInRTL(isRTL);
   }
 
   return normalizedLang;
 };
 
+/**
+ * دالة مساعدة لتخزين السلة في الذاكرة بشكل آمن
+ */
+const persistCart = async (cart) => {
+  try {
+    await AsyncStorage.setItem('cart', JSON.stringify(cart));
+  } catch (error) {
+    console.error('Error saving cart to AsyncStorage:', error);
+  }
+};
+
 const useAppStore = create((set, get) => ({
   // =========================
-  // Authentication
+  // حالة تسجيل الدخول (Auth)
   // =========================
   user: null,
   token: null,
@@ -39,20 +63,27 @@ const useAppStore = create((set, get) => ({
   isGuest: true,
 
   // =========================
-  // Theme & Language
+  // حالة الثيم واللغة
   // =========================
   themePreference: 'system',
   language: 'ar',
   isRTL: true,
   country: DEFAULT_COUNTRY_CODE,
 
-  setThemePreference: (preference) => {
+  setThemePreference: async (preference) => {
     if (!['system', 'light', 'dark'].includes(preference)) {
       return false;
     }
 
     set({ themePreference: preference });
-    return true;
+
+    try {
+      await AsyncStorage.setItem('themePreference', preference);
+      return true;
+    } catch (error) {
+      console.error('Error saving theme preference:', error);
+      return false;
+    }
   },
 
   setLanguage: async (lang) => {
@@ -83,16 +114,31 @@ const useAppStore = create((set, get) => ({
   },
 
   // =========================
-  // Cart
+  // حالة السلة
   // =========================
   cart: [],
 
   // =========================
-  // Authentication Actions
+  // إجراءات المصادقة (Auth Actions)
   // =========================
-  setAuth: async (user, token) => {
+  setAuth: async (userData, tokenData) => {
     try {
+      let token = null;
+      let user = null;
+
+      if (typeof userData === 'string') {
+        token = userData;
+        user = tokenData;
+      } else if (tokenData && typeof tokenData === 'string') {
+        user = userData;
+        token = tokenData;
+      } else if (userData && typeof userData === 'object') {
+        token = userData.token || userData.accessToken || userData.data?.token || userData.data?.accessToken;
+        user = userData.user || userData.data?.user || (userData.id ? userData : null);
+      }
+
       if (!user || !token) {
+        console.warn('setAuth warning: user or token missing from input parameters', { userData, tokenData });
         return false;
       }
 
@@ -120,6 +166,7 @@ const useAppStore = create((set, get) => ({
     try {
       await AsyncStorage.removeItem('token');
       await AsyncStorage.removeItem('user');
+      await AsyncStorage.removeItem('cart');
 
       set({
         user: null,
@@ -141,19 +188,28 @@ const useAppStore = create((set, get) => ({
     set({ isLoading: true });
 
     try {
-      const token = await AsyncStorage.getItem('token');
-      const userStr = await AsyncStorage.getItem('user');
-      const savedLang = await AsyncStorage.getItem('language');
-      const savedCountry = await AsyncStorage.getItem('country');
+      const [token, userStr, savedLang, savedCountry, savedTheme, savedCart] = await Promise.all([
+        AsyncStorage.getItem('token'),
+        AsyncStorage.getItem('user'),
+        AsyncStorage.getItem('language'),
+        AsyncStorage.getItem('country'),
+        AsyncStorage.getItem('themePreference'),
+        AsyncStorage.getItem('cart'),
+      ]);
 
       const updates = {};
+
       if (token && userStr) {
-        const savedUser = JSON.parse(userStr);
-        updates.user = savedUser;
-        updates.token = token;
-        updates.role = savedUser.role || 'customer';
-        updates.isAuthenticated = true;
-        updates.isGuest = false;
+        try {
+          const savedUser = JSON.parse(userStr);
+          updates.user = savedUser;
+          updates.token = token;
+          updates.role = savedUser.role || 'customer';
+          updates.isAuthenticated = true;
+          updates.isGuest = false;
+        } catch (e) {
+          console.error('Failed to parse saved user JSON:', e);
+        }
       }
 
       if (savedLang) {
@@ -166,10 +222,22 @@ const useAppStore = create((set, get) => ({
         updates.country = normalizeCountry(savedCountry);
       }
 
-      set({
+      if (savedTheme && ['system', 'light', 'dark'].includes(savedTheme)) {
+        updates.themePreference = savedTheme;
+      }
+
+      if (savedCart) {
+        try {
+          updates.cart = JSON.parse(savedCart) || [];
+        } catch (e) {
+          console.error('Failed to parse saved cart JSON:', e);
+        }
+      }
+
+      set((state) => ({
+        ...state,
         ...updates,
-        isRTL: updates.isRTL ?? get().isRTL,
-      });
+      }));
 
       return !!(token && userStr);
     } catch (error) {
@@ -181,13 +249,12 @@ const useAppStore = create((set, get) => ({
   },
 
   // =========================
-  // Cart Actions
+  // إجراءات السلة (Cart Actions)
   // =========================
-
-  addToCart: (item, storeId) => {
+  addToCart: async (item, storeId) => {
     const state = get();
+    const addQuantity = item.quantity && item.quantity > 0 ? item.quantity : 1;
 
-    // منع خلط منتجات من متاجر مختلفة
     if (
       state.cart.length > 0 &&
       state.cart[0].storeId !== storeId
@@ -199,106 +266,119 @@ const useAppStore = create((set, get) => ({
       };
     }
 
-    set((currentState) => {
-      const existing = currentState.cart.find(
-        (i) =>
-          i.id === item.id &&
-          i.storeId === storeId
+    let updatedCart = [];
+    const existing = state.cart.find(
+      (i) => i.id === item.id && i.storeId === storeId
+    );
+
+    if (existing) {
+      updatedCart = state.cart.map((i) =>
+        i.id === item.id && i.storeId === storeId
+          ? {
+              ...i,
+              quantity: i.quantity + addQuantity,
+            }
+          : i
       );
-
-      if (existing) {
-        return {
-          cart: currentState.cart.map((i) =>
-            i.id === item.id &&
-            i.storeId === storeId
-              ? {
-                  ...i,
-                  quantity: i.quantity + 1,
-                }
-              : i
-          ),
-        };
-      }
-
-      return {
-        cart: [
-          ...currentState.cart,
-          {
-            ...item,
-            quantity: 1,
-            storeId,
-          },
-        ],
-      };
-    });
-
-    return {
-      conflict: false,
-    };
-  },
-
-  replaceCartWithItem: (item, storeId) => {
-    set({
-      cart: [
+    } else {
+      updatedCart = [
+        ...state.cart,
         {
           ...item,
-          quantity: 1,
+          quantity: addQuantity,
           storeId,
         },
-      ],
-    });
+      ];
+    }
+
+    set({ cart: updatedCart });
+    await persistCart(updatedCart);
+
+    return { conflict: false };
   },
 
-  removeFromCart: (itemId, storeId) =>
-    set((state) => ({
-      cart: state.cart.filter(
-        (i) =>
-          !(
-            i.id === itemId &&
-            i.storeId === storeId
-          )
-      ),
-    })),
+  replaceCartWithItem: async (item, storeId) => {
+    const addQuantity = item.quantity && item.quantity > 0 ? item.quantity : 1;
+    const newCart = [
+      {
+        ...item,
+        quantity: addQuantity,
+        storeId,
+      },
+    ];
 
-  updateQuantity: (itemId, storeId, quantity) =>
-    set((state) => ({
-      cart: state.cart
-        .map((i) =>
-          i.id === itemId &&
-          i.storeId === storeId
-            ? {
-                ...i,
-                quantity: Math.max(0, quantity),
-              }
-            : i
-        )
-        .filter((i) => i.quantity > 0),
-    })),
+    set({ cart: newCart });
+    await persistCart(newCart);
+  },
 
-  clearCart: () => {
+  removeFromCart: async (itemId, storeId) => {
+    const newCart = get().cart.filter(
+      (i) => !(i.id === itemId && i.storeId === storeId)
+    );
+    set({ cart: newCart });
+    await persistCart(newCart);
+  },
+
+  updateQuantity: async (itemId, storeId, quantity) => {
+    const newCart = get().cart
+      .map((i) =>
+        i.id === itemId && i.storeId === storeId
+          ? {
+              ...i,
+              quantity: Math.max(0, quantity),
+            }
+          : i
+      )
+      .filter((i) => i.quantity > 0);
+
+    set({ cart: newCart });
+    await persistCart(newCart);
+  },
+
+  clearCart: async () => {
     set({ cart: [] });
+    try {
+      await AsyncStorage.removeItem('cart');
+    } catch (error) {
+      console.error('Error clearing cart from AsyncStorage:', error);
+    }
   },
 
-  clearCartForStore: (storeId) =>
-    set((state) => ({
-      cart: state.cart.filter(
-        (i) => i.storeId !== storeId
-      ),
-    })),
+  clearCartForStore: async (storeId) => {
+    const newCart = get().cart.filter((i) => i.storeId !== storeId);
+    set({ cart: newCart });
+    await persistCart(newCart);
+  },
 
   // =========================
-  // User Actions
+  // إجراءات المستخدم (User Actions)
   // =========================
+  updateUser: async (userData) => {
+    const currentState = get();
+    const updatedUser = currentState.user
+      ? {
+          ...currentState.user,
+          ...userData,
+        }
+      : userData;
 
-  updateUser: (userData) =>
-    set((state) => ({
-      user: state.user
-        ? {
-            ...state.user,
-            ...userData,
-          }
-        : userData,
-    })),
+    const newRole = updatedUser?.role || currentState.role;
+
+    set({
+      user: updatedUser,
+      role: newRole,
+    });
+
+    try {
+      if (updatedUser) {
+        await AsyncStorage.setItem('user', JSON.stringify(updatedUser));
+      }
+      return true;
+    } catch (error) {
+      console.error('Error persisting updated user:', error);
+      return false;
+    }
+  },
 }));
 
 export default useAppStore;
