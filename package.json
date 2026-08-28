@@ -4,8 +4,7 @@
   "description": "NOW Delivery API",
   "private": true,
   "scripts": {
-    "build": "npm run build:web",
-    "build:web": "npm --prefix mobile ci && npm --prefix mobile run build:web",
+    "build": "npm --prefix mobile install && cd mobile && npx expo export --platform web --output-dir ../dist",
     "web": "npm --prefix mobile run web"
   },
   "dependencies": {

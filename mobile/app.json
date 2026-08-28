@@ -3,11 +3,6 @@
     "name": "NOW Delivery",
     "slug": "now-delivery",
     "version": "1.0.0",
-    "platforms": [
-      "ios",
-      "android",
-      "web"
-    ],
     "orientation": "portrait",
     "userInterfaceStyle": "automatic",
     "scheme": "now-delivery",
