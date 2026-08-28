@@ -2,9 +2,12 @@
   "name": "now-server",
   "version": "1.0.0",
   "description": "NOW Delivery API",
-  "private": true,
+  "main": "server.js",
   "scripts": {
-    "build": "npm --prefix mobile install && cd mobile && npx expo export --platform web --output-dir ../dist",
+    "start": "node server.js",
+    "dev": "nodemon server.js",
+    "seed": "node prisma/seed.js",
+    "build": "npm --prefix mobile install && npm --prefix mobile run build",
     "web": "npm --prefix mobile run web"
   },
   "dependencies": {
