@@ -9,6 +9,7 @@ mobile/.env
 mobile/.env.*
 !mobile/.env.example
 mobile/dist/
+dist/
 mobile/.tmp-*/
 *.log
 .expo/
