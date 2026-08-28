@@ -6,6 +6,7 @@
   "scripts": {
     "build": "npm run build:web",
     "build:web": "npm --prefix mobile ci && npm --prefix mobile run build:web",
+    "start": "node server.js",
     "web": "npm --prefix mobile run web"
   },
   "dependencies": {

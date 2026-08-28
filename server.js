@@ -1,5 +1,7 @@
 require('dotenv').config();
 
+const fs = require('fs');
+const path = require('path');
 const express = require('express');
 const cors = require('cors');
 const { PrismaClient } = require('@prisma/client');
@@ -21,6 +23,7 @@ const prisma = new PrismaClient();
 
 const PORT = Number(process.env.PORT) || 5000;
 const NODE_ENV = process.env.NODE_ENV || 'development';
+const WEB_DIST_PATH = path.join(__dirname, 'dist');
 
 const JWT_SECRET = process.env.JWT_SECRET;
 
@@ -3683,8 +3686,21 @@ app.delete(
 // 404
 // ============================================================
 
+if (fs.existsSync(WEB_DIST_PATH)) {
+  app.use(express.static(WEB_DIST_PATH));
+}
+
 app.use(
   (req, res) => {
+    if (
+      fs.existsSync(WEB_DIST_PATH) &&
+      !req.path.startsWith('/api')
+    ) {
+      return res.sendFile(
+        path.join(WEB_DIST_PATH, 'index.html')
+      );
+    }
+
     return errorResponse(
       res,
       'المسار غير موجود',
