@@ -8,13 +8,13 @@ const bcrypt = require('bcryptjs');
 const {
   createRateLimiter,
   setSecurityHeaders,
-} = require('./server/middleware/security.middleware');
+} = require('./middleware/security.middleware');
 
 const {
   isValidPhone,
   normalizePhone,
   phoneVariants,
-} = require('./server/utils/phone');
+} = require('./utils/phone');
 
 const app = express();
 const prisma = new PrismaClient();

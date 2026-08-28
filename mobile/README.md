@@ -36,18 +36,7 @@ npx eas build --platform ios
 ### Web
 
 ```bash
-npm run build:web
-```
-
-ينتج الأمر السابق مجلد `dist/` ثابتاً يحتوي على ملفات HTML وCSS وJavaScript
-القابلة للنشر على Vercel أو Netlify أو أي استضافة للملفات الثابتة. لا تستخدم
-`server.js` كنقطة دخول لتطبيق Expo؛ الخادم الموجود في جذر المشروع هو API
-منفصل عن تطبيق الويب.
-
-من جذر المشروع يمكن تنفيذ نفس البناء باستخدام:
-
-```bash
-npm run build:web
+npx expo export --platform web --clear
 ```
 
 ## ملاحظات مهمة
