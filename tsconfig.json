@@ -10,8 +10,8 @@
     "esModuleInterop": true,
     "skipLibCheck": true,
     "forceConsistentCasingInFileNames": true,
-    "noEmit": true,
-    "types": ["node"]
+    "noEmit": true
   },
-  "include": ["**/*.js", "**/*.ts"]
+  "include": ["*.js", "server/**/*.js", "server/**/*.ts"],
+  "exclude": ["node_modules", "mobile", "mobile-new", "dist"]
 }
