@@ -8,11 +8,10 @@
     "checkJs": false,
     "strict": true,
     "esModuleInterop": true,
-    "resolveJsonModule": true,
-    "forceConsistentCasingInFileNames": true,
     "skipLibCheck": true,
-    "noEmit": true,
-    "types": ["node"]
+    "forceConsistentCasingInFileNames": true,
+    "noEmit": true
   },
-  "include": ["**/*.js", "**/*.ts"]
+  "include": ["*.js", "server/**/*.js", "server/**/*.ts"],
+  "exclude": ["node_modules", "mobile", "mobile-new", "dist"]
 }
