@@ -1,0 +1,19 @@
+{
+  "name": "NOW",
+  "short_name": "NOW",
+  "description": "اطلب طعامك واستلمه بسهولة مع NOW Delivery",
+  "start_url": ".",
+  "scope": "/",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#F8FAFC",
+  "theme_color": "#EC4899",
+  "icons": [
+    {
+      "src": "/now-logo.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ]
+}
