@@ -142,7 +142,7 @@ const useAppStore = create((set, get) => ({
         return false;
       }
 
-      const userRole = user.role || 'customer';
+      const userRole = (user.role || 'customer').toLowerCase();
 
       await AsyncStorage.setItem('token', token);
       await AsyncStorage.setItem('user', JSON.stringify(user));
@@ -204,7 +204,7 @@ const useAppStore = create((set, get) => ({
           const savedUser = JSON.parse(userStr);
           updates.user = savedUser;
           updates.token = token;
-          updates.role = savedUser.role || 'customer';
+          updates.role = (savedUser.role || 'customer').toLowerCase();
           updates.isAuthenticated = true;
           updates.isGuest = false;
         } catch (e) {

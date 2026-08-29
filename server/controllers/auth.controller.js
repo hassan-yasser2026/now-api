@@ -122,7 +122,7 @@ async function register(req, res) {
         name: user.name,
         phone: user.phone,
         email: user.email,
-        role: user.role.name,
+        role: user.role.name.toLowerCase(),
       },
     });
   } catch (error) {
@@ -198,7 +198,7 @@ async function login(req, res) {
         name: user.name,
         phone: user.phone,
         email: user.email,
-        role: user.role.name,
+        role: user.role.name.toLowerCase(),
       },
     });
   } catch (error) {
@@ -236,7 +236,7 @@ async function me(req, res) {
         name: user.name,
         phone: user.phone,
         email: user.email,
-        role: user.role.name,
+        role: user.role.name.toLowerCase(),
       },
     });
   } catch (error) {

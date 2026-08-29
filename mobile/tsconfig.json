@@ -33,5 +33,6 @@
     "app",
     "components",
     "app-example"
-  ]
+  ],
+  "extends": "expo/tsconfig.base"
 }
