@@ -22,6 +22,13 @@ export const authService = {
       }
       return { success: false, message: 'فشل حفظ بيانات الدخول' };
     } catch (error) {
+      if (!error.response) {
+        return {
+          success: false,
+          message: 'تعذر الاتصال بالخادم. تأكد من تشغيل API وعنوانه الصحيح',
+        };
+      }
+
       return {
         success: false,
         message: error.response?.data?.message || error.response?.data?.data?.message || 'فشل تسجيل الدخول',

@@ -64,6 +64,8 @@ export const AR_EN = {
   'نجاح': 'Success',
   'حدث خطأ': 'Something went wrong',
   'خطأ في الاتصال': 'Connection error',
+  'تعذر الاتصال بالخادم. تأكد من تشغيل API وعنوانه الصحيح':
+    'Unable to connect to the server. Check that the API is running and the address is correct',
   'لا توجد بيانات': 'No data',
   'لا توجد تفاصيل': 'No details',
   'لا توجد نتائج': 'No results',
@@ -249,8 +251,11 @@ export const AR_EN = {
   'موعد التوصيل غير صحيح': 'Invalid delivery time',
   'جدولة التوصيل': 'Schedule delivery',
   'اختر موعد التوصيل': 'Choose a delivery time',
+  'اختيار موعد التوصيل': 'Choose a delivery time',
   'اختر اليوم والوقت المناسبين لاستلام طلبك.':
     'Pick the day and time that suit you for receiving your order.',
+  'اختر موعدًا مناسبًا لاستلام طلبك':
+    'Choose a suitable time to receive your order',
   'يمكنك اختيار الموعد المناسب لك': 'You can pick a time that works for you',
   'يجب تحديد يوم ووقت التوصيل': 'You must choose a delivery day and time',
   'تم تعديل موعد الطلب': 'Order time updated',

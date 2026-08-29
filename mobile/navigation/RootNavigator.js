@@ -24,7 +24,7 @@ const RootNavigator = () => {
     };
     init();
     return () => { isMounted = false; };
-  }, [isAuthenticated, restoreSession]);
+  }, [restoreSession]);
 
   if (loading) {
     return <Loading text="جاري تحميل التطبيق..." />;

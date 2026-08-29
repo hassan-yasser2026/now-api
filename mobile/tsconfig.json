@@ -1,11 +1,20 @@
 {
-  "extends": "expo/tsconfig.base",
   "compilerOptions": {
     "strict": true,
     "allowJs": true,
     "checkJs": false,
+    "noImplicitAny": false,
+    "noEmit": true,
     "jsx": "react-jsx",
+    "lib": [
+      "DOM",
+      "ESNext"
+    ],
+    "module": "preserve",
+    "moduleResolution": "bundler",
+    "resolveJsonModule": true,
     "skipLibCheck": true,
+    "target": "ESNext",
     "paths": {
       "@/*": [
         "./*"
@@ -15,8 +24,7 @@
   "include": [
     "**/*.ts",
     "**/*.tsx",
-    "**/*.js",
-    "**/*.jsx"
+    "**/*.d.ts"
   ],
   "exclude": [
     "node_modules",
