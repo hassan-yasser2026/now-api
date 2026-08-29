@@ -1,0 +1,16 @@
+# تجاهل ملفات Vercel - نحن على Railway 🚀
+vercel.json
+.vercelignore
+
+# تجاهل المشروع mobile - نحن نشغل الـ API فقط
+/mobile
+
+# تجاهل الملفات الأخرى غير المهمة
+README.md
+*.md
+.gitignore
+.env
+.env.example
+node_modules
+dist
+*.log

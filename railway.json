@@ -1,0 +1,5 @@
+{
+  "builder": "nixpacks",
+  "buildCommand": "npm run build",
+  "startCommand": "npm run prisma:migrate && node server.js"
+}

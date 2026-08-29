@@ -49,18 +49,20 @@ app.use(createRateLimiter({
 }));
 
 const allowedOrigins = (() => {
-  const corsOrigin = process.env.CORS_ORIGIN || (
-    NODE_ENV === 'production' ? '*' : '*'
-  );
+  // 🔹 القيمة الافتراضية الآمنة - لا تحتاج لـ build time
+  const corsOrigin = (process.env.CORS_ORIGIN || '*').trim();
 
-  if (!corsOrigin || corsOrigin === '') {
+  // 🔹 إذا كانت فارغة أو غير معرفة، استخدم *
+  if (!corsOrigin || corsOrigin === '' || corsOrigin === 'undefined') {
     return '*';
   }
 
+  // 🔹 إذا كانت *
   if (corsOrigin === '*') {
     return '*';
   }
 
+  // 🔹 إذا كانت قائمة origins
   return corsOrigin
     .split(',')
     .map((origin) => origin.trim())
