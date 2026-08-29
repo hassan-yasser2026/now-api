@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import {
   ActivityIndicator,
   Alert,
@@ -19,8 +19,9 @@ import { COLORS } from '../../constants/colors';
 import { authService } from '../../services/authService';
 import PhoneInput from '../../components/PhoneInput';
 import useAppStore from '../../store/appStore';
+import { toE164 } from '../../utils/validation';
 
-const LoginScreen = ({ navigation }) => {
+const LoginScreen = ({ navigation, route }) => {
   const storeCountry = useAppStore((state) => state.country);
 
   const [phone, setPhone] = useState('');
@@ -33,6 +34,27 @@ const LoginScreen = ({ navigation }) => {
   const [showPassword, setShowPassword] = useState(false);
 
   const [passwordFocused, setPasswordFocused] = useState(false);
+
+  useEffect(() => {
+    const prefilledPhone = route?.params?.phone;
+    const prefilledPassword = route?.params?.password;
+    const prefilledCountry = route?.params?.countryCode || storeCountry;
+
+    if (!prefilledPhone) {
+      return;
+    }
+
+    const nationalPhone = String(prefilledPhone).replace(/\D/g, '');
+
+    setPhone(nationalPhone);
+    setPhoneE164(toE164(nationalPhone, prefilledCountry));
+    setPhoneValid(Boolean(nationalPhone));
+    setCountry(prefilledCountry);
+
+    if (prefilledPassword) {
+      setPassword(prefilledPassword);
+    }
+  }, [route?.params?.phone, route?.params?.countryCode, route?.params?.password, storeCountry]);
 
   const handlePhoneChange = ({ national, e164, isValid, countryCode }) => {
     setPhone(national);

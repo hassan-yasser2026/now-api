@@ -199,15 +199,13 @@ const RegisterScreen = ({ navigation }) => {
         'تم إنشاء حسابك بنجاح',
         [
           {
-            text: 'متابعة',
+            text: 'تسجيل الدخول الآن',
             onPress: () => {
-              /*
-               * لا نحدد الشاشة هنا يدويًا.
-               *
-               * بعد نجاح التسجيل:
-               * authService -> appStore
-               * RootNavigator يحدد الشاشة حسب Role.
-               */
+              navigation.replace('Login', {
+                phone: phone,
+                countryCode: country,
+                password,
+              });
             },
           },
         ],
