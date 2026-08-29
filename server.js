@@ -50,11 +50,11 @@ app.use(createRateLimiter({
 
 const allowedOrigins = (() => {
   const corsOrigin = process.env.CORS_ORIGIN || (
-    NODE_ENV === 'production' ? '' : '*'
+    NODE_ENV === 'production' ? '*' : '*'
   );
 
-  if (!corsOrigin) {
-    throw new Error('CORS_ORIGIN must be configured in production');
+  if (!corsOrigin || corsOrigin === '') {
+    return '*';
   }
 
   if (corsOrigin === '*') {
@@ -509,8 +509,27 @@ app.get('/api/health', async (req, res) => {
 });
 
 // ============================================================
-// API Info
+// Root Path & API Info
 // ============================================================
+
+app.get('/', (req, res) => {
+  return successResponse(
+    res,
+    {
+      name: 'NOW Delivery API',
+      version: '1.0.0',
+      description: 'Backend API for NOW delivery application',
+      status: 'online',
+      endpoints: {
+        health: '/api/health',
+        info: '/api',
+        auth: '/api/auth/login, /api/auth/register',
+        stores: '/api/stores',
+        orders: '/api/orders',
+      },
+    }
+  );
+});
 
 app.get('/api', (req, res) => {
   return successResponse(
@@ -521,6 +540,7 @@ app.get('/api', (req, res) => {
       description: 'NOW Delivery API',
       environment: NODE_ENV,
       status: 'online',
+      timestamp: new Date().toISOString(),
     }
   );
 });
@@ -3703,8 +3723,12 @@ app.use(
 
     return errorResponse(
       res,
-      'المسار غير موجود',
-      404
+      `المسار "${req.method} ${req.path}" غير موجود`,
+      404,
+      {
+        method: req.method,
+        path: req.path,
+      }
     );
   }
 );
