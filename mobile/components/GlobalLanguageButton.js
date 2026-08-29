@@ -54,7 +54,7 @@ const GlobalLanguageButton = () => {
     <>
       <View
         pointerEvents="box-none"
-        style={[styles.layer, { top: insets.top + 96 }]}
+        style={[styles.layer, { top: insets.top + 8 }]}
       >
         <TouchableOpacity
           accessibilityRole="button"
@@ -151,28 +151,31 @@ const GlobalLanguageButton = () => {
 const styles = StyleSheet.create({
   layer: {
     position: 'absolute',
+    top: 0,
+    right: 12,
     left: 0,
-    right: 0,
     alignItems: 'flex-end',
     zIndex: 999,
   },
   fab: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 5,
-    marginHorizontal: 6,
-    paddingHorizontal: 10,
-    paddingVertical: 7,
-    borderRadius: 18,
+    justifyContent: 'center',
+    gap: 4,
+    width: 52,
+    height: 34,
+    paddingHorizontal: 6,
+    paddingVertical: 4,
+    borderRadius: 17,
     backgroundColor: COLORS.primary,
     shadowColor: '#000',
     shadowOpacity: 0.18,
-    shadowRadius: 6,
+    shadowRadius: 5,
     shadowOffset: { width: 0, height: 2 },
     elevation: 4,
   },
-  fabLabel: { color: COLORS.white, fontSize: 12, fontWeight: '800' },
-  fabFlag: { fontSize: 13 },
+  fabLabel: { color: COLORS.white, fontSize: 9, fontWeight: '800' },
+  fabFlag: { fontSize: 10 },
 
   backdrop: {
     flex: 1,
