@@ -25,6 +25,7 @@ import { orderService } from '../../services/orderService';
 import StoreCard from '../../components/StoreCard';
 import Loading from '../../components/Loading';
 import EmptyState from '../../components/EmptyState';
+import LocationPickerModal from '../../components/LocationPickerModal';
 
 const HOME_ACCENT = '#0B8FA3';
 const HOME_DARK = '#151515';
@@ -58,6 +59,8 @@ const CustomerHome = ({ navigation }) => {
 
   const [stores, setStores] = useState([]);
   const [orders, setOrders] = useState([]);
+  const [locationPickerVisible, setLocationPickerVisible] = useState(false);
+  const [deliveryLocation, setDeliveryLocation] = useState(null);
 
   const [refreshing, setRefreshing] = useState(false);
   const [status, setStatus] = useState('loading'); // 'loading', 'success', 'error'
@@ -347,14 +350,20 @@ const CustomerHome = ({ navigation }) => {
           </View>
         </View>
 
-        <View style={styles.locationPill}>
+        <TouchableOpacity
+          style={styles.locationPill}
+          onPress={() => setLocationPickerVisible(true)}
+          activeOpacity={0.85}
+        >
           <Ionicons name="location" size={17} color={HOME_ACCENT} />
           <View style={styles.locationText}>
             <Text style={styles.locationLabel}>موقع التوصيل</Text>
-            <Text style={styles.locationValue}>تحديد الموقع على الخريطة</Text>
+            <Text style={styles.locationValue}>
+              {deliveryLocation ? 'تم تحديد الموقع' : 'تحديد الموقع على الخريطة'}
+            </Text>
           </View>
           <Ionicons name="chevron-down" size={16} color={COLORS.textSecondary} />
-        </View>
+        </TouchableOpacity>
 
         <View style={styles.searchContainer}>
           <Ionicons name="search-outline" size={21} color={HOME_ACCENT} />
@@ -378,6 +387,12 @@ const CustomerHome = ({ navigation }) => {
             <Text style={styles.logoDark}>OW</Text>
           </Text>
         </View>
+        <LocationPickerModal
+          visible={locationPickerVisible}
+          initial={deliveryLocation}
+          onConfirm={setDeliveryLocation}
+          onClose={() => setLocationPickerVisible(false)}
+        />
       </View>
 
       {/* Guest Banner */}
