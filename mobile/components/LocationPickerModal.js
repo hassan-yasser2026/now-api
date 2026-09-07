@@ -15,6 +15,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { COLORS } from '../constants/colors';
 import { DEFAULT_CENTER } from '../utils/mapHtml';
 import LocationMap from './LocationMap';
+import useAppStore from '../store/appStore';
 
 /**
  * Full-screen map picker used by checkout (customer) and store settings
@@ -29,6 +30,8 @@ const LocationPickerModal = ({
 }) => {
   const insets = useSafeAreaInsets();
   const mapRef = useRef(null);
+  const scheduledDate = useAppStore((state) => state.scheduledDate);
+  const setScheduledDate = useAppStore((state) => state.setScheduledDate);
 
   const [picked, setPicked] = useState(null);
   const [locating, setLocating] = useState(false);
@@ -81,6 +84,12 @@ const LocationPickerModal = ({
     onClose?.();
   };
 
+  const chooseTime = (hoursFromNow) => {
+    const date = new Date();
+    date.setMinutes(date.getMinutes() + hoursFromNow * 60);
+    setScheduledDate(date.toISOString());
+  };
+
   const handleClose = () => {
     setPicked(null);
     onClose?.();
@@ -115,6 +124,29 @@ const LocationPickerModal = ({
           height={0}
           style={styles.map}
         />
+
+        <View style={styles.scheduleSection}>
+          <Text style={styles.scheduleTitle}>وقت الطلب</Text>
+          <View style={styles.scheduleOptions}>
+            {[1, 2, 3, 4].map((hours) => {
+              const date = new Date();
+              date.setMinutes(date.getMinutes() + hours * 60);
+              const isSelected = scheduledDate &&
+                Math.abs(new Date(scheduledDate).getTime() - date.getTime()) < 5 * 60 * 1000;
+              return (
+                <TouchableOpacity
+                  key={hours}
+                  style={[styles.scheduleOption, isSelected && styles.scheduleOptionActive]}
+                  onPress={() => chooseTime(hours)}
+                >
+                  <Text style={[styles.scheduleOptionText, isSelected && styles.scheduleOptionTextActive]}>
+                    {date.toLocaleTimeString('ar-EG', { hour: 'numeric', minute: '2-digit' })}
+                  </Text>
+                </TouchableOpacity>
+              );
+            })}
+          </View>
+        </View>
 
         <View style={[styles.footer, { paddingBottom: insets.bottom + 14 }]}>
           <TouchableOpacity
@@ -167,6 +199,42 @@ const styles = StyleSheet.create({
     gap: 10,
     paddingHorizontal: 12,
     paddingTop: 12,
+  },
+  scheduleSection: {
+    paddingHorizontal: 12,
+    paddingTop: 10,
+  },
+  scheduleTitle: {
+    color: COLORS.textPrimary,
+    fontSize: 14,
+    fontWeight: '800',
+    textAlign: 'right',
+    marginBottom: 8,
+  },
+  scheduleOptions: {
+    flexDirection: 'row',
+    gap: 8,
+  },
+  scheduleOption: {
+    flex: 1,
+    alignItems: 'center',
+    paddingVertical: 10,
+    borderRadius: 12,
+    backgroundColor: COLORS.surface,
+    borderWidth: 1,
+    borderColor: COLORS.border,
+  },
+  scheduleOptionActive: {
+    backgroundColor: COLORS.primary,
+    borderColor: COLORS.primary,
+  },
+  scheduleOptionText: {
+    color: COLORS.textSecondary,
+    fontSize: 12,
+    fontWeight: '700',
+  },
+  scheduleOptionTextActive: {
+    color: COLORS.white,
   },
   locateButton: {
     flexDirection: 'row',

@@ -205,10 +205,6 @@ const CustomerHome = ({ navigation }) => {
     navigation.navigate('Settings');
   }, [isGuest, navigation]);
 
-  const handleDeliverySchedule = useCallback(() => {
-    navigation.navigate('DeliverySchedule');
-  }, [navigation]);
-
   const handleStartOrder = useCallback(() => {
     if (cartByStore.length > 0) {
       navigation.navigate('Cart');
@@ -383,7 +379,7 @@ const CustomerHome = ({ navigation }) => {
         <View style={styles.deliveryOptions}>
           <TouchableOpacity
             style={styles.deliveryOption}
-            onPress={handleDeliverySchedule}
+            onPress={() => setLocationPickerVisible(true)}
             activeOpacity={0.85}
           >
             <Ionicons name="time-outline" size={18} color={HOME_ACCENT} />
