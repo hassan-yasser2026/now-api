@@ -5,6 +5,7 @@ import {
   Modal,
   StyleSheet,
   Text,
+  TextInput,
   TouchableOpacity,
   View,
 } from 'react-native';
@@ -16,6 +17,8 @@ import { COLORS } from '../constants/colors';
 import { DEFAULT_CENTER } from '../utils/mapHtml';
 import LocationMap from './LocationMap';
 import useAppStore from '../store/appStore';
+
+const MAP_ACCENT = '#00A6B8';
 
 /**
  * Full-screen map picker used by checkout (customer) and store settings
@@ -35,8 +38,8 @@ const LocationPickerModal = ({
 
   const [picked, setPicked] = useState(null);
   const [locating, setLocating] = useState(false);
-  const [selectedDay, setSelectedDay] = useState(null);
-  const [selectedHour, setSelectedHour] = useState(null);
+  const [dateText, setDateText] = useState('');
+  const [timeText, setTimeText] = useState('');
 
   const initialPoint =
     initial &&
@@ -81,30 +84,16 @@ const LocationPickerModal = ({
       return;
     }
 
+    const selectedDate = new Date(`${dateText}T${timeText}`);
+    if (!dateText || !timeText || Number.isNaN(selectedDate.getTime()) || selectedDate <= new Date()) {
+      Alert.alert('تنبيه', 'اكتب اليوم والوقت بشكل صحيح وفي المستقبل');
+      return;
+    }
+
+    setScheduledDate(selectedDate.toISOString());
     onConfirm?.(current);
     setPicked(null);
     onClose?.();
-  };
-
-  const saveDateTime = (dayOffset, hour) => {
-    const date = new Date();
-    date.setDate(date.getDate() + dayOffset);
-    date.setHours(hour, 0, 0, 0);
-    setScheduledDate(date.toISOString());
-  };
-
-  const chooseDay = (dayOffset) => {
-    setSelectedDay(dayOffset);
-    if (selectedHour !== null) {
-      saveDateTime(dayOffset, selectedHour);
-    }
-  };
-
-  const chooseHour = (hour) => {
-    setSelectedHour(hour);
-    if (selectedDay !== null) {
-      saveDateTime(selectedDay, hour);
-    }
   };
 
   const handleClose = () => {
@@ -145,41 +134,22 @@ const LocationPickerModal = ({
         <View style={styles.scheduleSection}>
           <Text style={styles.scheduleTitle}>وقت الطلب</Text>
           <View style={styles.scheduleOptions}>
-            {[0, 1, 2, 3, 4].map((dayOffset) => {
-              const date = new Date();
-              date.setDate(date.getDate() + dayOffset);
-              const isSelected = selectedDay === dayOffset;
-              return (
-                <TouchableOpacity
-                  key={dayOffset}
-                  style={[styles.dayOption, isSelected && styles.scheduleOptionActive]}
-                  onPress={() => chooseDay(dayOffset)}
-                >
-                  <Text style={[styles.dayText, isSelected && styles.scheduleOptionTextActive]}>
-                    {dayOffset === 0 ? 'اليوم' : date.toLocaleDateString('ar-EG', { weekday: 'short' })}
-                  </Text>
-                  <Text style={[styles.dayNumber, isSelected && styles.scheduleOptionTextActive]}>
-                    {date.getDate()}
-                  </Text>
-                </TouchableOpacity>
-              );
-            })}
-          </View>
-          <View style={styles.scheduleOptions}>
-            {[12, 15, 18, 21].map((hour) => {
-              const isSelected = selectedHour === hour;
-              return (
-                <TouchableOpacity
-                  key={hour}
-                  style={[styles.scheduleOption, isSelected && styles.scheduleOptionActive]}
-                  onPress={() => chooseHour(hour)}
-                >
-                  <Text style={[styles.scheduleOptionText, isSelected && styles.scheduleOptionTextActive]}>
-                    {new Date(2020, 0, 1, hour).toLocaleTimeString('ar-EG', { hour: 'numeric', minute: '2-digit' })}
-                  </Text>
-                </TouchableOpacity>
-              );
-            })}
+            <TextInput
+              style={styles.scheduleInput}
+              value={dateText}
+              onChangeText={setDateText}
+              placeholder="التاريخ YYYY-MM-DD"
+              placeholderTextColor={COLORS.textLight}
+              keyboardType="numbers-and-punctuation"
+            />
+            <TextInput
+              style={styles.scheduleInput}
+              value={timeText}
+              onChangeText={setTimeText}
+              placeholder="الوقت HH:MM"
+              placeholderTextColor={COLORS.textLight}
+              keyboardType="numbers-and-punctuation"
+            />
           </View>
         </View>
 
@@ -190,9 +160,9 @@ const LocationPickerModal = ({
             disabled={locating}
           >
             {locating ? (
-              <ActivityIndicator size="small" color={COLORS.primary} />
+              <ActivityIndicator size="small" color={MAP_ACCENT} />
             ) : (
-              <Ionicons name="locate" size={20} color={COLORS.primary} />
+              <Ionicons name="locate" size={20} color={MAP_ACCENT} />
             )}
             <Text style={styles.locateText}>استخدام موقعي الحالي</Text>
           </TouchableOpacity>
@@ -279,17 +249,17 @@ const styles = StyleSheet.create({
     fontWeight: '900',
     marginTop: 2,
   },
-  scheduleOptionActive: {
-    backgroundColor: COLORS.primary,
-    borderColor: COLORS.primary,
-  },
-  scheduleOptionText: {
-    color: COLORS.textSecondary,
+  scheduleInput: {
+    flex: 1,
+    minHeight: 44,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: COLORS.border,
+    backgroundColor: COLORS.surface,
+    color: COLORS.textPrimary,
     fontSize: 12,
-    fontWeight: '700',
-  },
-  scheduleOptionTextActive: {
-    color: COLORS.white,
+    textAlign: 'center',
+    paddingHorizontal: 8,
   },
   locateButton: {
     flexDirection: 'row',
@@ -300,10 +270,10 @@ const styles = StyleSheet.create({
     paddingVertical: 13,
     borderRadius: 14,
     borderWidth: 1.5,
-    borderColor: COLORS.primary,
+    borderColor: MAP_ACCENT,
     backgroundColor: COLORS.surface,
   },
-  locateText: { color: COLORS.primary, fontWeight: '700', fontSize: 14 },
+  locateText: { color: MAP_ACCENT, fontWeight: '700', fontSize: 14 },
   confirmButton: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -312,7 +282,7 @@ const styles = StyleSheet.create({
     flex: 1,
     paddingVertical: 13,
     borderRadius: 14,
-    backgroundColor: COLORS.primary,
+    backgroundColor: MAP_ACCENT,
   },
   confirmDisabled: { opacity: 0.55 },
   confirmText: { color: COLORS.white, fontWeight: '700', fontSize: 14 },
