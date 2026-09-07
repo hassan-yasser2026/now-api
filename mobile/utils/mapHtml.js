@@ -9,7 +9,7 @@
  */
 
 const MARKER_COLORS = {
-  primary: '#EC4899',
+  primary: '#0B8FA3',
   success: '#16A34A',
   blue: '#2563EB',
 };
