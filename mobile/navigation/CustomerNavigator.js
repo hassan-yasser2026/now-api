@@ -68,14 +68,6 @@ const CustomerTabs = () => (
       }}
     />
     <Tab.Screen
-      name="Settings"
-      component={SettingsScreen}
-      options={{
-        tabBarLabel: 'الإعدادات',
-        tabBarIcon: ({ color, size }) => <Ionicons name="settings-outline" size={size} color={color} />,
-      }}
-    />
-    <Tab.Screen
       name="CustomerProfile"
       component={CustomerProfile}
       options={{
@@ -93,6 +85,7 @@ const CustomerNavigator = () => (
     <Stack.Screen name="Cart" component={CartScreen} />
     <Stack.Screen name="OrderConfirmation" component={OrderConfirmation} />
     <Stack.Screen name="OrderTracking" component={OrderTracking} />
+    <Stack.Screen name="Settings" component={SettingsScreen} />
     <Stack.Screen name="About" component={AboutScreen} />
     <Stack.Screen name="Register" component={RegisterScreen} />
   </Stack.Navigator>

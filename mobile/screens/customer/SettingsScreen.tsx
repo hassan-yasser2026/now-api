@@ -25,6 +25,7 @@ const WHATSAPP_NUMBER = '966500000000';
 type SettingsScreenProps = {
   navigation?: {
     navigate: (screen: string) => void;
+    goBack?: () => void;
   };
 };
 
@@ -132,13 +133,28 @@ const SettingsScreen: React.FC<SettingsScreenProps> = ({ navigation }) => {
         showsVerticalScrollIndicator={false}
         contentContainerStyle={styles.content}
       >
-        <View style={styles.header}>
-          <Text style={[styles.headerBadge, isRTL && styles.rtlText]}>
-            {t.settings.account}
-          </Text>
-          <Text style={[styles.headerTitle, isRTL && styles.rtlText]}>
-            {t.settings.title}
-          </Text>
+        <View style={styles.hero}>
+          <TouchableOpacity
+            style={styles.backButton}
+            onPress={() => navigation?.goBack?.()}
+            activeOpacity={0.8}
+          >
+            <Ionicons name={isRTL ? 'arrow-forward' : 'arrow-back'} size={20} color="#fff" />
+          </TouchableOpacity>
+          <View style={styles.heroText}>
+            <Text style={[styles.headerBadge, isRTL && styles.rtlText]}>
+              {t.settings.account}
+            </Text>
+            <Text style={[styles.headerTitle, isRTL && styles.rtlText]}>
+              {t.settings.title}
+            </Text>
+            <Text style={[styles.heroSubtitle, isRTL && styles.rtlText]}>
+              {userDisplayName}
+            </Text>
+          </View>
+          <View style={styles.heroIcon}>
+            <Ionicons name="settings-outline" size={28} color={COLORS.primary} />
+          </View>
         </View>
 
         <View style={styles.section}>
@@ -362,40 +378,77 @@ const styles = StyleSheet.create({
   },
   content: {
     paddingHorizontal: 16,
-    paddingTop: 12,
+    paddingTop: 16,
     paddingBottom: 32,
   },
-  header: {
-    marginBottom: 18,
+  hero: {
+    backgroundColor: '#17252B',
+    borderRadius: 24,
+    padding: 18,
+    marginBottom: 22,
+    minHeight: 145,
+    justifyContent: 'space-between',
+    overflow: 'hidden',
+  },
+  backButton: {
+    width: 38,
+    height: 38,
+    borderRadius: 19,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: '#253840',
+    position: 'absolute',
+    top: 16,
+    zIndex: 1,
+  },
+  heroText: {
+    marginTop: 46,
+  },
+  heroIcon: {
+    position: 'absolute',
+    right: 18,
+    bottom: 18,
+    width: 58,
+    height: 58,
+    borderRadius: 29,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: '#253840',
   },
   headerBadge: {
     fontSize: 12,
     fontWeight: '700',
     letterSpacing: 1,
-    color: COLORS.primary,
+    color: '#35C6D5',
     textTransform: 'uppercase',
     marginBottom: 6,
   },
   headerTitle: {
     fontSize: 28,
-    fontWeight: '700',
-    color: COLORS.text,
+    fontWeight: '900',
+    color: '#fff',
+  },
+  heroSubtitle: {
+    fontSize: 13,
+    fontWeight: '600',
+    color: '#B7C3C7',
+    marginTop: 5,
   },
   section: {
-    marginBottom: 24,
+    marginBottom: 20,
   },
   sectionTitle: {
-    fontSize: 18,
-    fontWeight: '700',
+    fontSize: 19,
+    fontWeight: '900',
     color: COLORS.text,
     marginBottom: 12,
   },
   profileCard: {
     backgroundColor: COLORS.surface,
-    borderRadius: 16,
+    borderRadius: 20,
     padding: 16,
     borderWidth: 1,
-    borderColor: COLORS.border,
+    borderColor: '#E2EEF0',
     flexDirection: 'row',
     alignItems: 'center',
   },
@@ -431,11 +484,11 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'space-between',
     backgroundColor: COLORS.surface,
-    borderRadius: 14,
+    borderRadius: 18,
     padding: 16,
     marginBottom: 8,
     borderWidth: 1,
-    borderColor: COLORS.border,
+    borderColor: '#E2EEF0',
   },
   languageCardActive: {
     borderColor: COLORS.primary,
@@ -471,11 +524,11 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     gap: 12,
     backgroundColor: COLORS.surface,
-    borderRadius: 14,
+    borderRadius: 18,
     padding: 16,
     marginBottom: 8,
     borderWidth: 1,
-    borderColor: COLORS.border,
+    borderColor: '#E2EEF0',
   },
   supportTextWrap: {
     flex: 1,
