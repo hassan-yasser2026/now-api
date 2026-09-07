@@ -56,7 +56,7 @@ const CustomerProfile = ({ navigation }) => {
               style={styles.menuItem}
               onPress={item.onPress}
             >
-              <Ionicons name={item.icon} size={24} color={COLORS.textPrimary} />
+              <Ionicons name={item.icon} size={24} color={COLORS.primary} />
               <Text style={styles.menuLabel}>{item.label}</Text>
               <Ionicons name="chevron-forward" size={20} color={COLORS.textSecondary} />
             </TouchableOpacity>
@@ -74,20 +74,70 @@ const CustomerProfile = ({ navigation }) => {
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: COLORS.background },
-  header: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', padding: 16, borderBottomWidth: 1, borderBottomColor: COLORS.border },
+  header: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingHorizontal: 16,
+    paddingTop: 20,
+    paddingBottom: 12,
+    backgroundColor: '#08C6E8',
+  },
   backBtn: { padding: 4 },
-  headerTitle: { fontSize: 18, fontWeight: 'bold', color: COLORS.textPrimary },
-  content: { padding: 16 },
-  profileHeader: { alignItems: 'center', marginBottom: 24 },
-  avatar: { width: 80, height: 80, borderRadius: 40, backgroundColor: COLORS.primary, justifyContent: 'center', alignItems: 'center', marginBottom: 12 },
-  avatarText: { fontSize: 32, fontWeight: 'bold', color: '#fff' },
-  userName: { fontSize: 22, fontWeight: 'bold', color: COLORS.textPrimary },
-  userPhone: { fontSize: 14, color: COLORS.textSecondary, marginTop: 4 },
-  menu: { backgroundColor: '#fff', borderRadius: 12, borderWidth: 1, borderColor: COLORS.border, overflow: 'hidden' },
-  menuItem: { flexDirection: 'row', alignItems: 'center', padding: 16, borderBottomWidth: 1, borderBottomColor: COLORS.border },
-  menuLabel: { flex: 1, fontSize: 16, color: COLORS.textPrimary, marginLeft: 14 },
-  logoutBtn: { flexDirection: 'row', justifyContent: 'center', alignItems: 'center', marginTop: 24, paddingVertical: 16, borderWidth: 1, borderColor: COLORS.error, borderRadius: 12 },
-  logoutText: { color: COLORS.error, fontSize: 16, fontWeight: 'bold', marginLeft: 8 },
+  headerTitle: { fontSize: 21, fontWeight: '900', color: '#fff' },
+  content: { paddingBottom: 30 },
+  profileHeader: {
+    alignItems: 'center',
+    paddingHorizontal: 16,
+    paddingBottom: 26,
+    backgroundColor: '#08C6E8',
+  },
+  avatar: {
+    width: 82,
+    height: 82,
+    borderRadius: 41,
+    backgroundColor: '#fff',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: 12,
+  },
+  avatarText: { fontSize: 32, fontWeight: '900', color: '#08C6E8' },
+  userName: { fontSize: 23, fontWeight: '900', color: '#fff' },
+  userPhone: { fontSize: 14, color: 'rgba(255,255,255,0.9)', marginTop: 4 },
+  menu: {
+    marginHorizontal: 16,
+    backgroundColor: '#fff',
+    borderRadius: 20,
+    borderWidth: 1,
+    borderColor: '#E2EEF0',
+    overflow: 'hidden',
+    elevation: 2,
+    shadowColor: '#0C6A78',
+    shadowOpacity: 0.07,
+    shadowRadius: 8,
+    shadowOffset: { width: 0, height: 3 },
+  },
+  menuItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    padding: 17,
+    borderBottomWidth: 1,
+    borderBottomColor: '#EEF5F6',
+  },
+  menuLabel: { flex: 1, fontSize: 15, fontWeight: '700', color: COLORS.textPrimary, marginLeft: 14 },
+  logoutBtn: {
+    flexDirection: 'row',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginHorizontal: 16,
+    marginTop: 18,
+    paddingVertical: 15,
+    backgroundColor: '#FFF1F2',
+    borderWidth: 1,
+    borderColor: '#FECDD3',
+    borderRadius: 16,
+  },
+  logoutText: { color: COLORS.error, fontSize: 15, fontWeight: '800', marginLeft: 8 },
 });
 
 export default CustomerProfile;
