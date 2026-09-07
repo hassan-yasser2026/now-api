@@ -153,7 +153,7 @@ const SettingsScreen: React.FC<SettingsScreenProps> = ({ navigation }) => {
             </Text>
           </View>
           <View style={styles.heroIcon}>
-            <Ionicons name="settings-outline" size={28} color={COLORS.primary} />
+            <Ionicons name="settings-outline" size={28} color="#fff" />
           </View>
         </View>
 
@@ -382,7 +382,7 @@ const styles = StyleSheet.create({
     paddingBottom: 32,
   },
   hero: {
-    backgroundColor: '#17252B',
+    backgroundColor: '#08C6E8',
     borderRadius: 24,
     padding: 18,
     marginBottom: 22,
@@ -396,7 +396,7 @@ const styles = StyleSheet.create({
     borderRadius: 19,
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: '#253840',
+    backgroundColor: 'rgba(255,255,255,0.22)',
     position: 'absolute',
     top: 16,
     zIndex: 1,
@@ -413,13 +413,13 @@ const styles = StyleSheet.create({
     borderRadius: 29,
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: '#253840',
+    backgroundColor: 'rgba(255,255,255,0.22)',
   },
   headerBadge: {
     fontSize: 12,
     fontWeight: '700',
     letterSpacing: 1,
-    color: '#35C6D5',
+    color: '#E8FCFF',
     textTransform: 'uppercase',
     marginBottom: 6,
   },
@@ -431,7 +431,7 @@ const styles = StyleSheet.create({
   heroSubtitle: {
     fontSize: 13,
     fontWeight: '600',
-    color: '#B7C3C7',
+    color: 'rgba(255,255,255,0.9)',
     marginTop: 5,
   },
   section: {

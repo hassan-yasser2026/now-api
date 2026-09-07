@@ -161,7 +161,7 @@ const styles = StyleSheet.create({
   accountButton: {
     minHeight: 76,
     borderRadius: 30,
-    backgroundColor: '#121212',
+    backgroundColor: '#08C6E8',
     alignItems: 'center',
     justifyContent: 'center',
     marginTop: 16,

@@ -15,7 +15,6 @@ import { COLORS } from '../../constants/colors';
 import { orderService } from '../../services/orderService';
 
 const ACCENT = '#08C6E8';
-const DARK = '#151515';
 
 const statusMap = {
   ALL: { label: 'كل الطلبات', color: ACCENT },
@@ -302,18 +301,18 @@ const styles = StyleSheet.create({
     margin: 16,
     padding: 18,
     borderRadius: 24,
-    backgroundColor: DARK,
+    backgroundColor: ACCENT,
     overflow: 'hidden',
   },
   heroTopRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
-  brand: { color: ACCENT, fontSize: 13, fontWeight: '900', letterSpacing: 2 },
+  brand: { color: '#fff', fontSize: 13, fontWeight: '900', letterSpacing: 2 },
   title: { color: '#fff', fontSize: 30, fontWeight: '900', marginTop: 3 },
   subtitle: { color: '#B7C3C7', fontSize: 13, fontWeight: '600', marginTop: 4 },
   heroIcon: {
     width: 58,
     height: 58,
     borderRadius: 29,
-    backgroundColor: '#25343A',
+    backgroundColor: 'rgba(255,255,255,0.22)',
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -321,7 +320,7 @@ const styles = StyleSheet.create({
   heroStat: { alignItems: 'center', flex: 1 },
   heroStatValue: { color: '#fff', fontSize: 21, fontWeight: '900' },
   heroStatLabel: { color: '#B7C3C7', fontSize: 11, fontWeight: '700', marginTop: 3 },
-  heroDivider: { width: 1, height: 32, backgroundColor: '#3D4B50' },
+  heroDivider: { width: 1, height: 32, backgroundColor: 'rgba(255,255,255,0.35)' },
   sectionHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingHorizontal: 16, marginBottom: 8 },
   sectionTitle: { color: COLORS.textPrimary, fontSize: 19, fontWeight: '900' },
   filtersContainer: { paddingHorizontal: 16, paddingBottom: 14, gap: 8 },
