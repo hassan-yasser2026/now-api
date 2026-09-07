@@ -14,6 +14,7 @@ import OrderTracking from '../screens/customer/OrderTracking';
 import CustomerProfile from '../screens/customer/CustomerProfile';
 import AssistantScreen from '../screens/customer/AssisantScreen';
 import CartScreen from '../screens/customer/CartScreen';
+import DeliverySchedule from '../screens/customer/DeliverySchedule';
 import AboutScreen from '../screens/auth/AboutScreen';
 import RegisterScreen from '../screens/auth/RegisterScreen';
 
@@ -83,6 +84,7 @@ const CustomerNavigator = () => (
     <Stack.Screen name="CustomerTabs" component={CustomerTabs} />
     <Stack.Screen name="StoreMenu" component={StoreMenu} />
     <Stack.Screen name="Cart" component={CartScreen} />
+    <Stack.Screen name="DeliverySchedule" component={DeliverySchedule} />
     <Stack.Screen name="OrderConfirmation" component={OrderConfirmation} />
     <Stack.Screen name="OrderTracking" component={OrderTracking} />
     <Stack.Screen name="Settings" component={SettingsScreen} />

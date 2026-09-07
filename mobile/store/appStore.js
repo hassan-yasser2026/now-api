@@ -117,6 +117,14 @@ const useAppStore = create((set, get) => ({
   // حالة السلة
   // =========================
   cart: [],
+  deliveryLocation: null,
+  scheduledDate: null,
+
+  setDeliveryLocation: (location) => set({ deliveryLocation: location }),
+  setScheduledDate: async (date) => {
+    set({ scheduledDate: date });
+    return date;
+  },
 
   // =========================
   // إجراءات المصادقة (Auth Actions)
@@ -175,6 +183,8 @@ const useAppStore = create((set, get) => ({
         isAuthenticated: false,
         isGuest: true,
         cart: [],
+        deliveryLocation: null,
+        scheduledDate: null,
       });
 
       return true;

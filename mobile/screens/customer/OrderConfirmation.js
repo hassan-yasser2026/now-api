@@ -35,11 +35,12 @@ const OrderConfirmation = ({ route, navigation }) => {
     cart,
     user,
     scheduledDate,
+    deliveryLocation,
     clearCart,
   } = useAppStore();
 
   const [address, setAddress] = useState('');
-  const [deliveryPoint, setDeliveryPoint] = useState(null);
+  const [deliveryPoint, setDeliveryPoint] = useState(deliveryLocation || null);
   const [mapPickerVisible, setMapPickerVisible] = useState(false);
   const [loading, setLoading] = useState(false);
 

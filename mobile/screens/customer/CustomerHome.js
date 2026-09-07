@@ -53,6 +53,9 @@ const CustomerHome = ({ navigation }) => {
     isGuest,
     cart = [],
     language,
+    deliveryLocation,
+    scheduledDate,
+    setDeliveryLocation,
   } = useAppStore();
 
   const isRTL = language === 'ar' || I18nManager.isRTL;
@@ -60,7 +63,6 @@ const CustomerHome = ({ navigation }) => {
   const [stores, setStores] = useState([]);
   const [orders, setOrders] = useState([]);
   const [locationPickerVisible, setLocationPickerVisible] = useState(false);
-  const [deliveryLocation, setDeliveryLocation] = useState(null);
 
   const [refreshing, setRefreshing] = useState(false);
   const [status, setStatus] = useState('loading'); // 'loading', 'success', 'error'
@@ -202,6 +204,19 @@ const CustomerHome = ({ navigation }) => {
   const handleSettingsPress = useCallback(() => {
     navigation.navigate('Settings');
   }, [isGuest, navigation]);
+
+  const handleDeliverySchedule = useCallback(() => {
+    navigation.navigate('DeliverySchedule');
+  }, [navigation]);
+
+  const handleStartOrder = useCallback(() => {
+    if (cartByStore.length > 0) {
+      navigation.navigate('Cart');
+      return;
+    }
+
+    Alert.alert('اطلب أوردر', 'اختار متجر وأضف منتجات للسلة أولاً.');
+  }, [cartByStore.length, navigation]);
 
   const handleCartStorePress = useCallback((storeId) => {
     if (isGuest) {
@@ -364,6 +379,27 @@ const CustomerHome = ({ navigation }) => {
           </View>
           <Ionicons name="chevron-down" size={16} color={COLORS.textSecondary} />
         </TouchableOpacity>
+
+        <View style={styles.deliveryOptions}>
+          <TouchableOpacity
+            style={styles.deliveryOption}
+            onPress={handleDeliverySchedule}
+            activeOpacity={0.85}
+          >
+            <Ionicons name="time-outline" size={18} color={HOME_ACCENT} />
+            <Text style={styles.deliveryOptionText}>
+              {scheduledDate
+                ? new Date(scheduledDate).toLocaleString('ar-EG', { dateStyle: 'medium', timeStyle: 'short' })
+                : 'تحديد وقت الطلب'}
+            </Text>
+          </TouchableOpacity>
+          {deliveryLocation && scheduledDate && (
+            <TouchableOpacity style={styles.orderNowButton} onPress={handleStartOrder} activeOpacity={0.85}>
+              <Text style={styles.orderNowText}>اطلب أوردر</Text>
+              <Ionicons name="arrow-forward" size={17} color="#fff" />
+            </TouchableOpacity>
+          )}
+        </View>
 
         <View style={styles.searchContainer}>
           <Ionicons name="search-outline" size={21} color={HOME_ACCENT} />
@@ -836,6 +872,46 @@ const styles = StyleSheet.create({
     fontSize: 12,
     fontWeight: '800',
     marginTop: 1,
+  },
+  deliveryOptions: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    marginHorizontal: 16,
+    marginBottom: 12,
+  },
+  deliveryOption: {
+    flex: 1,
+    minHeight: 44,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 7,
+    paddingHorizontal: 12,
+    borderRadius: 14,
+    backgroundColor: COLORS.surface,
+    borderWidth: 1,
+    borderColor: '#D7EEF1',
+  },
+  deliveryOptionText: {
+    flex: 1,
+    color: COLORS.textSecondary,
+    fontSize: 12,
+    fontWeight: '700',
+    textAlign: 'right',
+  },
+  orderNowButton: {
+    minHeight: 44,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 5,
+    paddingHorizontal: 13,
+    borderRadius: 14,
+    backgroundColor: HOME_ACCENT,
+  },
+  orderNowText: {
+    color: '#fff',
+    fontSize: 12,
+    fontWeight: '900',
   },
   offersSection: {
     marginHorizontal: 16,
