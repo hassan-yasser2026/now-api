@@ -81,7 +81,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     paddingTop: 20,
     paddingBottom: 12,
-    backgroundColor: '#08C6E8',
+    backgroundColor: '#0B8FA3',
   },
   backBtn: { padding: 4 },
   headerTitle: { fontSize: 21, fontWeight: '900', color: '#fff' },
@@ -90,7 +90,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     paddingHorizontal: 16,
     paddingBottom: 26,
-    backgroundColor: '#08C6E8',
+    backgroundColor: '#0B8FA3',
   },
   avatar: {
     width: 82,
@@ -101,7 +101,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     marginBottom: 12,
   },
-  avatarText: { fontSize: 32, fontWeight: '900', color: '#08C6E8' },
+  avatarText: { fontSize: 32, fontWeight: '900', color: '#0B8FA3' },
   userName: { fontSize: 23, fontWeight: '900', color: '#fff' },
   userPhone: { fontSize: 14, color: 'rgba(255,255,255,0.9)', marginTop: 4 },
   menu: {

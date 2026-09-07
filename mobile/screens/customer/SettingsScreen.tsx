@@ -382,7 +382,7 @@ const styles = StyleSheet.create({
     paddingBottom: 32,
   },
   hero: {
-    backgroundColor: '#08C6E8',
+    backgroundColor: '#0B8FA3',
     borderRadius: 24,
     padding: 18,
     marginBottom: 22,

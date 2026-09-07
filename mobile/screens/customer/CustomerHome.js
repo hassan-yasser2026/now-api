@@ -26,7 +26,7 @@ import StoreCard from '../../components/StoreCard';
 import Loading from '../../components/Loading';
 import EmptyState from '../../components/EmptyState';
 
-const HOME_ACCENT = '#08C6E8';
+const HOME_ACCENT = '#0B8FA3';
 const HOME_DARK = '#151515';
 
 const STATUS_LABELS = {
