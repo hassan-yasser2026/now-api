@@ -31,10 +31,8 @@ function validatePhone(phone) {
 function validatePassword(password) {
   return (
     typeof password === 'string' &&
-    password.length >= 8 &&
-    /[A-Z]/.test(password) &&
-    /[a-z]/.test(password) &&
-    /[0-9]/.test(password)
+    password.length >= 6 &&
+    /\d/.test(password)
   );
 }
 
@@ -67,8 +65,7 @@ async function register(req, res) {
     if (!validatePassword(password)) {
       return res.status(400).json({
         success: false,
-        message:
-          'كلمة المرور يجب أن تكون 8 أحرف على الأقل وتحتوي على حرف كبير وحرف صغير ورقم',
+        message: 'كلمة المرور يجب أن تكون 6 أحرف على الأقل وتحتوي على رقم',
       });
     }
 
