@@ -656,7 +656,7 @@ const OrderConfirmation = ({ route, navigation }) => {
                   {
                     ...deliveryPoint,
                     label: 'موقع التوصيل',
-                    color: 'primary',
+                    color: 'cyan',
                   },
                 ]}
                 zoom={16}

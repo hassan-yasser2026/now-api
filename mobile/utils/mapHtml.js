@@ -10,6 +10,7 @@
 
 const MARKER_COLORS = {
   primary: '#0B8FA3',
+  cyan: '#0B8FA3',
   success: '#16A34A',
   blue: '#2563EB',
 };
@@ -117,7 +118,7 @@ export const buildMapHtml = ({
   if (cfg.picker) {
     var picked = cfg.markers.length
       ? L.marker([cfg.markers[0].lat, cfg.markers[0].lng], {
-          icon: pinIcon('${MARKER_COLORS.primary}'),
+          icon: pinIcon('${MARKER_COLORS.cyan}'),
           draggable: true
         }).addTo(map)
       : null;
@@ -129,7 +130,7 @@ export const buildMapHtml = ({
     map.on('click', function (e) {
       if (!picked) {
         picked = L.marker(e.latlng, {
-          icon: pinIcon('${MARKER_COLORS.primary}'),
+          icon: pinIcon('${MARKER_COLORS.cyan}'),
           draggable: true
         }).addTo(map);
         picked.on('dragend', function () { report(picked.getLatLng()); });
@@ -151,7 +152,7 @@ export const buildMapHtml = ({
           var latlng = L.latLng(data.lat, data.lng);
           if (!picked) {
             picked = L.marker(latlng, {
-              icon: pinIcon('${MARKER_COLORS.primary}'),
+              icon: pinIcon('${MARKER_COLORS.cyan}'),
               draggable: true
             }).addTo(map);
             picked.on('dragend', function () { report(picked.getLatLng()); });

@@ -200,7 +200,7 @@ const VendorOrderDetails: React.FC<{ route: any; navigation: any }> = ({
                     lat: Number(order.deliveryLat),
                     lng: Number(order.deliveryLng),
                     label: 'موقع التوصيل',
-                    color: 'primary',
+                    color: 'cyan',
                   },
                 ]}
                 zoom={15}

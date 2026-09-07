@@ -253,7 +253,7 @@ const OrderTracking = ({ route, navigation }) => {
         lat: dropLat,
         lng: dropLng,
         label: 'موقع التوصيل',
-        color: 'primary',
+        color: 'cyan',
       });
     }
 

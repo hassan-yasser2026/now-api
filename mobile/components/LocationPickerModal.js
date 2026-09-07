@@ -124,7 +124,7 @@ const LocationPickerModal = ({
         <LocationMap
           picker
           mapRef={mapRef}
-          markers={current ? [{ ...current, color: 'primary' }] : []}
+          markers={current ? [{ ...current, color: 'cyan' }] : []}
           center={current || DEFAULT_CENTER}
           zoom={current ? 16 : 12}
           onPick={setPicked}

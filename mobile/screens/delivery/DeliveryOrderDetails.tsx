@@ -189,7 +189,7 @@ const DeliveryOrderDetails: React.FC<{ route: any; navigation: any }> = ({
       markers.push({
         ...customerPoint,
         label: 'موقع التسليم',
-        color: 'primary',
+        color: 'cyan',
       });
     }
     return markers;
