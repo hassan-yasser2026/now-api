@@ -197,7 +197,7 @@ const CustomerHome = ({ navigation }) => {
   }, [cart, stores]);
 
   const handleSettingsPress = useCallback(() => {
-    navigation.navigate(isGuest ? 'GuestAccount' : 'Settings');
+    navigation.navigate('Settings');
   }, [isGuest, navigation]);
 
   const handleCartStorePress = useCallback((storeId) => {
@@ -211,7 +211,7 @@ const CustomerHome = ({ navigation }) => {
 
   const handleBottomNavigation = useCallback((route) => {
     if (route === 'account') {
-      navigation.navigate(isGuest ? 'GuestAccount' : 'CustomerProfile');
+      navigation.navigate(isGuest ? 'Settings' : 'CustomerProfile');
       return;
     }
 
