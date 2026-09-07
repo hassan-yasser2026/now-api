@@ -19,7 +19,7 @@
     "test": "node scripts/test-translator.mjs && node scripts/test-global-translation.mjs && node scripts/test-phone.mjs && npm run i18n:check"
   },
   "dependencies": {
-    "@expo/vector-icons": "^15.0.0",
+    "@expo/vector-icons": "^15.0.2",
     "@react-native-async-storage/async-storage": "2.2.0",
     "@react-navigation/bottom-tabs": "^7.18.16",
     "@react-navigation/native": "^7.1.17",
@@ -27,6 +27,7 @@
     "axios": "^1.19.0",
     "expo": "~57.0.17",
     "expo-font": "~57.0.1",
+    "expo-image-picker": "~57.0.16",
     "expo-linear-gradient": "~57.0.1",
     "expo-localization": "~57.0.1",
     "expo-location": "~57.0.14",

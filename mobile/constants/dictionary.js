@@ -19,6 +19,7 @@ export const AR_EN = {
   'حول تطبيق ناو': 'About NOW',
   'حول التطبيق': 'About the App',
   'عن التطبيق': 'About',
+  'عنا': 'About us',
   'ℹ️ حول التطبيق': 'ℹ️ About the App',
 
   // ------------------------------------------------------------------ common
@@ -48,8 +49,20 @@ export const AR_EN = {
   'غير محدد': 'Not set',
   'غير معروف': 'Unknown',
   'غير متاح': 'Unavailable',
+  'البلد': 'Country',
+  'مصر': 'Egypt',
   'متاح': 'Available',
   'متاحة': 'Available',
+  'بائع NOW': 'NOW vendor',
+  'مندوب NOW': 'NOW delivery agent',
+  'تسجيل دخول الشريك': 'Partner login',
+  'لديك حساب شريك بالفعل؟': 'Already have a partner account?',
+  'تم استلام طلب انضمامك كشريك. سيظل حسابك داخل شاشة الشراكة لحين استكمال المراجعة.':
+    'Your partner application was received. Your account will remain in the partner area until review is complete.',
+  'تسجيل الدخول / إنشاء حساب': 'Log in / Create account',
+  'اكثر من ١٠٠ مليون منتج': 'More than 100 million products',
+  'من ماركات عالمية': 'From global brands',
+  'توصيل كل يوم لباب جديد': 'Delivery every day to a new door',
   'نشط': 'Active',
   'معطل': 'Disabled',
   'تفعيل': 'Enable',
@@ -64,6 +77,11 @@ export const AR_EN = {
   'نجاح': 'Success',
   'حدث خطأ': 'Something went wrong',
   'خطأ في الاتصال': 'Connection error',
+  'السماح بالصور مطلوب': 'Photo access is required',
+  'اسمح للتطبيق بالوصول إلى الصور لاختيار صورة البطاقة.':
+    'Allow the app to access your photos to choose an ID card image.',
+  'صورة البطاقة': 'ID card image',
+  'اضغط لاختيار صورة البطاقة': 'Tap to choose an ID card image',
   'تعذر الاتصال بالخادم. تأكد من تشغيل API وعنوانه الصحيح':
     'Unable to connect to the server. Check that the API is running and the address is correct',
   'لا توجد بيانات': 'No data',

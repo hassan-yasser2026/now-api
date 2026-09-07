@@ -19,7 +19,7 @@ const StoreMenu = ({ route, navigation }) => {
   const { storeId, storeName } = route.params || {};
   const [menu, setMenu] = useState([]);
   const [loading, setLoading] = useState(true);
-  const { cart, addToCart, removeFromCart, updateQuantity } = useAppStore();
+  const { cart, addToCart, removeFromCart, updateQuantity, isGuest } = useAppStore();
 
   const fetchMenu = useCallback(async () => {
     if (!storeId) {
@@ -81,6 +81,15 @@ const StoreMenu = ({ route, navigation }) => {
     removeFromCart(itemId, storeId);
   }, [storeCartItems, updateQuantity, removeFromCart, storeId]);
 
+  const handleCheckout = useCallback(() => {
+    if (isGuest) {
+      navigation.navigate('Register', { role: 'customer' });
+      return;
+    }
+
+    navigation.navigate('OrderConfirmation', { storeId });
+  }, [isGuest, navigation, storeId]);
+
 
   if (loading) {
     return (
@@ -137,7 +146,7 @@ const StoreMenu = ({ route, navigation }) => {
           </View>
           <TouchableOpacity
             style={styles.cartBtn}
-            onPress={() => navigation.navigate('OrderConfirmation', { storeId })}
+            onPress={handleCheckout}
           >
             <Text style={styles.cartBtnText}>تأكيد الطلب</Text>
           </TouchableOpacity>

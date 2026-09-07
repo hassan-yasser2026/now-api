@@ -43,7 +43,7 @@ export const authService = {
 
   // تسجيل بائع جديد
   registerVendor: async (data) => {
-    return register('vendor', data);
+    return register('vendor', data, { autoLogin: false });
   },
 
   // تسجيل مندوب جديد
@@ -63,7 +63,7 @@ export const authService = {
 };
 
 // دالة مساعدة للتسجيل
-async function register(role, data) {
+async function register(role, data, { autoLogin = true } = {}) {
   try {
     const response = await api.post('/auth/register', {
       ...data,
@@ -77,6 +77,10 @@ async function register(role, data) {
         success: false,
         message: 'استجابة الخادم غير صحيحة',
       };
+    }
+
+    if (!autoLogin) {
+      return { success: true, user };
     }
 
     const success = await useAppStore.getState().setAuth(user, token);

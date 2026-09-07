@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import {
   ActivityIndicator,
   Alert,
+  Image,
   KeyboardAvoidingView,
   Platform,
   ScrollView,
@@ -13,6 +14,7 @@ import {
 } from 'react-native';
 
 import { LinearGradient } from 'expo-linear-gradient';
+import * as ImagePicker from 'expo-image-picker';
 import { Ionicons } from '@expo/vector-icons';
 
 import { COLORS } from '../../constants/colors';
@@ -20,8 +22,9 @@ import { authService } from '../../services/authService';
 import PhoneInput from '../../components/PhoneInput';
 import useAppStore from '../../store/appStore';
 
-const RegisterScreen = ({ navigation }) => {
+const RegisterScreen = ({ navigation, route }) => {
   const storeCountry = useAppStore((state) => state.country);
+  const initialRole = route?.params?.role === 'vendor' ? 'vendor' : 'customer';
 
   const [name, setName] = useState('');
   const [phone, setPhone] = useState('');
@@ -33,8 +36,9 @@ const RegisterScreen = ({ navigation }) => {
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
 
-  const [role, setRole] = useState('customer');
+  const [role, setRole] = useState(initialRole);
   const [storeName, setStoreName] = useState('');
+  const [idCardImage, setIdCardImage] = useState(null);
 
   const [loading, setLoading] = useState(false);
 
@@ -53,6 +57,28 @@ const RegisterScreen = ({ navigation }) => {
     setPhoneE164(e164);
     setPhoneValid(isValid);
     setCountry(countryCode);
+  };
+
+  const pickIdCardImage = async () => {
+    if (loading) return;
+
+    const permission = await ImagePicker.requestMediaLibraryPermissionsAsync();
+    if (!permission.granted) {
+      Alert.alert(
+        'السماح بالصور مطلوب',
+        'اسمح للتطبيق بالوصول إلى الصور لاختيار صورة البطاقة.'
+      );
+      return;
+    }
+
+    const result = await ImagePicker.launchImageLibraryAsync({
+      allowsEditing: true,
+      quality: 0.8,
+    });
+
+    if (!result.canceled && result.assets?.[0]?.uri) {
+      setIdCardImage(result.assets[0].uri);
+    }
   };
 
   // ==========================================
@@ -171,7 +197,8 @@ const RegisterScreen = ({ navigation }) => {
         ...(role === 'vendor'
           ? {
               storeName: storeName.trim(),
-            }
+            idCardImage,
+          }
           : {}),
       };
 
@@ -194,19 +221,22 @@ const RegisterScreen = ({ navigation }) => {
         return;
       }
 
+      if (role === 'vendor') {
+        Alert.alert(
+          '🎉 تم بنجاح',
+          'تم استلام طلب انضمامك كشريك. سيظل حسابك داخل شاشة الشراكة لحين استكمال المراجعة.',
+          [{ text: 'حسناً' }],
+          { cancelable: false }
+        );
+        return;
+      }
+
       Alert.alert(
         '🎉 تم بنجاح',
         'تم إنشاء حسابك بنجاح',
         [
           {
-            text: 'تسجيل الدخول الآن',
-            onPress: () => {
-              navigation.replace('Login', {
-                phone: phone,
-                countryCode: country,
-                password,
-              });
-            },
+            text: 'حسناً',
           },
         ],
         {
@@ -242,14 +272,10 @@ const RegisterScreen = ({ navigation }) => {
     }
   };
 
-  // ==========================================
-  // LOGIN
-  // ==========================================
-
-  const goToLogin = () => {
+  const goToPartnerLogin = () => {
     if (loading) return;
 
-    navigation.navigate('Login');
+    navigation.navigate('PartnerLogin');
   };
 
   // ==========================================
@@ -334,15 +360,7 @@ const RegisterScreen = ({ navigation }) => {
             HEADER
         ====================================== */}
 
-        <LinearGradient
-          colors={[
-            COLORS.primary,
-            COLORS.secondary,
-          ]}
-          start={{ x: 0, y: 0 }}
-          end={{ x: 1, y: 1 }}
-          style={styles.header}
-        >
+        <View style={styles.header}>
           <TouchableOpacity
             onPress={() =>
               navigation.goBack()
@@ -350,31 +368,16 @@ const RegisterScreen = ({ navigation }) => {
             disabled={loading}
             style={styles.backButton}
           >
-            <Ionicons
-              name="arrow-back"
-              size={24}
-              color="#FFFFFF"
-            />
+            <Ionicons name="arrow-forward" size={24} color="#111827" />
           </TouchableOpacity>
 
           <View style={styles.headerContent}>
-            <View style={styles.logoCircle}>
-              <Ionicons
-                name="person-add"
-                size={34}
-                color="#FFFFFF"
-              />
-            </View>
-
-            <Text style={styles.headerTitle}>
-              انضم إلى ناو
-            </Text>
-
-            <Text style={styles.headerSubtitle}>
-              ابدأ شغلك مع منصة ناو
+            <Text style={styles.logoText}>
+              <Text style={styles.logoNow}>N</Text>
+              <Text style={styles.logoBlack}>OW</Text>
             </Text>
           </View>
-        </LinearGradient>
+        </View>
 
         {/* ======================================
             FORM CARD
@@ -382,7 +385,7 @@ const RegisterScreen = ({ navigation }) => {
 
         <View style={styles.formCard}>
           <Text style={styles.sectionTitle}>
-            إنشاء حساب جديد
+            انضم كشريك
           </Text>
 
           <Text style={styles.sectionSubtitle}>
@@ -399,22 +402,23 @@ const RegisterScreen = ({ navigation }) => {
 
           <View style={styles.rolesContainer}>
             <RoleButton
-              value="customer"
-              label="عميل"
-              icon="bag-handle-outline"
-            />
-
-            <RoleButton
               value="vendor"
-              label="بائع / مطعم"
+              label="بائع NOW"
               icon="storefront-outline"
             />
 
             <RoleButton
               value="delivery"
-              label="مندوب توصيل"
+              label="مندوب NOW"
               icon="bicycle-outline"
             />
+            {initialRole !== 'vendor' && (
+              <RoleButton
+                value="customer"
+                label="عميل"
+                icon="bag-handle-outline"
+              />
+            )}
           </View>
 
           {/* ====================================
@@ -462,6 +466,38 @@ const RegisterScreen = ({ navigation }) => {
                   }
                 />
               </View>
+
+              <Text style={styles.label}>
+                صورة البطاقة
+              </Text>
+
+              <TouchableOpacity
+                style={[
+                  styles.idCardPicker,
+                  idCardImage && styles.idCardPickerSelected,
+                ]}
+                onPress={pickIdCardImage}
+                disabled={loading}
+                activeOpacity={0.8}
+              >
+                {idCardImage ? (
+                  <Image
+                    source={{ uri: idCardImage }}
+                    style={styles.idCardPreview}
+                  />
+                ) : (
+                  <>
+                    <Ionicons
+                      name="camera-outline"
+                      size={27}
+                      color="#65C9DE"
+                    />
+                    <Text style={styles.idCardPlaceholder}>
+                      اضغط لاختيار صورة البطاقة
+                    </Text>
+                  </>
+                )}
+              </TouchableOpacity>
             </>
           )}
 
@@ -639,6 +675,7 @@ const RegisterScreen = ({ navigation }) => {
                 color={COLORS.textSecondary}
               />
             </TouchableOpacity>
+
           </View>
 
           {/* ====================================
@@ -782,41 +819,78 @@ const RegisterScreen = ({ navigation }) => {
             </LinearGradient>
           </TouchableOpacity>
 
-          {/* ====================================
-              LOGIN
-          ==================================== */}
-
           <View style={styles.loginContainer}>
             <Text style={styles.loginText}>
-              لديك حساب بالفعل؟
+              لديك حساب شريك بالفعل؟
             </Text>
 
             <TouchableOpacity
-              onPress={goToLogin}
+              onPress={goToPartnerLogin}
               disabled={loading}
               activeOpacity={0.7}
             >
               <Text style={styles.loginLink}>
-                تسجيل الدخول
+                تسجيل دخول الشريك
               </Text>
             </TouchableOpacity>
           </View>
+
         </View>
 
-        {/* ======================================
-            FOOTER
-        ====================================== */}
-
-        <View style={styles.footer}>
-          <Text style={styles.footerText}>
-            ناو © 2026
-          </Text>
-
-          <Text style={styles.footerSubText}>
-            شريكك في التوصيل
-          </Text>
-        </View>
       </ScrollView>
+
+      <View style={styles.bottomNav}>
+        {[
+          { key: 'account', label: 'حسابي', icon: 'person-outline' },
+          { key: 'partner', label: 'انضم كشريك', icon: 'hand-left-outline' },
+          { key: 'home', label: 'الرئيسية', icon: 'home-outline' },
+          { key: 'orders', label: 'طلباتك', icon: 'receipt-outline' },
+          { key: 'about', label: 'عنا', icon: 'people-outline' },
+        ].map((item) => (
+          <TouchableOpacity
+            key={item.key}
+            style={styles.bottomNavItem}
+            onPress={() => {
+              const routeNames = navigation.getState()?.routeNames || [];
+              if (item.key === 'partner') return;
+              if (item.key === 'about' && routeNames.includes('About')) {
+                navigation.navigate('About');
+              } else if (
+                item.key === 'home' &&
+                routeNames.includes('GuestHome')
+              ) {
+                navigation.navigate('GuestHome');
+              } else if (
+                item.key === 'home' &&
+                routeNames.includes('CustomerTabs')
+              ) {
+                navigation.navigate('CustomerTabs');
+              } else if (
+                item.key === 'orders' &&
+                routeNames.includes('Orders')
+              ) {
+                navigation.navigate('Orders');
+              } else if (item.key === 'account') {
+                navigation.navigate('Register', { role: 'customer' });
+              }
+            }}
+          >
+            <Ionicons
+              name={item.icon}
+              size={22}
+              color={item.key === 'partner' ? '#27B8D5' : '#6FAEC0'}
+            />
+            <Text
+              style={[
+                styles.bottomNavLabel,
+                item.key === 'partner' && styles.bottomNavLabelActive,
+              ]}
+            >
+              {item.label}
+            </Text>
+          </TouchableOpacity>
+        ))}
+      </View>
     </KeyboardAvoidingView>
   );
 };
@@ -828,12 +902,12 @@ const RegisterScreen = ({ navigation }) => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: COLORS.background,
+    backgroundColor: '#FFFFFF',
   },
 
   scrollContent: {
     flexGrow: 1,
-    paddingBottom: 25,
+    paddingBottom: 18,
   },
 
   // ========================================
@@ -841,12 +915,11 @@ const styles = StyleSheet.create({
   // ========================================
 
   header: {
-    minHeight: 230,
-    paddingTop: 45,
-    paddingHorizontal: 20,
-    paddingBottom: 30,
-    borderBottomLeftRadius: 42,
-    borderBottomRightRadius: 42,
+    minHeight: 205,
+    paddingTop: 32,
+    paddingHorizontal: 18,
+    paddingBottom: 18,
+    backgroundColor: '#B9F2FB',
   },
 
   backButton: {
@@ -855,41 +928,28 @@ const styles = StyleSheet.create({
     borderRadius: 22,
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor:
-      'rgba(255,255,255,0.18)',
+    backgroundColor: 'rgba(255,255,255,0.65)',
     alignSelf: 'flex-start',
   },
 
   headerContent: {
     alignItems: 'center',
-    marginTop: 10,
-  },
-
-  logoCircle: {
-    width: 70,
-    height: 70,
-    borderRadius: 35,
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor:
-      'rgba(255,255,255,0.18)',
-    borderWidth: 1,
-    borderColor:
-      'rgba(255,255,255,0.25)',
-    marginBottom: 10,
-  },
-
-  headerTitle: {
-    color: '#FFFFFF',
-    fontSize: 30,
-    fontWeight: '800',
-  },
-
-  headerSubtitle: {
-    color: '#FFFFFF',
-    fontSize: 14,
-    opacity: 0.9,
     marginTop: 4,
+  },
+
+  logoText: {
+    fontSize: 62,
+    fontWeight: '900',
+    letterSpacing: -5,
+    marginBottom: 12,
+  },
+
+  logoNow: {
+    color: '#E51B2B',
+  },
+
+  logoBlack: {
+    color: '#0E1114',
   },
 
   // ========================================
@@ -897,26 +957,16 @@ const styles = StyleSheet.create({
   // ========================================
 
   formCard: {
-    backgroundColor: COLORS.background,
-    marginHorizontal: 16,
-    marginTop: -22,
-    borderRadius: 28,
-    padding: 21,
-
-    shadowColor: '#000',
-    shadowOffset: {
-      width: 0,
-      height: 5,
-    },
-    shadowOpacity: 0.08,
-    shadowRadius: 15,
-
-    elevation: 5,
+    backgroundColor: '#FFFFFF',
+    marginHorizontal: 12,
+    marginTop: 12,
+    borderRadius: 24,
+    padding: 12,
   },
 
   sectionTitle: {
     color: COLORS.textPrimary,
-    fontSize: 25,
+    fontSize: 23,
     fontWeight: '800',
     textAlign: 'right',
   },
@@ -926,7 +976,7 @@ const styles = StyleSheet.create({
     fontSize: 14,
     textAlign: 'right',
     marginTop: 5,
-    marginBottom: 23,
+    marginBottom: 17,
   },
 
   label: {
@@ -949,61 +999,54 @@ const styles = StyleSheet.create({
 
   rolesContainer: {
     flexDirection: 'row',
-    gap: 12,
-    marginBottom: 20,
+    gap: 0,
+    marginBottom: 19,
+    borderRadius: 28,
+    backgroundColor: '#32B7D7',
+    padding: 2,
   },
 
   roleButton: {
     flex: 1,
-    minHeight: 110,
-    borderRadius: 17,
-    backgroundColor: COLORS.surface,
-    borderWidth: 1.5,
-    borderColor: COLORS.border,
+    minHeight: 55,
+    borderRadius: 27,
+    backgroundColor: 'transparent',
     alignItems: 'center',
     justifyContent: 'center',
     position: 'relative',
   },
 
   roleButtonActive: {
-    backgroundColor: '#FFF5FA',
-    borderColor: COLORS.primary,
+    backgroundColor: '#FFFFFF',
   },
 
   roleIcon: {
-    width: 47,
-    height: 47,
-    borderRadius: 24,
+    display: 'none',
+    width: 0,
+    height: 0,
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: '#FFFFFF',
-    marginBottom: 7,
+    backgroundColor: 'transparent',
+    marginBottom: 0,
   },
 
   roleIconActive: {
-    backgroundColor: COLORS.primary,
+    backgroundColor: 'transparent',
   },
 
   roleText: {
-    color: COLORS.textSecondary,
-    fontSize: 14,
-    fontWeight: '700',
+    color: '#FFFFFF',
+    fontSize: 17,
+    fontWeight: '800',
   },
 
   roleTextActive: {
-    color: COLORS.primary,
+    color: '#333333',
   },
 
   selectedMark: {
     position: 'absolute',
-    top: 7,
-    right: 7,
-    width: 23,
-    height: 23,
-    borderRadius: 12,
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: COLORS.primary,
+    display: 'none',
   },
 
   // ========================================
@@ -1011,24 +1054,25 @@ const styles = StyleSheet.create({
   // ========================================
 
   inputContainer: {
-    minHeight: 55,
-    flexDirection: 'row',
+    minHeight: 61,
+    flexDirection: 'row-reverse',
     alignItems: 'center',
     backgroundColor: COLORS.surface,
-    borderWidth: 1,
-    borderColor: COLORS.border,
-    borderRadius: 14,
-    paddingHorizontal: 12,
-    marginBottom: 17,
+    borderWidth: 2,
+    borderColor: '#D8D8D8',
+    borderRadius: 31,
+    paddingHorizontal: 16,
+    marginBottom: 15,
   },
 
   inputContainerFocused: {
-    borderColor: COLORS.primary,
-    backgroundColor: '#FFF9FC',
+    borderColor: '#65C9DE',
+    backgroundColor: '#FFFFFF',
   },
 
   inputIcon: {
-    marginRight: 9,
+    marginLeft: 9,
+    color: '#65C9DE',
   },
 
   input: {
@@ -1039,9 +1083,40 @@ const styles = StyleSheet.create({
     textAlign: 'right',
   },
 
+  idCardPicker: {
+    minHeight: 82,
+    borderRadius: 28,
+    borderWidth: 2,
+    borderColor: '#D8D8D8',
+    borderStyle: 'dashed',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 15,
+    overflow: 'hidden',
+    backgroundColor: '#FFFFFF',
+  },
+
+  idCardPickerSelected: {
+    borderColor: '#65C9DE',
+    borderStyle: 'solid',
+  },
+
+  idCardPlaceholder: {
+    color: '#65C9DE',
+    fontSize: 14,
+    fontWeight: '700',
+    marginTop: 4,
+  },
+
+  idCardPreview: {
+    width: '100%',
+    height: 145,
+    resizeMode: 'cover',
+  },
+
   eyeButton: {
     padding: 7,
-    marginLeft: 5,
+    marginRight: 5,
   },
 
   // ========================================
@@ -1052,13 +1127,13 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 9,
-    backgroundColor: '#FFF5FA',
+    backgroundColor: '#EAFBFE',
     borderRadius: 13,
     padding: 12,
     marginTop: 2,
     marginBottom: 18,
     borderWidth: 1,
-    borderColor: '#FCE4EC',
+    borderColor: '#B9EAF2',
   },
 
   infoText: {
@@ -1084,7 +1159,7 @@ const styles = StyleSheet.create({
 
   gradientButton: {
     minHeight: 58,
-    borderRadius: 16,
+    borderRadius: 30,
     alignItems: 'center',
     justifyContent: 'center',
     paddingHorizontal: 18,
@@ -1117,29 +1192,6 @@ const styles = StyleSheet.create({
   },
 
   // ========================================
-  // LOGIN
-  // ========================================
-
-  loginContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: 5,
-    marginTop: 22,
-  },
-
-  loginText: {
-    color: COLORS.textSecondary,
-    fontSize: 14,
-  },
-
-  loginLink: {
-    color: COLORS.primary,
-    fontSize: 15,
-    fontWeight: '800',
-  },
-
-  // ========================================
   // FOOTER
   // ========================================
 
@@ -1158,6 +1210,55 @@ const styles = StyleSheet.create({
     color: COLORS.textLight,
     fontSize: 12,
     marginTop: 4,
+  },
+
+  bottomNav: {
+    minHeight: 76,
+    flexDirection: 'row-reverse',
+    alignItems: 'center',
+    justifyContent: 'space-around',
+    backgroundColor: '#FFFFFF',
+    borderTopWidth: 1,
+    borderTopColor: '#E5F5F8',
+    paddingHorizontal: 5,
+    paddingBottom: Platform.OS === 'ios' ? 10 : 3,
+  },
+
+  bottomNavItem: {
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 2,
+  },
+
+  bottomNavLabel: {
+    color: '#6FAEC0',
+    fontSize: 10,
+    fontWeight: '700',
+    textAlign: 'center',
+  },
+
+  bottomNavLabelActive: {
+    color: '#27B8D5',
+  },
+
+  loginContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 5,
+    marginTop: 18,
+  },
+
+  loginText: {
+    color: COLORS.textSecondary,
+    fontSize: 13,
+  },
+
+  loginLink: {
+    color: '#27B8D5',
+    fontSize: 14,
+    fontWeight: '800',
   },
 });
 

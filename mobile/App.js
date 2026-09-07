@@ -19,7 +19,6 @@ import {
 import * as Localization from 'expo-localization';
 
 import RootNavigator from './navigation/RootNavigator';
-import GlobalLanguageButton from './components/GlobalLanguageButton';
 import useAppStore from './store/appStore';
 import installGlobalTranslation from './utils/globalTranslation';
 
@@ -109,7 +108,6 @@ export default function App() {
           <RootNavigator />
         </NavigationContainer>
 
-        <GlobalLanguageButton />
       </View>
     </SafeAreaProvider>
   );

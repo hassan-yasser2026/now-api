@@ -15,6 +15,7 @@ import CustomerProfile from '../screens/customer/CustomerProfile';
 import AssistantScreen from '../screens/customer/AssisantScreen';
 import CartScreen from '../screens/customer/CartScreen';
 import AboutScreen from '../screens/auth/AboutScreen';
+import RegisterScreen from '../screens/auth/RegisterScreen';
 
 const Tab = createBottomTabNavigator();
 const Stack = createNativeStackNavigator();
@@ -93,6 +94,7 @@ const CustomerNavigator = () => (
     <Stack.Screen name="OrderConfirmation" component={OrderConfirmation} />
     <Stack.Screen name="OrderTracking" component={OrderTracking} />
     <Stack.Screen name="About" component={AboutScreen} />
+    <Stack.Screen name="Register" component={RegisterScreen} />
   </Stack.Navigator>
 );
 

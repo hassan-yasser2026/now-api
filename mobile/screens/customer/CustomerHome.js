@@ -3,6 +3,7 @@ import {
   ActivityIndicator,
   Alert,
   FlatList,
+  Image,
   I18nManager,
   RefreshControl,
   StyleSheet,
@@ -23,6 +24,9 @@ import { orderService } from '../../services/orderService';
 import StoreCard from '../../components/StoreCard';
 import Loading from '../../components/Loading';
 import EmptyState from '../../components/EmptyState';
+
+const HOME_ACCENT = '#08C6E8';
+const HOME_DARK = '#151515';
 
 const STATUS_LABELS = {
   PENDING: 'في انتظار المتجر',
@@ -191,7 +195,7 @@ const CustomerHome = ({ navigation }) => {
 
   const handleCartPress = useCallback(() => {
     if (isGuest) {
-      navigation.navigate('Login');
+      navigation.navigate('Register', { role: 'customer' });
       return;
     }
 
@@ -206,8 +210,51 @@ const CustomerHome = ({ navigation }) => {
     navigation.navigate('Search');
   }, [cartByStore, isGuest, navigation]);
 
+  const handleSettingsPress = useCallback(() => {
+    navigation.navigate(isGuest ? 'GuestAccount' : 'Settings');
+  }, [isGuest, navigation]);
+
+  const handleCartStorePress = useCallback((storeId) => {
+    if (isGuest) {
+      navigation.navigate('Register', { role: 'customer' });
+      return;
+    }
+
+    navigation.navigate('OrderConfirmation', { storeId });
+  }, [isGuest, navigation]);
+
+  const handleBottomNavigation = useCallback((route) => {
+    if (route === 'account') {
+      navigation.navigate(isGuest ? 'GuestAccount' : 'CustomerProfile');
+      return;
+    }
+
+    if (route === 'partner') {
+      navigation.navigate('Register', { role: 'vendor' });
+      return;
+    }
+
+    if (route === 'orders') {
+      navigation.navigate(isGuest ? 'Login' : 'Orders');
+      return;
+    }
+
+    if (route === 'about') {
+      navigation.navigate('About');
+    }
+  }, [isGuest, navigation]);
+
   const openStoresCount = useMemo(
     () => stores.filter((store) => store.isOpen === true).length,
+    [stores]
+  );
+
+  const categoryItems = useMemo(
+    () =>
+      stores.slice(0, 6).map((store, index) => ({
+        ...store,
+        categoryIcon: ['restaurant-outline', 'cart-outline', 'cafe-outline', 'fast-food-outline', 'storefront-outline', 'ice-cream-outline'][index % 6],
+      })),
     [stores]
   );
 
@@ -267,13 +314,6 @@ const CustomerHome = ({ navigation }) => {
     },
   ];
 
-  const quickActions = [
-    { key: 'search', label: 'بحث', icon: 'search-outline', onPress: () => navigation.navigate('Search') },
-    { key: 'orders', label: 'طلبات', icon: 'receipt-outline', onPress: () => navigation.navigate('Orders') },
-    { key: 'favorites', label: 'المفضلة', icon: 'heart-outline', onPress: () => navigation.navigate('Favorites') },
-    { key: 'settings', label: 'إعدادات', icon: 'settings-outline', onPress: () => navigation.navigate('Settings') },
-  ];
-
   const getStatusLabel = (orderStatus) => {
     return STATUS_LABELS[orderStatus] || orderStatus || 'غير معروف';
   };
@@ -284,41 +324,73 @@ const CustomerHome = ({ navigation }) => {
 
   return (
     <View style={styles.container}>
-      {/* Header */}
-      <View style={styles.header}>
-        <View style={styles.headerTextContainer}>
-          <Text style={styles.greeting}>
-            {isGuest ? '👋 أهلاً بيك' : `أهلاً ${user?.name || ''}`}
-          </Text>
-          <Text style={styles.subGreeting}>
-            {isGuest ? 'اكتشف المتاجر واطلب اللي نفسك فيه' : 'اكتشف المتاجر القريبة منك'}
-          </Text>
+      <View style={styles.hero}>
+        <View style={styles.header}>
+          <View style={styles.headerTextContainer}>
+            <Text style={styles.brandMark}>NOW</Text>
+            <Text style={styles.greeting}>
+              {isGuest ? 'أهلاً بك 👋' : `أهلاً ${user?.name || ''}`}
+            </Text>
+            <Text style={styles.subGreeting}>
+              {isGuest ? 'اكتشف المتاجر واطلب اللي نفسك فيه' : 'اكتشف المتاجر القريبة منك'}
+            </Text>
+          </View>
+
+          <View style={styles.headerActions}>
+            <TouchableOpacity style={styles.profileButton} onPress={handleSettingsPress} activeOpacity={0.8}>
+              <Ionicons name="settings-outline" size={20} color={HOME_ACCENT} />
+            </TouchableOpacity>
+            <TouchableOpacity style={styles.iconButton} onPress={handleCartPress} activeOpacity={0.8}>
+              <Ionicons name="bag-handle-outline" size={22} color="#fff" />
+              {cart.length > 0 && (
+                <View style={styles.cartBadgeHeader}>
+                  <Text style={styles.cartBadgeTextHeader}>{cart.length > 9 ? '9+' : cart.length}</Text>
+                </View>
+              )}
+            </TouchableOpacity>
+
+            {isAuthenticated && (
+              <TouchableOpacity
+                style={styles.profileButton}
+                onPress={() => navigation.navigate('CustomerProfile')}
+                activeOpacity={0.8}
+              >
+                <Ionicons name="person-outline" size={20} color={HOME_ACCENT} />
+              </TouchableOpacity>
+            )}
+          </View>
         </View>
 
-        <View style={styles.headerActions}>
-          <TouchableOpacity
-            style={styles.iconButton}
-            onPress={handleCartPress}
-            activeOpacity={0.8}
-          >
-            <Ionicons name="cart-outline" size={25} color={COLORS.textPrimary} />
-            {cart.length > 0 && (
-              <View style={styles.cartBadgeHeader}>
-                <Text style={styles.cartBadgeTextHeader}>
-                  {cart.length > 9 ? '9+' : cart.length}
-                </Text>
-              </View>
-            )}
-          </TouchableOpacity>
+        <View style={styles.locationPill}>
+          <Ionicons name="location" size={17} color={HOME_ACCENT} />
+          <View style={styles.locationText}>
+            <Text style={styles.locationLabel}>موقع التوصيل</Text>
+            <Text style={styles.locationValue}>تحديد الموقع على الخريطة</Text>
+          </View>
+          <Ionicons name="chevron-down" size={16} color={COLORS.textSecondary} />
+        </View>
 
-          {isAuthenticated && (
-            <TouchableOpacity
-              onPress={() => navigation.navigate('CustomerProfile')}
-              activeOpacity={0.8}
-            >
-              <Ionicons name="person-circle-outline" size={42} color={COLORS.primary} />
+        <View style={styles.searchContainer}>
+          <Ionicons name="search-outline" size={21} color={HOME_ACCENT} />
+          <TextInput
+            style={[styles.searchInput, isRTL ? styles.searchInputRTL : styles.searchInputLTR]}
+            placeholder="ابحث عن مطعم أو متجر..."
+            placeholderTextColor={COLORS.textLight}
+            value={searchText}
+            onChangeText={setSearchText}
+            returnKeyType="search"
+          />
+          {searchText.length > 0 && (
+            <TouchableOpacity onPress={() => setSearchText('')} style={styles.clearSearch}>
+              <Ionicons name="close-circle" size={21} color={COLORS.textSecondary} />
             </TouchableOpacity>
           )}
+        </View>
+        <View style={styles.brandLogo}>
+          <Text style={styles.brandLogoText}>
+            <Text style={styles.logoRed}>N</Text>
+            <Text style={styles.logoDark}>OW</Text>
+          </Text>
         </View>
       </View>
 
@@ -331,7 +403,7 @@ const CustomerHome = ({ navigation }) => {
           </View>
           <TouchableOpacity
             style={styles.guestBannerBtn}
-            onPress={() => navigation.navigate('Login')}
+            onPress={() => navigation.navigate('Register', { role: 'customer' })}
             activeOpacity={0.8}
           >
             <Text style={styles.guestBannerBtnText}>دخول</Text>
@@ -339,10 +411,48 @@ const CustomerHome = ({ navigation }) => {
         </View>
       )}
 
-      <View style={styles.offersSection}>
-        <Text style={styles.sectionTitle}>عروض مميزة</Text>
+      <View style={styles.sectionBlock}>
+        <View style={styles.sectionHeader}>
+          <Text style={styles.sectionTitle}>المتاجر المتاحة</Text>
+          <Ionicons name="apps-outline" size={20} color={HOME_ACCENT} />
+        </View>
         <FlatList
           horizontal
+          inverted={isRTL}
+          data={categoryItems}
+          showsHorizontalScrollIndicator={false}
+          keyExtractor={(item) => String(item.id)}
+          contentContainerStyle={styles.categoriesList}
+          renderItem={({ item }) => (
+            <TouchableOpacity
+              style={styles.categoryItem}
+              onPress={() => handleStorePress(item)}
+              activeOpacity={0.85}
+            >
+              <View style={styles.categoryIcon}>
+                {item.image || item.logo ? (
+                  <Image
+                    source={{ uri: item.image || item.logo }}
+                    style={styles.categoryImage}
+                  />
+                ) : (
+                  <Ionicons name={item.categoryIcon} size={25} color={HOME_ACCENT} />
+                )}
+              </View>
+              <Text style={styles.categoryLabel} numberOfLines={1}>{item.name || item.category || 'متجر'}</Text>
+            </TouchableOpacity>
+          )}
+        />
+      </View>
+
+      <View style={styles.offersSection}>
+        <View style={styles.sectionHeader}>
+          <Text style={styles.sectionTitle}>عروض مميزة</Text>
+          <Ionicons name="sparkles-outline" size={20} color={HOME_ACCENT} />
+        </View>
+        <FlatList
+          horizontal
+          inverted={isRTL}
           data={featuredOffers}
           showsHorizontalScrollIndicator={false}
           keyExtractor={(item) => item.id}
@@ -360,24 +470,6 @@ const CustomerHome = ({ navigation }) => {
             </View>
           )}
         />
-      </View>
-
-      {/* Search */}
-      <View style={styles.searchContainer}>
-        <Ionicons name="search-outline" size={22} color={COLORS.textSecondary} />
-        <TextInput
-          style={[styles.searchInput, isRTL ? styles.searchInputRTL : styles.searchInputLTR]}
-          placeholder="ابحث عن مطعم أو متجر..."
-          placeholderTextColor={COLORS.textLight}
-          value={searchText}
-          onChangeText={setSearchText}
-          returnKeyType="search"
-        />
-        {searchText.length > 0 && (
-          <TouchableOpacity onPress={() => setSearchText('')} style={styles.clearSearch}>
-            <Ionicons name="close-circle" size={21} color={COLORS.textSecondary} />
-          </TouchableOpacity>
-        )}
       </View>
 
       {/* Filters */}
@@ -411,27 +503,11 @@ const CustomerHome = ({ navigation }) => {
         {statsCards.map((stat) => (
           <View key={stat.key} style={styles.statCard}>
             <View style={styles.statIconWrap}>
-              <Ionicons name={stat.icon} size={18} color={COLORS.primary} />
+              <Ionicons name={stat.icon} size={18} color={HOME_ACCENT} />
             </View>
             <Text style={styles.statValue}>{stat.value}</Text>
             <Text style={styles.statLabel}>{stat.label}</Text>
           </View>
-        ))}
-      </View>
-
-      <View style={styles.quickActionsGrid}>
-        {quickActions.map((action) => (
-          <TouchableOpacity
-            key={action.key}
-            activeOpacity={0.9}
-            onPress={action.onPress}
-            style={styles.quickActionCard}
-          >
-            <View style={styles.quickActionIconWrap}>
-              <Ionicons name={action.icon} size={20} color={COLORS.primary} />
-            </View>
-            <Text style={styles.quickActionText}>{action.label}</Text>
-          </TouchableOpacity>
         ))}
       </View>
 
@@ -460,7 +536,7 @@ const CustomerHome = ({ navigation }) => {
               >
                 <View style={styles.orderTopRow}>
                   <View style={styles.orderIcon}>
-                    <Ionicons name="receipt-outline" size={20} color={COLORS.primary} />
+                    <Ionicons name="receipt-outline" size={20} color={HOME_ACCENT} />
                   </View>
                   <Text style={styles.orderId}>#{item.id}</Text>
                 </View>
@@ -475,7 +551,7 @@ const CustomerHome = ({ navigation }) => {
 
                 <View style={styles.trackRow}>
                   <Text style={styles.trackText}>تتبع الطلب</Text>
-                  <Ionicons name="arrow-back" size={16} color={COLORS.primary} />
+                  <Ionicons name="arrow-back" size={16} color={HOME_ACCENT} />
                 </View>
               </TouchableOpacity>
             )}
@@ -502,8 +578,8 @@ const CustomerHome = ({ navigation }) => {
             <RefreshControl
               refreshing={status === 'refreshing'}
               onRefresh={onRefresh}
-              colors={[COLORS.primary]}
-              tintColor={COLORS.primary}
+              colors={[HOME_ACCENT]}
+              tintColor={HOME_ACCENT}
             />
           }
           ListEmptyComponent={
@@ -546,7 +622,7 @@ const CustomerHome = ({ navigation }) => {
         style={styles.aboutLink}
         activeOpacity={0.7}
       >
-        <Ionicons name="information-circle-outline" size={18} color={COLORS.primary} />
+        <Ionicons name="information-circle-outline" size={18} color={HOME_ACCENT} />
         <Text style={styles.aboutText}>حول تطبيق ناو</Text>
       </TouchableOpacity>
 
@@ -557,7 +633,7 @@ const CustomerHome = ({ navigation }) => {
             <TouchableOpacity
               key={cartStore.storeId}
               style={styles.cartBar}
-              onPress={() => navigation.navigate('OrderConfirmation', { storeId: cartStore.storeId })}
+              onPress={() => handleCartStorePress(cartStore.storeId)}
               activeOpacity={0.9}
             >
               <View style={styles.cartInfo}>
@@ -577,6 +653,34 @@ const CustomerHome = ({ navigation }) => {
           ))}
         </View>
       )}
+
+      {isGuest && (
+        <View style={styles.guestBottomNav}>
+          {[
+            { key: 'account', label: 'حسابي', icon: 'person-outline' },
+            { key: 'partner', label: 'انضم كشريك', icon: 'hand-left-outline' },
+            { key: 'home', label: 'الرئيسية', icon: 'home', active: true },
+            { key: 'orders', label: 'طلباتي', icon: 'receipt-outline' },
+            { key: 'about', label: 'حول تطبيق ناو', icon: 'information-circle-outline' },
+          ].map((item) => (
+            <TouchableOpacity
+              key={item.key}
+              style={styles.guestBottomNavItem}
+              onPress={() => handleBottomNavigation(item.key)}
+              activeOpacity={0.8}
+            >
+              <Ionicons
+                name={item.icon}
+                size={20}
+                color={item.active ? HOME_ACCENT : COLORS.textSecondary}
+              />
+              <Text style={[styles.guestBottomNavLabel, item.active && styles.guestBottomNavLabelActive]}>
+                {item.label}
+              </Text>
+            </TouchableOpacity>
+          ))}
+        </View>
+      )}
     </View>
   );
 };
@@ -584,27 +688,39 @@ const CustomerHome = ({ navigation }) => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: COLORS.background,
+    backgroundColor: '#FFFFFF',
+  },
+  hero: {
+    backgroundColor: HOME_ACCENT,
+    paddingTop: 8,
+    paddingBottom: 14,
   },
   header: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
     paddingHorizontal: 16,
-    paddingTop: 14,
-    paddingBottom: 12,
+    paddingTop: 8,
+    paddingBottom: 16,
   },
   headerTextContainer: {
     flex: 1,
   },
+  brandMark: {
+    color: '#FFFFFF',
+    fontSize: 13,
+    fontWeight: '900',
+    letterSpacing: 3,
+    marginBottom: 5,
+  },
   greeting: {
-    fontSize: 23,
+    fontSize: 21,
     fontWeight: '800',
-    color: COLORS.textPrimary,
+    color: '#FFFFFF',
   },
   subGreeting: {
-    fontSize: 14,
-    color: COLORS.textSecondary,
+    fontSize: 13,
+    color: 'rgba(255,255,255,0.88)',
     marginTop: 4,
   },
   headerActions: {
@@ -616,13 +732,26 @@ const styles = StyleSheet.create({
   iconButton: {
     width: 42,
     height: 42,
-    borderRadius: 21,
+    borderRadius: 14,
+    backgroundColor: 'rgba(255,255,255,0.22)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    position: 'relative',
+    elevation: 4,
+    shadowColor: '#007A91',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.2,
+    shadowRadius: 8,
+  },
+  profileButton: {
+    width: 42,
+    height: 42,
+    borderRadius: 14,
     backgroundColor: COLORS.surface,
     justifyContent: 'center',
     alignItems: 'center',
     borderWidth: 1,
-    borderColor: COLORS.border,
-    position: 'relative',
+    borderColor: 'rgba(255,255,255,0.65)',
   },
   cartBadgeHeader: {
     position: 'absolute',
@@ -631,7 +760,7 @@ const styles = StyleSheet.create({
     minWidth: 18,
     height: 18,
     borderRadius: 9,
-    backgroundColor: COLORS.primary,
+    backgroundColor: HOME_ACCENT,
     justifyContent: 'center',
     alignItems: 'center',
     paddingHorizontal: 4,
@@ -643,17 +772,20 @@ const styles = StyleSheet.create({
   },
   guestBanner: {
     marginHorizontal: 16,
-    marginBottom: 14,
+    marginTop: 14,
+    marginBottom: 4,
     padding: 15,
-    borderRadius: 16,
-    backgroundColor: COLORS.secondaryLight,
+    borderRadius: 18,
+    backgroundColor: '#E9FAFD',
+    borderWidth: 1,
+    borderColor: '#B7EEF5',
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
   },
   guestBannerContent: {
     flex: 1,
-    paddingRight: 10,
+    paddingRight: 12,
   },
   guestBannerTitle: {
     fontSize: 15,
@@ -667,30 +799,64 @@ const styles = StyleSheet.create({
     lineHeight: 18,
   },
   guestBannerBtn: {
-    backgroundColor: COLORS.primary,
-    paddingHorizontal: 17,
-    paddingVertical: 9,
-    borderRadius: 22,
+    backgroundColor: HOME_ACCENT,
+    paddingHorizontal: 16,
+    paddingVertical: 10,
+    borderRadius: 12,
   },
   guestBannerBtnText: {
     color: '#fff',
     fontSize: 13,
     fontWeight: '800',
   },
+  locationPill: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    alignSelf: 'center',
+    marginHorizontal: 16,
+    marginBottom: 12,
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    borderRadius: 14,
+    backgroundColor: COLORS.surface,
+    borderWidth: 1,
+    borderColor: '#D7D7D7',
+  },
+  locationText: {
+    marginHorizontal: 8,
+  },
+  locationLabel: {
+    color: COLORS.textSecondary,
+    fontSize: 10,
+    fontWeight: '600',
+  },
+  locationValue: {
+    color: COLORS.textPrimary,
+    fontSize: 12,
+    fontWeight: '800',
+    marginTop: 1,
+  },
   offersSection: {
     marginHorizontal: 16,
+    marginTop: 4,
     marginBottom: 14,
   },
   offersList: {
-    paddingRight: 4,
+    paddingRight: 2,
   },
   offerCard: {
-    width: 230,
-    borderRadius: 20,
-    padding: 16,
+    width: 244,
+    minHeight: 124,
+    borderRadius: 22,
+    padding: 17,
     marginRight: 12,
     overflow: 'hidden',
     justifyContent: 'center',
+    elevation: 3,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.1,
+    shadowRadius: 8,
   },
   offerGlow: {
     position: 'absolute',
@@ -729,13 +895,33 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     marginHorizontal: 16,
-    marginBottom: 14,
     paddingHorizontal: 14,
     height: 52,
     borderRadius: 15,
     backgroundColor: COLORS.surface,
     borderWidth: 1,
-    borderColor: COLORS.border,
+    borderColor: HOME_DARK,
+    elevation: 2,
+    shadowColor: '#7D3158',
+    shadowOffset: { width: 0, height: 3 },
+    shadowOpacity: 0.08,
+    shadowRadius: 8,
+  },
+  brandLogo: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    height: 58,
+  },
+  brandLogoText: {
+    fontSize: 44,
+    fontWeight: '900',
+    letterSpacing: -4,
+  },
+  logoRed: {
+    color: '#E51D35',
+  },
+  logoDark: {
+    color: HOME_DARK,
   },
   searchInput: {
     flex: 1,
@@ -772,8 +958,8 @@ const styles = StyleSheet.create({
     borderColor: COLORS.border,
   },
   filterButtonActive: {
-    backgroundColor: COLORS.primary,
-    borderColor: COLORS.primary,
+    backgroundColor: HOME_ACCENT,
+    borderColor: HOME_ACCENT,
   },
   filterText: {
     fontSize: 13,
@@ -803,7 +989,7 @@ const styles = StyleSheet.create({
     width: 34,
     height: 34,
     borderRadius: 17,
-    backgroundColor: COLORS.primaryLight,
+    backgroundColor: '#E2F9FD',
     alignItems: 'center',
     justifyContent: 'center',
     marginBottom: 8,
@@ -841,7 +1027,7 @@ const styles = StyleSheet.create({
     width: 36,
     height: 36,
     borderRadius: 18,
-    backgroundColor: COLORS.primaryLight,
+    backgroundColor: '#E2F9FD',
     alignItems: 'center',
     justifyContent: 'center',
     marginBottom: 8,
@@ -850,6 +1036,47 @@ const styles = StyleSheet.create({
     fontSize: 12,
     fontWeight: '700',
     color: COLORS.textPrimary,
+  },
+  sectionBlock: {
+    marginHorizontal: 16,
+    marginTop: 17,
+    marginBottom: 4,
+  },
+  categoriesList: {
+    paddingVertical: 4,
+  },
+  categoryItem: {
+    width: 78,
+    alignItems: 'center',
+    marginRight: 14,
+  },
+  categoryIcon: {
+    width: 64,
+    height: 64,
+    borderRadius: 32,
+    backgroundColor: COLORS.surface,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderWidth: 1,
+    borderColor: '#D9D9D9',
+    elevation: 2,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 3 },
+    shadowOpacity: 0.08,
+    shadowRadius: 7,
+  },
+  categoryImage: {
+    width: '100%',
+    height: '100%',
+    borderRadius: 32,
+  },
+  categoryLabel: {
+    width: 78,
+    marginTop: 8,
+    color: COLORS.textPrimary,
+    fontSize: 11,
+    fontWeight: '700',
+    textAlign: 'center',
   },
   ordersSection: {
     marginTop: 4,
@@ -876,7 +1103,7 @@ const styles = StyleSheet.create({
   seeAll: {
     fontSize: 13,
     fontWeight: '700',
-    color: COLORS.primary,
+    color: HOME_ACCENT,
   },
   storeCount: {
     fontSize: 12,
@@ -902,7 +1129,7 @@ const styles = StyleSheet.create({
     width: 36,
     height: 36,
     borderRadius: 18,
-    backgroundColor: COLORS.primaryLight,
+    backgroundColor: '#E2F9FD',
     justifyContent: 'center',
     alignItems: 'center',
     marginRight: 9,
@@ -920,7 +1147,7 @@ const styles = StyleSheet.create({
   orderTotal: {
     fontSize: 17,
     fontWeight: '800',
-    color: COLORS.primary,
+    color: HOME_ACCENT,
     marginTop: 6,
   },
   trackRow: {
@@ -935,11 +1162,49 @@ const styles = StyleSheet.create({
   trackText: {
     fontSize: 12,
     fontWeight: '700',
-    color: COLORS.primary,
+    color: HOME_ACCENT,
   },
   storesList: {
     paddingHorizontal: 16,
-    paddingBottom: 100,
+    paddingBottom: 156,
+  },
+  guestBottomNav: {
+    position: 'absolute',
+    left: 10,
+    right: 10,
+    bottom: 10,
+    height: 68,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-around',
+    paddingHorizontal: 6,
+    backgroundColor: COLORS.surface,
+    borderRadius: 22,
+    borderWidth: 1,
+    borderColor: '#D9D9D9',
+    elevation: 10,
+    shadowColor: '#6B2148',
+    shadowOffset: { width: 0, height: 6 },
+    shadowOpacity: 0.12,
+    shadowRadius: 14,
+    zIndex: 20,
+  },
+  guestBottomNavItem: {
+    flex: 1,
+    height: '100%',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 3,
+  },
+  guestBottomNavLabel: {
+    color: COLORS.textSecondary,
+    fontSize: 10,
+    fontWeight: '700',
+    textAlign: 'center',
+  },
+  guestBottomNavLabelActive: {
+    color: HOME_ACCENT,
+    fontWeight: '900',
   },
   assistantFab: {
     position: 'absolute',
@@ -948,7 +1213,7 @@ const styles = StyleSheet.create({
     width: 58,
     height: 58,
     borderRadius: 29,
-    backgroundColor: COLORS.primary,
+    backgroundColor: HOME_ACCENT,
     alignItems: 'center',
     justifyContent: 'center',
     elevation: 8,
@@ -975,7 +1240,7 @@ const styles = StyleSheet.create({
     borderRadius: 12,
   },
   aboutText: {
-    color: COLORS.primary,
+    color: HOME_ACCENT,
     fontSize: 14,
     fontWeight: '700',
   },
@@ -993,7 +1258,7 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     alignItems: 'center',
     padding: 12,
-    backgroundColor: COLORS.primaryDark || COLORS.primary,
+    backgroundColor: HOME_ACCENT,
     borderRadius: 16,
     elevation: 5,
     shadowColor: '#000',
@@ -1015,7 +1280,7 @@ const styles = StyleSheet.create({
     marginRight: 12,
   },
   cartBadgeTextBar: {
-    color: COLORS.primary,
+    color: HOME_ACCENT,
     fontWeight: 'bold',
     fontSize: 14,
   },
