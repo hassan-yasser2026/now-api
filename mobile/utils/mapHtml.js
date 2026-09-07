@@ -10,7 +10,7 @@
 
 const MARKER_COLORS = {
   primary: '#0B8FA3',
-  cyan: '#0B8FA3',
+  cyan: '#00A6B8',
   success: '#16A34A',
   blue: '#2563EB',
 };

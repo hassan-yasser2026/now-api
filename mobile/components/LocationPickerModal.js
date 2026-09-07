@@ -35,6 +35,8 @@ const LocationPickerModal = ({
 
   const [picked, setPicked] = useState(null);
   const [locating, setLocating] = useState(false);
+  const [selectedDay, setSelectedDay] = useState(null);
+  const [selectedHour, setSelectedHour] = useState(null);
 
   const initialPoint =
     initial &&
@@ -84,17 +86,25 @@ const LocationPickerModal = ({
     onClose?.();
   };
 
-  const chooseDateTime = (dayOffset, hour) => {
+  const saveDateTime = (dayOffset, hour) => {
     const date = new Date();
     date.setDate(date.getDate() + dayOffset);
     date.setHours(hour, 0, 0, 0);
     setScheduledDate(date.toISOString());
   };
 
+  const chooseDay = (dayOffset) => {
+    setSelectedDay(dayOffset);
+    if (selectedHour !== null) {
+      saveDateTime(dayOffset, selectedHour);
+    }
+  };
+
   const chooseHour = (hour) => {
-    const date = scheduledDate ? new Date(scheduledDate) : new Date();
-    date.setHours(hour, 0, 0, 0);
-    setScheduledDate(date.toISOString());
+    setSelectedHour(hour);
+    if (selectedDay !== null) {
+      saveDateTime(selectedDay, hour);
+    }
   };
 
   const handleClose = () => {
@@ -138,14 +148,12 @@ const LocationPickerModal = ({
             {[0, 1, 2, 3, 4].map((dayOffset) => {
               const date = new Date();
               date.setDate(date.getDate() + dayOffset);
-              const selectedDate = scheduledDate && new Date(scheduledDate);
-              const isSelected = selectedDate &&
-                selectedDate.toDateString() === date.toDateString();
+              const isSelected = selectedDay === dayOffset;
               return (
                 <TouchableOpacity
                   key={dayOffset}
                   style={[styles.dayOption, isSelected && styles.scheduleOptionActive]}
-                  onPress={() => chooseDateTime(dayOffset, selectedDate?.getHours() || 12)}
+                  onPress={() => chooseDay(dayOffset)}
                 >
                   <Text style={[styles.dayText, isSelected && styles.scheduleOptionTextActive]}>
                     {dayOffset === 0 ? 'اليوم' : date.toLocaleDateString('ar-EG', { weekday: 'short' })}
@@ -159,8 +167,7 @@ const LocationPickerModal = ({
           </View>
           <View style={styles.scheduleOptions}>
             {[12, 15, 18, 21].map((hour) => {
-              const date = scheduledDate ? new Date(scheduledDate) : new Date();
-              const isSelected = scheduledDate && date.getHours() === hour;
+              const isSelected = selectedHour === hour;
               return (
                 <TouchableOpacity
                   key={hour}
