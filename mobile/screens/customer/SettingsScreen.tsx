@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import {
+  Switch,
   View,
   Text,
   TouchableOpacity,
@@ -10,6 +11,7 @@ import {
   Linking,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { COLORS } from '../../constants/colors';
 import useAppStore from '../../store/appStore';
 import { getTranslations } from '../../constants/i18n';
@@ -20,7 +22,13 @@ type SupportType = 'email' | 'whatsapp';
 const SUPPORT_EMAIL = 'support@nowdelivery.com';
 const WHATSAPP_NUMBER = '966500000000';
 
-const SettingsScreen: React.FC = () => {
+type SettingsScreenProps = {
+  navigation?: {
+    navigate: (screen: string) => void;
+  };
+};
+
+const SettingsScreen: React.FC<SettingsScreenProps> = ({ navigation }) => {
   const language = useAppStore((state) => state.language) as Language;
   const setLanguage = useAppStore((state) => state.setLanguage);
   const logout = useAppStore((state) => state.logout);
@@ -28,10 +36,36 @@ const SettingsScreen: React.FC = () => {
   const isGuest = useAppStore((state) => state.isGuest);
   const isRTL = language === 'ar';
   const [t, setT] = useState(() => getTranslations(language));
+  const [notificationsEnabled, setNotificationsEnabled] = useState(true);
 
   useEffect(() => {
     setT(getTranslations(language));
   }, [language]);
+
+  useEffect(() => {
+    AsyncStorage.getItem('notificationsEnabled').then((value) => {
+      if (value !== null) {
+        setNotificationsEnabled(value === 'true');
+      }
+    }).catch((error) => {
+      console.error('Error loading notification preference:', error);
+    });
+  }, []);
+
+  const toggleNotifications = async (enabled: boolean) => {
+    setNotificationsEnabled(enabled);
+    try {
+      await AsyncStorage.setItem('notificationsEnabled', String(enabled));
+    } catch (error) {
+      console.error('Error saving notification preference:', error);
+    }
+  };
+
+  const showComingSoon = () => {
+    Alert.alert(t.settings.title, t.settings.comingSoon, [
+      { text: t.common.close, style: 'cancel' },
+    ]);
+  };
 
   const handleLanguageChange = (lang: Language) => {
     if (lang === language) return;
@@ -112,7 +146,11 @@ const SettingsScreen: React.FC = () => {
             {t.settings.account}
           </Text>
 
-          <View style={[styles.profileCard, isRTL && styles.profileCardRTL]}>
+          <TouchableOpacity
+            style={[styles.profileCard, isRTL && styles.profileCardRTL]}
+            onPress={() => navigation?.navigate('CustomerProfile')}
+            activeOpacity={0.8}
+          >
             <View style={[styles.avatar, isRTL && styles.avatarRTL]}>
               <Text style={styles.avatarText}>
                 {userDisplayName.charAt(0).toUpperCase()}
@@ -133,7 +171,7 @@ const SettingsScreen: React.FC = () => {
               size={20}
               color={COLORS.secondaryText}
             />
-          </View>
+          </TouchableOpacity>
         </View>
 
         <View style={styles.section}>
@@ -199,18 +237,54 @@ const SettingsScreen: React.FC = () => {
             {t.settings.about}
           </Text>
 
-          <TouchableOpacity style={[styles.supportCard, isRTL && styles.supportCardRTL]}>
+          <View style={[styles.supportCard, isRTL && styles.supportCardRTL]}>
             <Ionicons
               name="notifications-outline"
               size={20}
               color={COLORS.primary}
             />
+            <View style={[styles.supportTextWrap, isRTL && styles.supportTextWrapRTL]}>
+              <Text style={[styles.supportText, isRTL && styles.rtlText]}>
+                {t.settings.notifications}
+              </Text>
+              <Text style={[styles.supportValue, isRTL && styles.rtlText]}>
+                {t.settings.notificationsEnabled}
+              </Text>
+            </View>
+            <Switch
+              value={notificationsEnabled}
+              onValueChange={toggleNotifications}
+              trackColor={{ false: COLORS.border, true: COLORS.primaryLight }}
+              thumbColor={notificationsEnabled ? COLORS.primary : '#fff'}
+            />
+          </View>
+
+          <TouchableOpacity
+            style={[styles.supportCard, isRTL && styles.supportCardRTL]}
+            onPress={showComingSoon}
+          >
+            <Ionicons name="location-outline" size={20} color={COLORS.primary} />
             <Text style={[styles.supportText, isRTL && styles.rtlText]}>
-              {t.settings.notifications}
+              {t.settings.addresses}
             </Text>
+            <Ionicons name={isRTL ? 'chevron-back' : 'chevron-forward'} size={18} color={COLORS.secondaryText} />
           </TouchableOpacity>
 
-          <TouchableOpacity style={[styles.supportCard, isRTL && styles.supportCardRTL]}>
+          <TouchableOpacity
+            style={[styles.supportCard, isRTL && styles.supportCardRTL]}
+            onPress={showComingSoon}
+          >
+            <Ionicons name="card-outline" size={20} color={COLORS.primary} />
+            <Text style={[styles.supportText, isRTL && styles.rtlText]}>
+              {t.settings.payment}
+            </Text>
+            <Ionicons name={isRTL ? 'chevron-back' : 'chevron-forward'} size={18} color={COLORS.secondaryText} />
+          </TouchableOpacity>
+
+          <TouchableOpacity
+            style={[styles.supportCard, isRTL && styles.supportCardRTL]}
+            onPress={showComingSoon}
+          >
             <Ionicons name="shield-checkmark-outline" size={20} color={COLORS.success} />
             <Text style={[styles.supportText, isRTL && styles.rtlText]}>
               {t.settings.privacy}
