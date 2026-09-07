@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import React, { useCallback, useMemo, useState } from 'react';
 import {
   ActivityIndicator,
   Alert,
@@ -14,6 +14,7 @@ import {
 } from 'react-native';
 
 import { Ionicons } from '@expo/vector-icons';
+import { useFocusEffect } from '@react-navigation/native';
 
 import { COLORS } from '../../constants/colors';
 import useAppStore from '../../store/appStore';
@@ -105,9 +106,11 @@ const CustomerHome = ({ navigation }) => {
     }
   }, [isAuthenticated, isGuest]);
 
-  useEffect(() => {
-    loadData();
-  }, [loadData]);
+  useFocusEffect(
+    useCallback(() => {
+      loadData();
+    }, [loadData])
+  );
 
   const onRefresh = useCallback(() => {
     loadData(true);
@@ -192,23 +195,6 @@ const CustomerHome = ({ navigation }) => {
 
     return Object.values(grouped);
   }, [cart, stores]);
-
-  const handleCartPress = useCallback(() => {
-    if (isGuest) {
-      navigation.navigate('Register', { role: 'customer' });
-      return;
-    }
-
-    if (cartByStore.length > 0) {
-      const firstStore = cartByStore[0];
-      navigation.navigate('OrderConfirmation', {
-        storeId: firstStore.storeId,
-      });
-      return;
-    }
-
-    navigation.navigate('Search');
-  }, [cartByStore, isGuest, navigation]);
 
   const handleSettingsPress = useCallback(() => {
     navigation.navigate(isGuest ? 'GuestAccount' : 'Settings');
@@ -340,14 +326,14 @@ const CustomerHome = ({ navigation }) => {
             <TouchableOpacity style={styles.profileButton} onPress={handleSettingsPress} activeOpacity={0.8}>
               <Ionicons name="settings-outline" size={20} color={HOME_ACCENT} />
             </TouchableOpacity>
-            <TouchableOpacity style={styles.iconButton} onPress={handleCartPress} activeOpacity={0.8}>
-              <Ionicons name="bag-handle-outline" size={22} color="#fff" />
-              {cart.length > 0 && (
+            {orders.length > 0 && (
+              <TouchableOpacity style={styles.iconButton} onPress={() => navigation.navigate('Orders')} activeOpacity={0.8}>
+                <Ionicons name="bag-handle-outline" size={22} color="#fff" />
                 <View style={styles.cartBadgeHeader}>
-                  <Text style={styles.cartBadgeTextHeader}>{cart.length > 9 ? '9+' : cart.length}</Text>
+                  <Text style={styles.cartBadgeTextHeader}>{orders.length > 9 ? '9+' : orders.length}</Text>
                 </View>
-              )}
-            </TouchableOpacity>
+              </TouchableOpacity>
+            )}
 
             {isAuthenticated && (
               <TouchableOpacity
