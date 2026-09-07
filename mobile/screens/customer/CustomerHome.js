@@ -377,18 +377,6 @@ const CustomerHome = ({ navigation }) => {
         </TouchableOpacity>
 
         <View style={styles.deliveryOptions}>
-          <TouchableOpacity
-            style={styles.deliveryOption}
-            onPress={() => setLocationPickerVisible(true)}
-            activeOpacity={0.85}
-          >
-            <Ionicons name="time-outline" size={18} color={HOME_ACCENT} />
-            <Text style={styles.deliveryOptionText}>
-              {scheduledDate
-                ? new Date(scheduledDate).toLocaleString('ar-EG', { dateStyle: 'medium', timeStyle: 'short' })
-                : 'تحديد وقت الطلب'}
-            </Text>
-          </TouchableOpacity>
           {deliveryLocation && scheduledDate && (
             <TouchableOpacity style={styles.orderNowButton} onPress={handleStartOrder} activeOpacity={0.85}>
               <Text style={styles.orderNowText}>اطلب أوردر</Text>

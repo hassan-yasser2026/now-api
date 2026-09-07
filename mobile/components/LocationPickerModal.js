@@ -84,9 +84,16 @@ const LocationPickerModal = ({
     onClose?.();
   };
 
-  const chooseTime = (hoursFromNow) => {
+  const chooseDateTime = (dayOffset, hour) => {
     const date = new Date();
-    date.setMinutes(date.getMinutes() + hoursFromNow * 60);
+    date.setDate(date.getDate() + dayOffset);
+    date.setHours(hour, 0, 0, 0);
+    setScheduledDate(date.toISOString());
+  };
+
+  const chooseHour = (hour) => {
+    const date = scheduledDate ? new Date(scheduledDate) : new Date();
+    date.setHours(hour, 0, 0, 0);
     setScheduledDate(date.toISOString());
   };
 
@@ -128,19 +135,40 @@ const LocationPickerModal = ({
         <View style={styles.scheduleSection}>
           <Text style={styles.scheduleTitle}>وقت الطلب</Text>
           <View style={styles.scheduleOptions}>
-            {[1, 2, 3, 4].map((hours) => {
+            {[0, 1, 2, 3, 4].map((dayOffset) => {
               const date = new Date();
-              date.setMinutes(date.getMinutes() + hours * 60);
-              const isSelected = scheduledDate &&
-                Math.abs(new Date(scheduledDate).getTime() - date.getTime()) < 5 * 60 * 1000;
+              date.setDate(date.getDate() + dayOffset);
+              const selectedDate = scheduledDate && new Date(scheduledDate);
+              const isSelected = selectedDate &&
+                selectedDate.toDateString() === date.toDateString();
               return (
                 <TouchableOpacity
-                  key={hours}
+                  key={dayOffset}
+                  style={[styles.dayOption, isSelected && styles.scheduleOptionActive]}
+                  onPress={() => chooseDateTime(dayOffset, selectedDate?.getHours() || 12)}
+                >
+                  <Text style={[styles.dayText, isSelected && styles.scheduleOptionTextActive]}>
+                    {dayOffset === 0 ? 'اليوم' : date.toLocaleDateString('ar-EG', { weekday: 'short' })}
+                  </Text>
+                  <Text style={[styles.dayNumber, isSelected && styles.scheduleOptionTextActive]}>
+                    {date.getDate()}
+                  </Text>
+                </TouchableOpacity>
+              );
+            })}
+          </View>
+          <View style={styles.scheduleOptions}>
+            {[12, 15, 18, 21].map((hour) => {
+              const date = scheduledDate ? new Date(scheduledDate) : new Date();
+              const isSelected = scheduledDate && date.getHours() === hour;
+              return (
+                <TouchableOpacity
+                  key={hour}
                   style={[styles.scheduleOption, isSelected && styles.scheduleOptionActive]}
-                  onPress={() => chooseTime(hours)}
+                  onPress={() => chooseHour(hour)}
                 >
                   <Text style={[styles.scheduleOptionText, isSelected && styles.scheduleOptionTextActive]}>
-                    {date.toLocaleTimeString('ar-EG', { hour: 'numeric', minute: '2-digit' })}
+                    {new Date(2020, 0, 1, hour).toLocaleTimeString('ar-EG', { hour: 'numeric', minute: '2-digit' })}
                   </Text>
                 </TouchableOpacity>
               );
@@ -223,6 +251,26 @@ const styles = StyleSheet.create({
     backgroundColor: COLORS.surface,
     borderWidth: 1,
     borderColor: COLORS.border,
+  },
+  dayOption: {
+    flex: 1,
+    alignItems: 'center',
+    paddingVertical: 8,
+    borderRadius: 12,
+    backgroundColor: COLORS.surface,
+    borderWidth: 1,
+    borderColor: COLORS.border,
+  },
+  dayText: {
+    color: COLORS.textSecondary,
+    fontSize: 11,
+    fontWeight: '700',
+  },
+  dayNumber: {
+    color: COLORS.textPrimary,
+    fontSize: 15,
+    fontWeight: '900',
+    marginTop: 2,
   },
   scheduleOptionActive: {
     backgroundColor: COLORS.primary,
