@@ -134,6 +134,14 @@ const ACTIVE_DELIVERY_STATUSES = [
 
 const ALL_ORDER_STATUSES = Object.values(ORDER_STATUS);
 
+const SUBMISSION_STATUS = {
+  PENDING_ADMIN_REVIEW: 'PENDING_ADMIN_REVIEW',
+  APPROVED: 'APPROVED',
+  REJECTED: 'REJECTED',
+};
+
+const OFFER_DISCOUNT_TYPES = ['PERCENTAGE', 'FIXED'];
+
 // ============================================================
 // Helpers
 // ============================================================
@@ -882,6 +890,7 @@ app.get('/api/stores', async (req, res) => {
     const stores = await prisma.store.findMany({
       where: {
         isActive: true,
+        approvalStatus: SUBMISSION_STATUS.APPROVED,
         ...(req.query.includeClosed === 'true' ? {} : { isOpen: true }),
       },
       include: {
@@ -890,6 +899,13 @@ app.get('/api/stores', async (req, res) => {
             name: true,
             phone: true,
           },
+        },
+        offers: {
+          where: {
+            approvalStatus: SUBMISSION_STATUS.APPROVED,
+            isActive: true,
+          },
+          orderBy: { createdAt: 'desc' },
         },
       },
       orderBy: {
@@ -905,6 +921,29 @@ app.get('/api/stores', async (req, res) => {
     return handlePrismaError(error, res);
   }
 });
+
+app.get(
+  '/api/vendor/:vendorId/store',
+  authMiddleware,
+  roleMiddleware(ROLES.VENDOR),
+  async (req, res) => {
+    const vendorId = normalizeId(req.params.vendorId);
+    if (!vendorId || vendorId !== req.user.userId) {
+      return errorResponse(res, 'غير مصرح لك', 403);
+    }
+
+    try {
+      const store = await prisma.store.findUnique({
+        where: { vendorId },
+        include: { offers: true },
+      });
+      if (!store) return errorResponse(res, 'المتجر غير موجود', 404);
+      return successResponse(res, store);
+    } catch (error) {
+      return handlePrismaError(error, res);
+    }
+  }
+);
 
 // ------------------------------------------------------------
 // Get Store
@@ -930,6 +969,7 @@ app.get(
         where: {
           id: storeId,
           isActive: true,
+          approvalStatus: SUBMISSION_STATUS.APPROVED,
         },
         include: {
           vendor: {
@@ -938,7 +978,16 @@ app.get(
               phone: true,
             },
           },
-          menuItems: true,
+          menuItems: {
+            where: { approvalStatus: SUBMISSION_STATUS.APPROVED },
+          },
+          offers: {
+            where: {
+              approvalStatus: SUBMISSION_STATUS.APPROVED,
+              isActive: true,
+            },
+            orderBy: { createdAt: 'desc' },
+          },
         },
       });
 
@@ -991,6 +1040,7 @@ app.post(
           description: normalizeString(req.body.description) || null,
           image: normalizeString(req.body.image) || null,
           isOpen: req.body.isOpen !== false,
+          approvalStatus: SUBMISSION_STATUS.PENDING_ADMIN_REVIEW,
         },
       });
 
@@ -1071,6 +1121,14 @@ app.put(
         }
       }
 
+      if (
+        req.user.role === ROLES.VENDOR &&
+        Object.keys(data).some((key) => ['name', 'description', 'image', 'latitude', 'longitude'].includes(key))
+      ) {
+        data.approvalStatus = SUBMISSION_STATUS.PENDING_ADMIN_REVIEW;
+        data.rejectionReason = null;
+      }
+
       const updatedStore = await prisma.store.update({
         where: { id: storeId },
         data,
@@ -1148,6 +1206,7 @@ app.get(
       const items = await prisma.menuItem.findMany({
         where: {
           storeId,
+          approvalStatus: SUBMISSION_STATUS.APPROVED,
         },
         orderBy: {
           id: 'desc',
@@ -1157,6 +1216,32 @@ app.get(
       return successResponse(
         res,
         items
+      );
+
+      // Vendors can review their pending and rejected listings; customers only receive
+      // approved listings from the public route above.
+      app.get(
+        '/api/vendor/:vendorId/menu',
+        authMiddleware,
+        roleMiddleware(ROLES.VENDOR),
+        async (req, res) => {
+          const vendorId = normalizeId(req.params.vendorId);
+          if (!vendorId || vendorId !== req.user.userId) {
+            return errorResponse(res, 'غير مصرح لك', 403);
+          }
+
+          try {
+            const store = await prisma.store.findUnique({ where: { vendorId } });
+            if (!store) return errorResponse(res, 'المتجر غير موجود', 404);
+            const items = await prisma.menuItem.findMany({
+              where: { storeId: store.id },
+              orderBy: { id: 'desc' },
+            });
+            return successResponse(res, items);
+          } catch (error) {
+            return handlePrismaError(error, res);
+          }
+        }
       );
     } catch (error) {
       return handlePrismaError(error, res);
@@ -1250,6 +1335,7 @@ app.post(
             typeof req.body.isAvailable === 'boolean'
               ? req.body.isAvailable
               : true,
+          approvalStatus: SUBMISSION_STATUS.PENDING_ADMIN_REVIEW,
           storeId,
         },
       });
@@ -1257,7 +1343,8 @@ app.post(
       return successResponse(
         res,
         item,
-        201
+        201,
+        { message: 'تم إرسال الصنف للمراجعة' }
       );
     } catch (error) {
       return handlePrismaError(error, res);
@@ -1392,6 +1479,9 @@ app.patch(
           req.body.isAvailable;
       }
 
+      data.approvalStatus = SUBMISSION_STATUS.PENDING_ADMIN_REVIEW;
+      data.rejectionReason = null;
+
       const updatedItem =
         await prisma.menuItem.update({
           where: {
@@ -1402,7 +1492,9 @@ app.patch(
 
       return successResponse(
         res,
-        updatedItem
+        updatedItem,
+        200,
+        { message: 'تم إرسال التعديل للمراجعة' }
       );
     } catch (error) {
       return handlePrismaError(error, res);
@@ -1493,6 +1585,157 @@ app.delete(
           message: 'تم حذف الصنف بنجاح',
         }
       );
+    } catch (error) {
+      return handlePrismaError(error, res);
+    }
+  }
+);
+
+// ============================================================
+// VENDOR OFFERS / DISCOUNTS
+// ============================================================
+
+app.get('/api/stores/:storeId/offers', async (req, res) => {
+  const storeId = normalizeId(req.params.storeId);
+  if (!storeId) return errorResponse(res, 'رقم المتجر غير صالح', 400);
+  try {
+    const offers = await prisma.offer.findMany({
+      where: {
+        storeId,
+        approvalStatus: SUBMISSION_STATUS.APPROVED,
+        isActive: true,
+        OR: [{ startsAt: null }, { startsAt: { lte: new Date() } }],
+        AND: [{ OR: [{ endsAt: null }, { endsAt: { gte: new Date() } }] }],
+      },
+      orderBy: { createdAt: 'desc' },
+    });
+    return successResponse(res, offers);
+  } catch (error) {
+    return handlePrismaError(error, res);
+  }
+});
+
+const getVendorStore = async (vendorId) => prisma.store.findUnique({
+  where: { vendorId },
+  select: { id: true },
+});
+
+app.get(
+  '/api/vendor/:vendorId/offers',
+  authMiddleware,
+  roleMiddleware(ROLES.VENDOR),
+  async (req, res) => {
+    const vendorId = normalizeId(req.params.vendorId);
+    if (!vendorId || vendorId !== req.user.userId) return errorResponse(res, 'غير مصرح لك', 403);
+    try {
+      const store = await getVendorStore(vendorId);
+      if (!store) return errorResponse(res, 'المتجر غير موجود', 404);
+      const offers = await prisma.offer.findMany({
+        where: { storeId: store.id },
+        orderBy: { id: 'desc' },
+      });
+      return successResponse(res, offers);
+    } catch (error) {
+      return handlePrismaError(error, res);
+    }
+  }
+);
+
+app.post(
+  '/api/vendor/:vendorId/offers',
+  authMiddleware,
+  roleMiddleware(ROLES.VENDOR),
+  async (req, res) => {
+    const vendorId = normalizeId(req.params.vendorId);
+    const title = normalizeString(req.body.title);
+    const discountType = normalizeString(req.body.discountType || 'PERCENTAGE').toUpperCase();
+    const discountValue = parsePositiveNumber(req.body.discountValue);
+    if (!vendorId || vendorId !== req.user.userId) return errorResponse(res, 'غير مصرح لك', 403);
+    if (!title) return errorResponse(res, 'عنوان العرض مطلوب', 422);
+    if (!OFFER_DISCOUNT_TYPES.includes(discountType) || discountValue === null) {
+      return errorResponse(res, 'بيانات الخصم غير صالحة', 422);
+    }
+    if (discountType === 'PERCENTAGE' && discountValue > 100) {
+      return errorResponse(res, 'نسبة الخصم يجب ألا تتجاوز 100', 422);
+    }
+    try {
+      const store = await getVendorStore(vendorId);
+      if (!store) return errorResponse(res, 'المتجر غير موجود', 404);
+      const offer = await prisma.offer.create({
+        data: {
+          storeId: store.id,
+          title,
+          description: normalizeString(req.body.description) || null,
+          discountType,
+          discountValue,
+          image: normalizeString(req.body.image) || null,
+          startsAt: req.body.startsAt ? new Date(req.body.startsAt) : null,
+          endsAt: req.body.endsAt ? new Date(req.body.endsAt) : null,
+          isActive: req.body.isActive !== false,
+          approvalStatus: SUBMISSION_STATUS.PENDING_ADMIN_REVIEW,
+        },
+      });
+      return successResponse(res, offer, 201, { message: 'تم إرسال العرض للمراجعة' });
+    } catch (error) {
+      return handlePrismaError(error, res);
+    }
+  }
+);
+
+app.patch(
+  '/api/vendor/:vendorId/offers/:offerId',
+  authMiddleware,
+  roleMiddleware(ROLES.VENDOR),
+  async (req, res) => {
+    const vendorId = normalizeId(req.params.vendorId);
+    const offerId = normalizeId(req.params.offerId);
+    if (!vendorId || !offerId || vendorId !== req.user.userId) return errorResponse(res, 'غير مصرح لك', 403);
+    try {
+      const store = await getVendorStore(vendorId);
+      const offer = await prisma.offer.findFirst({ where: { id: offerId, storeId: store?.id } });
+      if (!offer) return errorResponse(res, 'العرض غير موجود', 404);
+      const data = {};
+      if (req.body.title !== undefined) data.title = normalizeString(req.body.title);
+      if (req.body.description !== undefined) data.description = normalizeString(req.body.description) || null;
+      if (req.body.image !== undefined) data.image = normalizeString(req.body.image) || null;
+      if (req.body.discountType !== undefined) data.discountType = normalizeString(req.body.discountType).toUpperCase();
+      if (req.body.discountValue !== undefined) data.discountValue = parsePositiveNumber(req.body.discountValue);
+      if (typeof req.body.isActive === 'boolean') data.isActive = req.body.isActive;
+      if (req.body.startsAt !== undefined) data.startsAt = req.body.startsAt ? new Date(req.body.startsAt) : null;
+      if (req.body.endsAt !== undefined) data.endsAt = req.body.endsAt ? new Date(req.body.endsAt) : null;
+      if (data.title === '') return errorResponse(res, 'عنوان العرض مطلوب', 422);
+      if (data.discountType && !OFFER_DISCOUNT_TYPES.includes(data.discountType)) return errorResponse(res, 'نوع الخصم غير صالح', 422);
+      if (data.discountValue === null) return errorResponse(res, 'قيمة الخصم غير صالحة', 422);
+      if (
+        (data.discountType || offer.discountType) === 'PERCENTAGE' &&
+        Number(data.discountValue ?? offer.discountValue) > 100
+      ) {
+        return errorResponse(res, 'نسبة الخصم يجب ألا تتجاوز 100', 422);
+      }
+      data.approvalStatus = SUBMISSION_STATUS.PENDING_ADMIN_REVIEW;
+      data.rejectionReason = null;
+      const updated = await prisma.offer.update({ where: { id: offerId }, data });
+      return successResponse(res, updated, 200, { message: 'تم إرسال التعديل للمراجعة' });
+    } catch (error) {
+      return handlePrismaError(error, res);
+    }
+  }
+);
+
+app.delete(
+  '/api/vendor/:vendorId/offers/:offerId',
+  authMiddleware,
+  roleMiddleware(ROLES.VENDOR),
+  async (req, res) => {
+    const vendorId = normalizeId(req.params.vendorId);
+    const offerId = normalizeId(req.params.offerId);
+    if (!vendorId || !offerId || vendorId !== req.user.userId) return errorResponse(res, 'غير مصرح لك', 403);
+    try {
+      const store = await getVendorStore(vendorId);
+      const offer = await prisma.offer.findFirst({ where: { id: offerId, storeId: store?.id } });
+      if (!offer) return errorResponse(res, 'العرض غير موجود', 404);
+      await prisma.offer.delete({ where: { id: offerId } });
+      return successResponse(res, { message: 'تم حذف العرض' });
     } catch (error) {
       return handlePrismaError(error, res);
     }
@@ -1709,7 +1952,7 @@ app.post(
           );
         }
 
-        if (!menuItem.isAvailable) {
+        if (!menuItem.isAvailable || menuItem.approvalStatus !== SUBMISSION_STATUS.APPROVED) {
           return errorResponse(
             res,
             `الصنف "${menuItem.name}" غير متاح حاليًا`,
@@ -3366,6 +3609,100 @@ app.get(
       return handlePrismaError(error, res);
     }
   }
+);
+
+// ============================================================
+// ADMIN VENDOR SUBMISSIONS
+// ============================================================
+
+const REJECTION_REASONS = [
+  'INVALID_INFORMATION',
+  'POLICY_VIOLATION',
+  'DUPLICATE',
+  'PRICING_ISSUE',
+  'QUALITY_ISSUE',
+  'OTHER',
+];
+
+app.get(
+  '/api/admin/submissions',
+  authMiddleware,
+  adminPermissionMiddleware('stores.read'),
+  async (req, res) => {
+    try {
+      const [stores, menuItems, offers] = await Promise.all([
+        prisma.store.findMany({
+          where: { approvalStatus: SUBMISSION_STATUS.PENDING_ADMIN_REVIEW },
+          include: { vendor: { select: { id: true, name: true, phone: true } } },
+          orderBy: { createdAt: 'asc' },
+        }),
+        prisma.menuItem.findMany({
+          where: { approvalStatus: SUBMISSION_STATUS.PENDING_ADMIN_REVIEW },
+          include: { store: { select: { id: true, name: true, vendor: { select: { id: true, name: true } } } } },
+          orderBy: { createdAt: 'asc' },
+        }),
+        prisma.offer.findMany({
+          where: { approvalStatus: SUBMISSION_STATUS.PENDING_ADMIN_REVIEW },
+          include: { store: { select: { id: true, name: true, vendor: { select: { id: true, name: true } } } } },
+          orderBy: { createdAt: 'asc' },
+        }),
+      ]);
+
+      return successResponse(res, [
+        ...stores.map((item) => ({ ...item, submissionType: 'store' })),
+        ...menuItems.map((item) => ({ ...item, submissionType: 'menu_item' })),
+        ...offers.map((item) => ({ ...item, submissionType: 'offer' })),
+      ]);
+    } catch (error) {
+      return handlePrismaError(error, res);
+    }
+  }
+);
+
+const updateSubmission = async (req, res, status) => {
+  const id = normalizeId(req.params.id);
+  const type = normalizeString(req.params.type).toLowerCase();
+  if (!id || !['store', 'stores', 'menu_item', 'menuitem', 'offer', 'offers'].includes(type)) {
+    return errorResponse(res, 'بيانات الإرسال غير صالحة', 400);
+  }
+
+  const rejectionReason = normalizeString(req.body.rejectionReason || req.body.reason);
+  if (status === SUBMISSION_STATUS.REJECTED && !REJECTION_REASONS.includes(rejectionReason)) {
+    return errorResponse(res, 'سبب الرفض غير صالح', 422, { allowedReasons: REJECTION_REASONS });
+  }
+
+  const data = {
+    approvalStatus: status,
+    rejectionReason: status === SUBMISSION_STATUS.REJECTED ? rejectionReason : null,
+  };
+
+  try {
+    let item;
+    if (type === 'store' || type === 'stores') {
+      item = await prisma.store.update({ where: { id }, data });
+    } else if (type === 'menu_item' || type === 'menuitem') {
+      item = await prisma.menuItem.update({ where: { id }, data });
+    } else {
+      item = await prisma.offer.update({ where: { id }, data });
+    }
+    return successResponse(res, item);
+  } catch (error) {
+    return handlePrismaError(error, res);
+  }
+};
+
+app.patch(
+  '/api/admin/submissions/:type/:id/approve',
+  authMiddleware,
+  adminPermissionMiddleware('stores.update'),
+  (req, res) => updateSubmission(req, res, SUBMISSION_STATUS.APPROVED)
+);
+
+app.patch(
+  '/api/admin/submissions/:type/:id/reject',
+  authMiddleware,
+  adminPermissionMiddleware('stores.update'),
+  (req, res) => updateSubmission(req, res, SUBMISSION_STATUS.REJECTED)
 );
 
 // ============================================================
