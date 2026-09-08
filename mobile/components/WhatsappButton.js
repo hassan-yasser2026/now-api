@@ -6,6 +6,7 @@ import {
   Linking,
   StyleSheet,
 } from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
 
 import { CONFIG } from '../constants/config';
 
@@ -23,6 +24,7 @@ export default function WhatsappButton() {
       }
       style={styles.btn}
     >
+      <Ionicons name="logo-whatsapp" size={18} color="#fff" />
       <Text
         style={styles.text}
       >
@@ -35,12 +37,15 @@ export default function WhatsappButton() {
 const styles = StyleSheet.create({
   btn: {
     position: 'absolute',
-    bottom: 20,
+    bottom: 88,
     right: 20,
 
     backgroundColor:
       '#25D366',
 
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 7,
     paddingHorizontal: 18,
     paddingVertical: 12,
 

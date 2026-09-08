@@ -39,9 +39,6 @@ const GlobalLanguageButton = () => {
   const [countryPickerOpen, setCountryPickerOpen] = useState(false);
 
   const activeCountry = getCountry(country);
-  const activeLanguage =
-    LANGUAGE_OPTIONS.find((option) => option.code === language) ||
-    LANGUAGE_OPTIONS[0];
 
   const handleLanguage = async (code) => {
     if (code !== language) {
@@ -63,9 +60,7 @@ const GlobalLanguageButton = () => {
           activeOpacity={0.85}
           onPress={() => setSheetOpen(true)}
         >
-          <Ionicons name="language" size={16} color={COLORS.white} />
-          <Text style={styles.fabLabel}>{activeLanguage.short}</Text>
-          <Text style={styles.fabFlag}>{activeCountry.flag}</Text>
+          <Ionicons name="language" size={21} color={COLORS.white} />
         </TouchableOpacity>
       </View>
 
@@ -158,15 +153,11 @@ const styles = StyleSheet.create({
     zIndex: 999,
   },
   fab: {
-    flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    gap: 4,
-    width: 52,
-    height: 34,
-    paddingHorizontal: 6,
-    paddingVertical: 4,
-    borderRadius: 17,
+    width: 40,
+    height: 40,
+    borderRadius: 20,
     backgroundColor: COLORS.primary,
     shadowColor: '#000',
     shadowOpacity: 0.18,
@@ -174,8 +165,6 @@ const styles = StyleSheet.create({
     shadowOffset: { width: 0, height: 2 },
     elevation: 4,
   },
-  fabLabel: { color: COLORS.white, fontSize: 9, fontWeight: '800' },
-  fabFlag: { fontSize: 10 },
 
   backdrop: {
     flex: 1,

@@ -11,6 +11,7 @@ import {
   Text,
   TextInput,
   TouchableOpacity,
+  Pressable,
   View,
 } from 'react-native';
 
@@ -247,7 +248,7 @@ const CustomerHome = ({ navigation }) => {
     }
 
     if (route === 'partner') {
-      navigation.navigate('Register', { role: 'vendor' });
+      navigation.navigate('PartnerRegistration');
       return;
     }
 
@@ -723,21 +724,30 @@ const CustomerHome = ({ navigation }) => {
             { key: 'orders', label: 'طلباتي', icon: 'receipt-outline' },
             { key: 'about', label: 'حول تطبيق ناو', icon: 'information-circle-outline' },
           ].map((item) => (
-            <TouchableOpacity
+            <Pressable
               key={item.key}
-              style={styles.guestBottomNavItem}
+              accessibilityRole="button"
+              accessibilityLabel={item.label}
+              style={({ pressed }) => [
+                styles.guestBottomNavItem,
+                item.key === 'partner' && styles.partnerNavItem,
+                pressed && styles.guestBottomNavItemPressed,
+              ]}
               onPress={() => handleBottomNavigation(item.key)}
-              activeOpacity={0.8}
             >
               <Ionicons
                 name={item.icon}
                 size={20}
-                color={item.active ? HOME_ACCENT : COLORS.textSecondary}
+                color={item.key === 'partner' ? HOME_ACCENT : item.active ? HOME_ACCENT : COLORS.textSecondary}
               />
-              <Text style={[styles.guestBottomNavLabel, item.active && styles.guestBottomNavLabelActive]}>
+              <Text style={[
+                styles.guestBottomNavLabel,
+                item.active && styles.guestBottomNavLabelActive,
+                item.key === 'partner' && styles.partnerNavLabel,
+              ]}>
                 {item.label}
               </Text>
-            </TouchableOpacity>
+            </Pressable>
           ))}
         </View>
       )}
@@ -1359,6 +1369,15 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     gap: 3,
   },
+  partnerNavItem: {
+    marginVertical: 7,
+    borderRadius: 15,
+    backgroundColor: '#FFF1F7',
+  },
+  guestBottomNavItemPressed: {
+    opacity: 0.7,
+    transform: [{ scale: 0.94 }],
+  },
   guestBottomNavLabel: {
     color: COLORS.textSecondary,
     fontSize: 10,
@@ -1366,6 +1385,10 @@ const styles = StyleSheet.create({
     textAlign: 'center',
   },
   guestBottomNavLabelActive: {
+    color: HOME_ACCENT,
+    fontWeight: '900',
+  },
+  partnerNavLabel: {
     color: HOME_ACCENT,
     fontWeight: '900',
   },

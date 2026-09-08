@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import {
+  Image,
   Switch,
   View,
   Text,
@@ -15,6 +16,8 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { COLORS } from '../../constants/colors';
 import useAppStore from '../../store/appStore';
 import { getTranslations } from '../../constants/i18n';
+import { getCountry } from '../../constants/countries';
+import CountryPickerModal from '../../components/CountryPickerModal';
 
 type Language = 'ar' | 'en';
 
@@ -31,6 +34,8 @@ type SettingsScreenProps = {
 const SettingsScreen: React.FC<SettingsScreenProps> = ({ navigation }) => {
   const language = useAppStore((state) => state.language) as Language;
   const setLanguage = useAppStore((state) => state.setLanguage);
+  const country = useAppStore((state) => state.country);
+  const setCountry = useAppStore((state) => state.setCountry);
   const logout = useAppStore((state) => state.logout);
   const user = useAppStore((state) => state.user);
   const isGuest = useAppStore((state) => state.isGuest);
@@ -117,6 +122,19 @@ const SettingsScreen: React.FC<SettingsScreenProps> = ({ navigation }) => {
 
   const userDisplayName = user?.name || t.settings.guest;
   const userMeta = user?.phone || 'NOW Customer';
+
+  if (isGuest) {
+    return (
+      <GuestAccountView
+        language={language}
+        setLanguage={setLanguage}
+        country={country}
+        setCountry={setCountry}
+        navigation={navigation}
+        isRTL={isRTL}
+      />
+    );
+  }
 
   return (
     <SafeAreaView style={styles.container}>
@@ -323,7 +341,7 @@ const SettingsScreen: React.FC<SettingsScreenProps> = ({ navigation }) => {
                 {t.settings.whatsapp}
               </Text>
               <Text style={[styles.supportValue, isRTL && styles.rtlText]}>
-                +966 50 000 0000
+                +20 106 725 4988
               </Text>
             </View>
           </TouchableOpacity>
@@ -342,6 +360,125 @@ const SettingsScreen: React.FC<SettingsScreenProps> = ({ navigation }) => {
           </TouchableOpacity>
         )}
       </ScrollView>
+    </SafeAreaView>
+  );
+};
+
+const GuestAccountView = ({
+  language,
+  setLanguage,
+  country,
+  setCountry,
+  navigation,
+  isRTL,
+}: {
+  language: Language;
+  setLanguage: (language: Language) => Promise<void> | void;
+  country: string;
+  setCountry: (country: string) => Promise<void> | void;
+  navigation?: SettingsScreenProps['navigation'];
+  isRTL: boolean;
+}) => {
+  const [countryPickerVisible, setCountryPickerVisible] = useState(false);
+  const openSocial = (url: string) => Linking.openURL(url).catch(() => {
+    Alert.alert('NOW', 'تعذر فتح الرابط');
+  });
+
+  const changeLanguage = async (nextLanguage: Language) => {
+    if (nextLanguage !== language) await setLanguage(nextLanguage);
+  };
+
+  return (
+    <SafeAreaView style={styles.guestContainer}>
+      <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.guestContent}>
+        <View style={styles.guestBanner}>
+          <Image source={require('../../assets/images/now-logo.png')} style={styles.guestLogo} resizeMode="contain" />
+          <Text style={styles.guestBannerTitle}>أكثر من 100 مليون منتج</Text>
+          <Text style={styles.guestBannerSubtitle}>من ماركات عالمية</Text>
+          <Text style={styles.guestBannerCaption}>نوصل لك كل يوم باب جديد</Text>
+        </View>
+
+        <TouchableOpacity
+          style={styles.guestLoginButton}
+          onPress={() => navigation?.navigate('Login')}
+          activeOpacity={0.8}
+        >
+          <Ionicons name="log-in-outline" size={24} color="#fff" />
+          <Text style={styles.guestLoginText}>تسجيل الدخول / إنشاء حساب</Text>
+        </TouchableOpacity>
+
+        <View style={styles.guestSettingCard}>
+          <View style={styles.guestSettingRow}>
+            <Ionicons name="language-outline" size={24} color={COLORS.textSecondary} />
+            <Text style={styles.guestSettingLabel}>اللغة</Text>
+            <View style={styles.languageToggle}>
+              <TouchableOpacity onPress={() => changeLanguage('en')} style={language === 'en' ? styles.languageActive : styles.languageOption}>
+                <Text style={language === 'en' ? styles.languageActiveText : styles.languageOptionText}>English</Text>
+              </TouchableOpacity>
+              <TouchableOpacity onPress={() => changeLanguage('ar')} style={language === 'ar' ? styles.languageActive : styles.languageOption}>
+                <Text style={language === 'ar' ? styles.languageActiveText : styles.languageOptionText}>العربية</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+          <TouchableOpacity
+            style={styles.guestSettingRow}
+            onPress={() => setCountryPickerVisible(true)}
+            activeOpacity={0.7}
+          >
+            <Ionicons name="earth-outline" size={24} color={COLORS.textSecondary} />
+            <Text style={styles.guestSettingLabel}>البلد</Text>
+            <Text style={styles.countryValue}>
+              {getCountry(country).flag} {getCountry(country).nameAr}
+            </Text>
+            <Ionicons name={isRTL ? 'chevron-back' : 'chevron-forward'} size={20} color={COLORS.textSecondary} />
+          </TouchableOpacity>
+        </View>
+
+        <View style={styles.socialRow}>
+          {[
+            ['logo-tiktok', 'https://www.tiktok.com/'],
+            ['sparkles-outline', 'https://now-delivery.com/'],
+            ['logo-facebook', 'https://www.facebook.com/'],
+            ['logo-youtube', 'https://www.youtube.com/'],
+            ['logo-instagram', 'https://www.instagram.com/'],
+          ].map(([icon, url]) => (
+            <TouchableOpacity key={icon} onPress={() => openSocial(url)} style={styles.socialButton} activeOpacity={0.75}>
+              <Ionicons name={icon as keyof typeof Ionicons.glyphMap} size={30} color={COLORS.primary} />
+            </TouchableOpacity>
+          ))}
+        </View>
+      </ScrollView>
+
+      <View style={styles.guestAccountNav}>
+        {[
+          ['account', 'حسابي', 'person-outline'],
+          ['partner', 'انضم كشريك', 'hand-left-outline'],
+          ['home', 'الرئيسية', 'home-outline'],
+          ['orders', 'طلباتك', 'receipt-outline'],
+          ['about', 'عني', 'information-circle-outline'],
+        ].map(([key, label, icon]) => (
+          <TouchableOpacity
+            key={key}
+            style={styles.guestNavItem}
+            onPress={() => {
+              if (key === 'home') navigation?.goBack?.();
+              if (key === 'partner') navigation?.navigate('PartnerRegistration');
+              if (key === 'orders') navigation?.navigate('Login');
+              if (key === 'about') navigation?.navigate('About');
+            }}
+            activeOpacity={0.7}
+          >
+            <Ionicons name={icon as keyof typeof Ionicons.glyphMap} size={21} color={key === 'account' ? COLORS.primary : COLORS.textSecondary} />
+            <Text style={[styles.guestNavText, key === 'account' && styles.guestNavActive]}>{label}</Text>
+          </TouchableOpacity>
+        ))}
+      </View>
+      <CountryPickerModal
+        visible={countryPickerVisible}
+        selectedCode={country}
+        onSelect={(selected) => setCountry(selected.code)}
+        onClose={() => setCountryPickerVisible(false)}
+      />
     </SafeAreaView>
   );
 };
@@ -565,6 +702,150 @@ const styles = StyleSheet.create({
   logoutButtonRTL: {
     flexDirection: 'row-reverse',
   },
+  guestContainer: {
+    flex: 1,
+    backgroundColor: '#fff',
+  },
+  guestContent: {
+    padding: 16,
+    paddingBottom: 100,
+  },
+  guestBanner: {
+    alignItems: 'center',
+    minHeight: 340,
+    justifyContent: 'center',
+    padding: 24,
+    borderRadius: 18,
+    backgroundColor: '#08C7E8',
+    borderWidth: 5,
+    borderColor: '#fff',
+    marginBottom: 18,
+  },
+  guestLogo: {
+    width: 220,
+    height: 100,
+    marginBottom: 16,
+  },
+  guestBannerTitle: {
+    color: '#fff',
+    fontSize: 27,
+    fontWeight: '900',
+    textAlign: 'center',
+  },
+  guestBannerSubtitle: {
+    color: '#fff',
+    fontSize: 26,
+    fontWeight: '900',
+    marginTop: 4,
+  },
+  guestBannerCaption: {
+    color: '#fff',
+    fontSize: 17,
+    fontWeight: '700',
+    marginTop: 12,
+  },
+  guestLoginButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 10,
+    paddingVertical: 17,
+    borderRadius: 20,
+    backgroundColor: '#111',
+    marginBottom: 18,
+  },
+  guestLoginText: {
+    color: '#fff',
+    fontSize: 20,
+    fontWeight: '900',
+  },
+  guestSettingCard: {
+    backgroundColor: '#fff',
+    borderRadius: 18,
+    borderWidth: 1,
+    borderColor: COLORS.border,
+    marginBottom: 18,
+  },
+  guestSettingRow: {
+    minHeight: 70,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+    paddingHorizontal: 16,
+    borderBottomWidth: 1,
+    borderBottomColor: '#F0F2F5',
+  },
+  guestSettingLabel: {
+    color: COLORS.text,
+    fontSize: 17,
+    fontWeight: '800',
+    marginRight: 'auto',
+  },
+  languageToggle: {
+    flexDirection: 'row',
+    padding: 3,
+    borderRadius: 22,
+    backgroundColor: '#F1F3F6',
+  },
+  languageOption: {
+    paddingHorizontal: 10,
+    paddingVertical: 7,
+    borderRadius: 18,
+  },
+  languageActive: {
+    paddingHorizontal: 10,
+    paddingVertical: 7,
+    borderRadius: 18,
+    backgroundColor: '#fff',
+    shadowColor: '#000',
+    shadowOpacity: 0.08,
+    shadowRadius: 4,
+    elevation: 2,
+  },
+  languageOptionText: { color: COLORS.textSecondary, fontSize: 12 },
+  languageActiveText: { color: COLORS.text, fontSize: 12, fontWeight: '800' },
+  countryValue: { color: COLORS.textSecondary, fontSize: 15 },
+  socialRow: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    justifyContent: 'center',
+    gap: 18,
+    maxWidth: 360,
+    alignSelf: 'center',
+    paddingVertical: 8,
+  },
+  socialButton: {
+    width: 52,
+    height: 52,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderRadius: 14,
+    backgroundColor: '#E9FAFF',
+  },
+  guestAccountNav: {
+    position: 'absolute',
+    left: 10,
+    right: 10,
+    bottom: 10,
+    height: 68,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-around',
+    backgroundColor: COLORS.surface,
+    borderRadius: 20,
+    borderWidth: 1,
+    borderColor: COLORS.border,
+    elevation: 8,
+  },
+  guestNavItem: {
+    flex: 1,
+    height: '100%',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 3,
+  },
+  guestNavText: { color: COLORS.textSecondary, fontSize: 10, fontWeight: '700' },
+  guestNavActive: { color: COLORS.primary, fontWeight: '900' },
 });
 
 export default SettingsScreen;

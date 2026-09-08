@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react';
 import {
   ActivityIndicator,
   Alert,
+  Animated,
   KeyboardAvoidingView,
   Platform,
   ScrollView,
@@ -22,6 +23,7 @@ import useAppStore from '../../store/appStore';
 import { toE164 } from '../../utils/validation';
 
 const LoginScreen = ({ navigation, route }) => {
+  const isPartnerLogin = route?.name === 'PartnerLogin';
   const storeCountry = useAppStore((state) => state.country);
 
   const [phone, setPhone] = useState('');
@@ -34,6 +36,7 @@ const LoginScreen = ({ navigation, route }) => {
   const [showPassword, setShowPassword] = useState(false);
 
   const [passwordFocused, setPasswordFocused] = useState(false);
+  const loginScale = React.useRef(new Animated.Value(1)).current;
 
   useEffect(() => {
     const prefilledPhone = route?.params?.phone;
@@ -101,6 +104,16 @@ const LoginScreen = ({ navigation, route }) => {
         return;
       }
 
+      if (result.user?.role === 'admin' || result.user?.role === 'sub_admin') {
+        await useAppStore.getState().logout();
+        Alert.alert(
+          'تسجيل دخول الإدارة',
+          'استخدم موقع NOW Admin الجديد لتسجيل دخول الإدارة.'
+        );
+        navigation.replace('GuestHome');
+        return;
+      }
+
       /*
         لا نعمل navigation يدوي هنا.
 
@@ -110,7 +123,6 @@ const LoginScreen = ({ navigation, route }) => {
         CUSTOMER
         VENDOR
         DELIVERY
-        ADMIN
       */
 
     } catch (error) {
@@ -123,6 +135,15 @@ const LoginScreen = ({ navigation, route }) => {
     } finally {
       setLoading(false);
     }
+  };
+
+  const animateLoginButton = (toValue) => {
+    Animated.spring(loginScale, {
+      toValue,
+      useNativeDriver: true,
+      friction: 7,
+      tension: 120,
+    }).start();
   };
 
   // ==========================================
@@ -138,7 +159,7 @@ const LoginScreen = ({ navigation, route }) => {
   // ==========================================
 
   const handleRegister = () => {
-    navigation.navigate('Register');
+    navigation.navigate(isPartnerLogin ? 'PartnerRegistration' : 'Register');
   };
 
   // ==========================================
@@ -199,11 +220,13 @@ const LoginScreen = ({ navigation, route }) => {
 
         <View style={styles.formCard}>
           <Text style={styles.welcomeTitle}>
-            أهلاً بيك 👋
+            {isPartnerLogin ? 'تسجيل دخول الشريك' : 'أهلاً بيك 👋'}
           </Text>
 
           <Text style={styles.welcomeSubtitle}>
-            سجل دخولك علشان تكمل استخدام ناو
+            {isPartnerLogin
+              ? 'ادخل لإدارة متجرك أو متابعة طلبات التوصيل'
+              : 'سجل دخولك علشان تكمل استخدام ناو'}
           </Text>
 
           {/* ====================================
@@ -219,6 +242,11 @@ const LoginScreen = ({ navigation, route }) => {
             countryCode={country}
             onChange={handlePhoneChange}
           />
+          {phone.length > 0 && !phoneValid && (
+            <Text style={styles.validationText}>
+              أدخل رقم هاتف صحيح للمتابعة
+            </Text>
+          )}
 
           {/* ====================================
               PASSWORD
@@ -295,9 +323,12 @@ const LoginScreen = ({ navigation, route }) => {
             disabled={loading}
             accessibilityLabel="تسجيل الدخول"
             activeOpacity={0.85}
+            onPressIn={() => animateLoginButton(0.96)}
+            onPressOut={() => animateLoginButton(1)}
             style={[
               styles.loginButton,
               loading && styles.loginButtonDisabled,
+              { transform: [{ scale: loginScale }] },
             ]}
           >
             <LinearGradient
@@ -312,7 +343,8 @@ const LoginScreen = ({ navigation, route }) => {
                 </View>
               ) : (
                 <View style={styles.buttonContent}>
-                  <Ionicons name="arrow-forward" size={26} color="#FFFFFF" />
+                  <Text style={styles.loginButtonText}>دخول</Text>
+                  <Ionicons name="arrow-forward" size={21} color="#FFFFFF" />
                 </View>
               )}
             </LinearGradient>
@@ -324,7 +356,7 @@ const LoginScreen = ({ navigation, route }) => {
 
           <View style={styles.registerContainer}>
             <Text style={styles.registerText}>
-              لسه معندكش حساب؟
+              {isPartnerLogin ? 'لسه معندكش حساب شريك؟' : 'لسه معندكش حساب؟'}
             </Text>
 
             <TouchableOpacity
@@ -333,7 +365,7 @@ const LoginScreen = ({ navigation, route }) => {
               activeOpacity={0.7}
             >
               <Text style={styles.registerLink}>
-                إنشاء حساب
+                {isPartnerLogin ? 'انضم كشريك' : 'إنشاء حساب'}
               </Text>
             </TouchableOpacity>
           </View>
@@ -531,6 +563,14 @@ const styles = StyleSheet.create({
     textAlign: 'right',
   },
 
+  validationText: {
+    marginTop: -10,
+    marginBottom: 10,
+    color: COLORS.error,
+    fontSize: 12,
+    textAlign: 'right',
+  },
+
   eyeButton: {
     padding: 7,
     marginLeft: 5,
@@ -545,8 +585,8 @@ const styles = StyleSheet.create({
     borderRadius: 28,
     overflow: 'hidden',
     alignSelf: 'center',
-    width: 72,
-    height: 72,
+    width: 150,
+    height: 58,
     shadowColor: '#EC4899',
     shadowOffset: { width: 0, height: 8 },
     shadowOpacity: 0.28,
@@ -567,8 +607,16 @@ const styles = StyleSheet.create({
   },
 
   buttonContent: {
+    flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
+    gap: 10,
+  },
+
+  loginButtonText: {
+    color: COLORS.white,
+    fontSize: 17,
+    fontWeight: '800',
   },
 
   loadingContainer: {

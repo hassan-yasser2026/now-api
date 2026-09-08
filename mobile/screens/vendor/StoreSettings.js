@@ -51,7 +51,7 @@ export default function StoreSettings({ navigation }) {
     }
     setSaving(true);
     try {
-      await api.patch(`/stores/${storeId}`, {
+      await api.put(`/stores/${storeId}`, {
         isOpen,
         ...(location
           ? { latitude: location.lat, longitude: location.lng }

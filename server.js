@@ -882,6 +882,7 @@ app.get('/api/stores', async (req, res) => {
     const stores = await prisma.store.findMany({
       where: {
         isActive: true,
+        ...(req.query.includeClosed === 'true' ? {} : { isOpen: true }),
       },
       include: {
         vendor: {
@@ -1004,7 +1005,7 @@ app.post(
 // Update Store
 // ------------------------------------------------------------
 
-app.patch(
+app.put(
   '/api/stores/:id',
   authMiddleware,
   roleMiddleware(ROLES.VENDOR, ROLES.ADMIN),

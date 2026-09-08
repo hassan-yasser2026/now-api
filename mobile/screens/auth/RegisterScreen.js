@@ -23,7 +23,15 @@ import { authService } from '../../services/authService';
 import PhoneInput from '../../components/PhoneInput';
 import useAppStore from '../../store/appStore';
 
-const RegisterScreen = ({ navigation }) => {
+const RegisterScreen = ({ navigation, route }) => {
+  const role = route?.params?.role === 'vendor' || route?.params?.role === 'delivery'
+    ? route.params.role
+    : 'customer';
+  const roleTitle = role === 'vendor'
+    ? 'تسجيل بائع NOW'
+    : role === 'delivery'
+      ? 'تسجيل مندوب NOW'
+      : 'إنشاء حساب جديد';
   const storeCountry = useAppStore((state) => state.country);
 
   const [name, setName] = useState('');
@@ -32,6 +40,7 @@ const RegisterScreen = ({ navigation }) => {
   const [phoneValid, setPhoneValid] = useState(false);
   const [country, setCountry] = useState(storeCountry);
   const [email, setEmail] = useState('');
+  const [storeName, setStoreName] = useState('');
 
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
@@ -200,13 +209,19 @@ const RegisterScreen = ({ navigation }) => {
         country,
         password,
         email: email.trim() || undefined,
-        role: 'customer',
+        storeName: role === 'vendor' ? storeName.trim() || undefined : undefined,
+        role,
         profileImage: profileImage || undefined,
         latitude: location?.latitude,
         longitude: location?.longitude,
       };
 
-      const result = await authService.registerCustomer(userData);
+      const register = role === 'vendor'
+        ? authService.registerVendor
+        : role === 'delivery'
+          ? authService.registerDelivery
+          : authService.registerCustomer;
+      const result = await register(userData);
 
       if (!result?.success) {
         Alert.alert(
@@ -290,7 +305,7 @@ const RegisterScreen = ({ navigation }) => {
 
         <View style={styles.formCard}>
           <Text style={styles.sectionTitle}>
-            إنشاء حساب جديد
+            {roleTitle}
           </Text>
 
           <Text style={styles.sectionSubtitle}>

@@ -1,207 +1,374 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useEffect, useState } from 'react';
 import {
-  View,
-  Text,
+  Alert,
+  Image,
+  Modal,
   ScrollView,
-  TouchableOpacity,
   StyleSheet,
-  RefreshControl,
+  Text,
+  TouchableOpacity,
+  View,
 } from 'react-native';
-import { Ionicons } from '@expo/vector-icons';
-import { COLORS } from '../../constants/colors';
 import useAppStore from '../../store/appStore';
-import { orderService } from '../../services/orderService';
+import api from '../../services/api';
+
+const MENU_ITEMS = [
+  { label: 'الرئيسية', icon: '🏠', route: 'VendorDashboard' },
+  { label: 'الطلبات', icon: '📦', route: 'VendorOrders' },
+  { label: 'الخدمات / المنتجات', icon: '🛍️', route: 'VendorMenu' },
+  { label: 'المحفظة والأرباح', icon: '💰', route: 'VendorEarnings' },
+  { label: 'التقارير', icon: '📊' },
+  { label: 'التقييمات', icon: '⭐' },
+  { label: 'الدعم', icon: '💬' },
+  { label: 'الإشعارات', icon: '🔔' },
+  { label: 'الملف الشخصي', icon: '👤', route: 'VendorProfile' },
+  { label: 'حالة المتجر', icon: '🟢', statusAction: true },
+  { label: 'الموقع', icon: '📍', route: 'StoreSettings' },
+  { label: 'الإعدادات', icon: '⚙️', route: 'StoreSettings' },
+];
 
 const VendorDashboard = ({ navigation }) => {
-  const { user, logout } = useAppStore();
-  const [orders, setOrders] = useState([]);
-  const [stats, setStats] = useState({ total: 0, pending: 0, preparing: 0, completed: 0, revenue: 0 });
-  const [refreshing, setRefreshing] = useState(false);
-  const mountedRef = useRef(true);
+  const { user, logout, language, setLanguage } = useAppStore();
+  const [storeId, setStoreId] = useState(user?.store?.id || null);
+  const [storeOpen, setStoreOpen] = useState(user?.store?.isOpen !== false);
+  const [statusModalVisible, setStatusModalVisible] = useState(false);
+  const displayName = user?.name && !user.name.includes('?') ? user.name : 'المهندس حسن';
 
   useEffect(() => {
-    mountedRef.current = true;
-    fetchData();
-    return () => { mountedRef.current = false; };
-  }, []);
+    if (language !== 'ar') {
+      setLanguage('ar');
+    }
+  }, [language, setLanguage]);
 
-  const fetchData = async () => {
-    try {
-      const ordersResult = await orderService.getVendorOrders(user?.id);
+  useEffect(() => {
+    if (storeId || !user?.id) return;
 
-      if (!mountedRef.current) return;
-
-      if (ordersResult.success) {
-        const data = ordersResult.orders || [];
-        setOrders(data.slice(0, 5));
-        const deliveredOrders = data.filter((order) => order.status === 'DELIVERED');
-        setStats({
-          total: data.length,
-          pending: data.filter((order) => order.status === 'PENDING').length,
-          preparing: data.filter((order) => order.status === 'PREPARING').length,
-          completed: deliveredOrders.length,
-          revenue: deliveredOrders.reduce((total, order) => total + Number(order.totalPrice || 0), 0),
-        });
+    const loadVendorStore = async () => {
+      try {
+        const response = await api.get('/stores?includeClosed=true');
+        const payload = response.data?.data ?? response.data;
+        const stores = Array.isArray(payload) ? payload : payload?.stores || [];
+        const vendorStore = stores.find((store) => Number(store.vendorId) === Number(user.id));
+        if (vendorStore?.id) {
+          setStoreId(vendorStore.id);
+          setStoreOpen(vendorStore.isOpen !== false);
+        }
+      } catch (error) {
+        console.error('Unable to load vendor store:', error);
       }
-    } catch { /* silent */ }
+    };
+
+    loadVendorStore();
+  }, [storeId, user?.id]);
+
+  const handleMenuPress = (item) => {
+    if (item.statusAction) {
+      handleStoreStatus();
+      return;
+    }
+
+    if (item.route) {
+      navigation.navigate(item.route);
+      return;
+    }
+    Alert.alert(item.label, 'هذا القسم سيكون متاحًا قريبًا.');
   };
 
-  const onRefresh = async () => {
-    setRefreshing(true);
-    await fetchData();
-    setRefreshing(false);
+  const updateStoreStatus = async (isOpen) => {
+    if (!storeId) {
+      Alert.alert('خطأ', 'تعذر تحديد المتجر الخاص بهذا الحساب.');
+      return;
+    }
+
+    try {
+      await api.put(`/stores/${storeId}`, { isOpen });
+      setStoreOpen(isOpen);
+      setStatusModalVisible(false);
+      Alert.alert('تم بنجاح', isOpen ? 'تم فتح المتجر واستقبال الطلبات.' : 'تم قفل المتجر وإيقاف استقبال الطلبات.');
+    } catch (error) {
+      console.error('Unable to update store status:', error);
+      Alert.alert('خطأ', 'تعذر تغيير حالة المتجر.');
+    }
+  };
+
+  const handleStoreStatus = () => {
+    setStatusModalVisible(true);
   };
 
   const handleLogout = async () => {
     await logout();
   };
 
-  const statCards = [
-    { label: 'الطلبات', value: stats.total, icon: 'bag-outline', color: COLORS.primary },
-    { label: 'قيد الانتظار', value: stats.pending, icon: 'time-outline', color: COLORS.warning },
-    { label: 'قيد التحضير', value: stats.preparing, icon: 'cafe-outline', color: COLORS.secondary },
-    { label: 'الإيرادات', value: `${stats.revenue} ج.م`, icon: 'cash-outline', color: COLORS.success },
-  ];
-
-  const statusColors = {
-    PENDING: COLORS.warning,
-    ACCEPTED: COLORS.primary,
-    PREPARING: COLORS.secondary,
-    READY: COLORS.success,
-    PICKED_UP: COLORS.primary,
-    ON_THE_WAY: COLORS.primary,
-    DELIVERED: COLORS.success,
-    CANCELLED: COLORS.error,
-  };
-
-  const statusText = {
-    PENDING: 'قيد الانتظار',
-    ACCEPTED: 'تم القبول',
-    PREPARING: 'قيد التحضير',
-    READY: 'جاهز للاستلام',
-    PICKED_UP: 'تم الاستلام',
-    ON_THE_WAY: 'في الطريق',
-    DELIVERED: 'تم التوصيل',
-    CANCELLED: 'ملغي',
-  };
-
   return (
     <View style={styles.container}>
-      <View style={styles.header}>
-        <View>
-          <Text style={styles.greeting}>مرحباً {user?.name || 'بائع'} 🏪</Text>
-          <Text style={styles.subGreeting}>لوحة تحكم المتجر</Text>
-        </View>
-        <View style={styles.headerActions}>
-          <TouchableOpacity onPress={() => navigation.navigate('VendorProfile')} style={styles.headerBtn}>
-            <Ionicons name="person-circle-outline" size={32} color={COLORS.textPrimary} />
-          </TouchableOpacity>
-          <TouchableOpacity onPress={handleLogout} style={styles.headerBtn}>
-            <Ionicons name="log-out-outline" size={28} color={COLORS.primary} />
-          </TouchableOpacity>
+      <View style={styles.topBar}>
+        <View style={styles.logo}>
+          <Text style={styles.logoRed}>N</Text>
+          <Text style={styles.logoBlack}>OW</Text>
         </View>
       </View>
 
-      <ScrollView
-        contentContainerStyle={styles.content}
-        refreshControl={
-          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} colors={[COLORS.primary]} />
-        }
-      >
-        <View style={styles.statsGrid}>
-          {statCards.map((stat, index) => (
-            <View key={index} style={[styles.statCard, { borderLeftColor: stat.color }]}>
-              <View style={styles.statHeader}>
-                <Ionicons name={stat.icon} size={24} color={stat.color} />
-                <Text style={[styles.statValue, { color: stat.color }]}>{stat.value}</Text>
-              </View>
-              <Text style={styles.statLabel}>{stat.label}</Text>
-            </View>
-          ))}
-        </View>
+      <View style={styles.body}>
+        <ScrollView
+          style={styles.sidebar}
+          contentContainerStyle={styles.sidebarContent}
+          showsVerticalScrollIndicator={false}
+        >
+          <Text style={styles.sidebarTitle}>لوحة تحكم</Text>
 
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle}>الطلبات الأخيرة</Text>
-          {orders.slice(0, 5).map((order) => (
+          <View style={styles.profileCard}>
+            <View style={styles.avatar}>
+              {user?.profileImage ? (
+                <Image source={{ uri: user.profileImage }} style={styles.avatarImage} />
+              ) : (
+                <Text style={styles.avatarFallback}>👤</Text>
+              )}
+            </View>
+            <View style={styles.profileText}>
+              <Text style={styles.profileName}>{displayName}</Text>
+              <Text style={styles.profileEmail}>{user?.email || 'حساب بائع'}</Text>
+              <Text style={styles.profilePhone}>{user?.phone || '01111111111'}</Text>
+            </View>
+          </View>
+
+          {MENU_ITEMS.map((item) => (
             <TouchableOpacity
-              key={order.id}
-              style={styles.orderCard}
-              onPress={() => navigation.navigate('VendorOrderDetails', { orderId: order.id, order })}
+              key={item.label}
+              style={styles.sidebarItem}
+              onPress={() => handleMenuPress(item)}
             >
-              <View style={styles.orderHeader}>
-                <Text style={styles.orderId}>طلب #{order.id}</Text>
-                <Text style={[styles.orderStatus, { color: statusColors[order.status] || COLORS.textSecondary }]}>
-                  {statusText[order.status] || order.status}
-                </Text>
-              </View>
-              <Text style={styles.orderCustomer}>👤 {order.customerName}</Text>
-              <Text style={styles.orderTotal}>💵 {order.totalPrice} ج.م</Text>
+              <Text style={styles.sidebarIcon}>
+                {item.statusAction ? (storeOpen ? '🟢' : '🔴') : item.icon}
+              </Text>
+              <Text style={styles.sidebarLabel}>
+                {item.statusAction && !storeOpen ? 'حالة المتجر (مغلق)' : item.label}
+              </Text>
             </TouchableOpacity>
           ))}
+
+          <TouchableOpacity style={styles.logoutItem} onPress={handleLogout}>
+            <Text style={styles.logoutText}>تسجيل الخروج</Text>
+          </TouchableOpacity>
+        </ScrollView>
+
+        <View style={styles.emptyContent} />
+      </View>
+
+      <Modal
+        visible={statusModalVisible}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setStatusModalVisible(false)}
+      >
+        <View style={styles.modalBackdrop}>
+          <View style={styles.statusModal}>
+            <Text style={styles.modalTitle}>حالة المتجر</Text>
+            <Text style={styles.modalHint}>اختر الإجراء المطلوب</Text>
+            <TouchableOpacity style={styles.openButton} onPress={() => updateStoreStatus(true)}>
+              <Text style={styles.statusButtonText}>فتح المتجر</Text>
+            </TouchableOpacity>
+            <TouchableOpacity style={styles.closeButton} onPress={() => updateStoreStatus(false)}>
+              <Text style={styles.statusButtonText}>قفل المتجر</Text>
+            </TouchableOpacity>
+            <TouchableOpacity style={styles.cancelButton} onPress={() => setStatusModalVisible(false)}>
+              <Text style={styles.cancelText}>إلغاء</Text>
+            </TouchableOpacity>
+          </View>
         </View>
-
-        <View style={styles.quickActions}>
-          <TouchableOpacity
-            style={styles.actionBtn}
-            onPress={() => navigation.navigate('VendorMenu')}
-          >
-            <Ionicons name="restaurant-outline" size={28} color={COLORS.primary} />
-            <Text style={styles.actionText}>إدارة المنيو</Text>
-          </TouchableOpacity>
-
-          <TouchableOpacity
-            style={styles.actionBtn}
-            onPress={() => navigation.navigate('VendorOrders')}
-          >
-            <Ionicons name="bag-outline" size={28} color={COLORS.secondary} />
-            <Text style={styles.actionText}>الطلبات</Text>
-          </TouchableOpacity>
-
-          <TouchableOpacity
-            style={styles.actionBtn}
-            onPress={() => navigation.navigate('StoreSettings')}
-          >
-            <Ionicons name="settings-outline" size={28} color={COLORS.warning} />
-            <Text style={styles.actionText}>إعدادات المتجر</Text>
-          </TouchableOpacity>
-
-          <TouchableOpacity
-            style={styles.actionBtn}
-            onPress={() => navigation.navigate('About')}
-          >
-            <Ionicons name="information-circle-outline" size={28} color={COLORS.primary} />
-            <Text style={styles.actionText}>حول التطبيق</Text>
-          </TouchableOpacity>
-        </View>
-      </ScrollView>
+      </Modal>
     </View>
   );
 };
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: COLORS.background },
-  header: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', padding: 20, paddingTop: 12, borderBottomWidth: 1, borderBottomColor: COLORS.border },
-  greeting: { fontSize: 22, fontWeight: 'bold', color: COLORS.textPrimary },
-  subGreeting: { fontSize: 14, color: COLORS.textSecondary, marginTop: 2 },
-  headerActions: { flexDirection: 'row', alignItems: 'center' },
-  headerBtn: { marginLeft: 12 },
-  content: { padding: 16 },
-  statsGrid: { flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'space-between', marginBottom: 20 },
-  statCard: { width: '48%', backgroundColor: '#fff', padding: 16, borderRadius: 12, borderWidth: 1, borderColor: COLORS.border, borderLeftWidth: 4, marginBottom: 12 },
-  statHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
-  statValue: { fontSize: 22, fontWeight: 'bold' },
-  statLabel: { fontSize: 14, color: COLORS.textSecondary, marginTop: 4 },
-  section: { marginBottom: 20 },
-  sectionTitle: { fontSize: 18, fontWeight: 'bold', color: COLORS.textPrimary, marginBottom: 12 },
-  orderCard: { backgroundColor: '#fff', padding: 16, borderRadius: 12, borderWidth: 1, borderColor: COLORS.border, marginBottom: 8 },
-  orderHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
-  orderId: { fontSize: 15, fontWeight: 'bold', color: COLORS.textPrimary },
-  orderStatus: { fontSize: 13, fontWeight: 'bold' },
-  orderCustomer: { fontSize: 14, color: COLORS.textSecondary, marginTop: 4 },
-  orderTotal: { fontSize: 15, fontWeight: 'bold', color: COLORS.primary, marginTop: 4 },
-  quickActions: { flexDirection: 'row', justifyContent: 'space-around', marginTop: 8 },
-  actionBtn: { alignItems: 'center', padding: 16, backgroundColor: COLORS.surface, borderRadius: 12, borderWidth: 1, borderColor: COLORS.border, flex: 0.45 },
-  actionText: { fontSize: 14, color: COLORS.textPrimary, marginTop: 8 },
+  container: {
+    flex: 1,
+    backgroundColor: '#EEEEEE',
+  },
+  topBar: {
+    height: 148,
+    backgroundColor: '#10C7E8',
+    borderBottomWidth: 7,
+    borderBottomColor: '#FFFFFF',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  logo: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  logoRed: {
+    color: '#D92838',
+    fontSize: 76,
+    fontWeight: '900',
+    letterSpacing: -8,
+  },
+  logoBlack: {
+    color: '#050505',
+    fontSize: 76,
+    fontWeight: '900',
+    letterSpacing: -8,
+  },
+  body: {
+    flex: 1,
+    flexDirection: 'row-reverse',
+  },
+  emptyContent: {
+    flex: 1,
+    backgroundColor: '#EEEEEE',
+  },
+  sidebar: {
+    width: '30%',
+    maxWidth: 285,
+    backgroundColor: '#FFFFFF',
+    borderLeftWidth: 1,
+    borderLeftColor: '#D4D4D4',
+  },
+  sidebarContent: {
+    paddingBottom: 0,
+  },
+  sidebarTitle: {
+    paddingVertical: 17,
+    borderBottomWidth: 1,
+    borderBottomColor: '#D9D9D9',
+    color: '#111111',
+    fontSize: 27,
+    fontWeight: '800',
+    textAlign: 'center',
+  },
+  profileCard: {
+    minHeight: 91,
+    paddingHorizontal: 12,
+    flexDirection: 'row-reverse',
+    alignItems: 'center',
+    borderBottomWidth: 1,
+    borderBottomColor: '#D9D9D9',
+  },
+  avatar: {
+    width: 57,
+    height: 57,
+    borderRadius: 29,
+    backgroundColor: '#10C7E8',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  avatarImage: {
+    width: '100%',
+    height: '100%',
+    borderRadius: 29,
+  },
+  avatarFallback: {
+    fontSize: 29,
+  },
+  profileText: {
+    flex: 1,
+    marginRight: 9,
+    alignItems: 'flex-end',
+  },
+  profileName: {
+    color: '#111111',
+    fontSize: 14,
+    fontWeight: '700',
+  },
+  profileEmail: {
+    color: '#444444',
+    fontSize: 10,
+    marginTop: 2,
+  },
+  profilePhone: {
+    color: '#111111',
+    fontSize: 13,
+    fontWeight: '700',
+    marginTop: 2,
+  },
+  sidebarItem: {
+    minHeight: 60,
+    paddingHorizontal: 15,
+    flexDirection: 'row-reverse',
+    alignItems: 'center',
+  },
+  sidebarIcon: {
+    width: 35,
+    fontSize: 28,
+    textAlign: 'center',
+  },
+  sidebarLabel: {
+    flex: 1,
+    marginRight: 12,
+    color: '#111111',
+    fontSize: 19,
+    fontWeight: '800',
+    textAlign: 'right',
+  },
+  logoutItem: {
+    minHeight: 64,
+    marginTop: 4,
+    borderTopWidth: 1,
+    borderTopColor: '#D9D9D9',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  logoutText: {
+    color: '#D3214B',
+    fontSize: 22,
+    fontWeight: '900',
+  },
+  modalBackdrop: {
+    flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.45)',
+    alignItems: 'center',
+    justifyContent: 'center',
+    padding: 24,
+  },
+  statusModal: {
+    width: '100%',
+    maxWidth: 360,
+    padding: 24,
+    borderRadius: 20,
+    backgroundColor: '#FFFFFF',
+  },
+  modalTitle: {
+    color: '#111111',
+    fontSize: 24,
+    fontWeight: '800',
+    textAlign: 'center',
+  },
+  modalHint: {
+    color: '#666666',
+    fontSize: 15,
+    marginTop: 8,
+    marginBottom: 18,
+    textAlign: 'center',
+  },
+  openButton: {
+    backgroundColor: '#16A34A',
+    borderRadius: 12,
+    paddingVertical: 14,
+    marginTop: 8,
+  },
+  closeButton: {
+    backgroundColor: '#DC2626',
+    borderRadius: 12,
+    paddingVertical: 14,
+    marginTop: 10,
+  },
+  statusButtonText: {
+    color: '#FFFFFF',
+    fontSize: 17,
+    fontWeight: '800',
+    textAlign: 'center',
+  },
+  cancelButton: {
+    paddingVertical: 12,
+    marginTop: 4,
+  },
+  cancelText: {
+    color: '#555555',
+    fontSize: 16,
+    fontWeight: '700',
+    textAlign: 'center',
+  },
 });
 
 export default VendorDashboard;

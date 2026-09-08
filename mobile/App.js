@@ -54,15 +54,11 @@ export default function App() {
   useEffect(() => {
     const initializeLanguage = async () => {
       const persistedLanguage = await AsyncStorage.getItem('language');
-      const localeTag =
-        Localization.getLocales?.()[0]?.languageTag || persistedLanguage || 'ar';
       const nextLanguage = persistedLanguage
         ? persistedLanguage === 'en'
           ? 'en'
           : 'ar'
-        : localeTag.toLowerCase().startsWith('ar')
-          ? 'ar'
-          : 'en';
+        : 'ar';
 
       if (typeof I18nManager?.allowRTL === 'function') {
         I18nManager.allowRTL(true);
@@ -107,7 +103,6 @@ export default function App() {
 
           <RootNavigator />
         </NavigationContainer>
-
       </View>
     </SafeAreaProvider>
   );

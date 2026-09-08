@@ -2,6 +2,7 @@ import React from 'react';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import LoginScreen from '../screens/auth/LoginScreen';
 import RegisterScreen from '../screens/auth/RegisterScreen';
+import PartnerRegistrationScreen from '../screens/auth/PartnerRegistrationScreen';
 import AboutScreen from '../screens/auth/AboutScreen';
 import CustomerHome from '../screens/customer/CustomerHome';
 import StoreMenu from '../screens/customer/StoreMenu';
@@ -20,6 +21,7 @@ const AuthNavigator = () => {
       <Stack.Screen name="Login" component={LoginScreen} />
       <Stack.Screen name="PartnerLogin" component={LoginScreen} />
       <Stack.Screen name="Register" component={RegisterScreen} />
+      <Stack.Screen name="PartnerRegistration" component={PartnerRegistrationScreen} />
       <Stack.Screen name="About" component={AboutScreen} />
       <Stack.Screen name="GuestHome" component={CustomerHome} />
       <Stack.Screen name="StoreMenu" component={StoreMenu} />

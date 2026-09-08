@@ -38,7 +38,8 @@ const storeService = {
   getStores: async () => {
     try {
       const response = await api.get('/stores');
-      return { success: true, stores: normalizeStores(response) };
+      const stores = normalizeStores(response).filter((store) => store?.isOpen !== false);
+      return { success: true, stores };
     } catch (error) {
       console.error('GET STORES ERROR:', error?.response?.data || error.message);
       return {
@@ -85,7 +86,7 @@ const storeService = {
   updateStore: async (storeId, storeData) => {
     try {
       if (!storeId) return { success: false, message: 'رقم المتجر مطلوب' };
-      const response = await api.patch(`/stores/${storeId}`, storeData);
+      const response = await api.put(`/stores/${storeId}`, storeData);
       return {
         success: true,
         store: normalizeStore(response),
