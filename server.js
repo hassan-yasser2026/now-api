@@ -3742,6 +3742,23 @@ app.use(
 
 app.use(
   (err, req, res, next) => {
+    const isMalformedJson =
+      err?.type === 'entity.parse.failed' ||
+      (err instanceof SyntaxError && err?.status === 400 && err?.body !== undefined);
+
+    if (isMalformedJson) {
+      console.warn('Malformed JSON request:', {
+        method: req.method,
+        path: req.path,
+      });
+
+      return errorResponse(
+        res,
+        'صيغة JSON غير صحيحة. أرسل البيانات بصيغة JSON صالحة.',
+        400
+      );
+    }
+
     console.error(
       'GLOBAL ERROR:',
       err
