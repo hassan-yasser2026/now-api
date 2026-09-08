@@ -72,6 +72,7 @@ const sections = [
   ['users', 'المستخدمون'],
   ['stores', 'المتاجر'],
   ['orders', 'الطلبات'],
+  ['submissions', 'مراجعات البائعين'],
   ['delivery', 'المندوبون'],
   ['reports', 'التقارير'],
 ];
@@ -111,6 +112,7 @@ async function loadSection() {
   const target = document.querySelector('#section-content');
   try {
     if (state.section === 'dashboard') return renderDashboard(await request('/admin/dashboard'), target);
+    if (state.section === 'submissions') return renderSubmissions(await request('/admin/submissions'), target);
     const endpoint = `/admin/${state.section === 'delivery' ? 'delivery' : state.section}`;
     return renderTable(await request(endpoint), target, sections.find(([key]) => key === state.section)?.[1]);
   } catch (error) {
@@ -126,6 +128,76 @@ const renderDashboard = (data, target) => {
         .map(([label, value]) => `<article class="stat">${label}<strong>${escapeHtml(value || 0)}</strong></article>`).join('')}
     </div>
     <div class="panel"><h2>مرحبًا بك في لوحة الإدارة</h2><p class="muted">اختر قسمًا من القائمة لإدارة بيانات المنصة.</p></div>`;
+};
+
+const submissionLabels = {
+  store: 'متجر',
+  menu_item: 'صنف',
+  offer: 'عرض / خصم',
+};
+
+const rejectionReasons = [
+  ['INVALID_INFORMATION', 'بيانات غير صحيحة'],
+  ['POLICY_VIOLATION', 'مخالفة السياسات'],
+  ['DUPLICATE', 'مكرر'],
+  ['PRICING_ISSUE', 'مشكلة في السعر'],
+  ['QUALITY_ISSUE', 'مشكلة في الجودة'],
+  ['OTHER', 'سبب آخر'],
+];
+
+const renderSubmissions = (rows, target) => {
+  const submissions = Array.isArray(rows) ? rows : rows?.items || [];
+  if (!submissions.length) {
+    target.innerHTML = '<div class="panel"><h2>مراجعات البائعين</h2><p class="muted">لا توجد طلبات معلقة.</p></div>';
+    return;
+  }
+  target.innerHTML = `
+    <div class="panel"><h2>مراجعات البائعين</h2><div class="table-wrap"><table>
+      <thead><tr><th>النوع</th><th>العنوان</th><th>البائع</th><th>التاريخ</th><th>الإجراء</th></tr></thead>
+      <tbody>${submissions.map((item) => {
+        const title = item.title || item.name || item.store?.name || 'بدون عنوان';
+        const vendor = item.vendor?.name || item.store?.vendor?.name || 'غير معروف';
+        return `<tr>
+          <td>${escapeHtml(submissionLabels[item.submissionType] || item.submissionType)}</td>
+          <td>${escapeHtml(title)}</td><td>${escapeHtml(vendor)}</td>
+          <td>${escapeHtml(item.createdAt ? new Date(item.createdAt).toLocaleString('ar-EG') : '')}</td>
+          <td class="submission-actions">
+            <button class="primary approve-submission" data-type="${escapeHtml(item.submissionType)}" data-id="${item.id}">اعتماد</button>
+            <select class="reject-reason" data-id="${item.id}" data-type="${escapeHtml(item.submissionType)}">
+              <option value="">سبب الرفض</option>
+              ${rejectionReasons.map(([value, label]) => `<option value="${value}">${label}</option>`).join('')}
+            </select>
+            <button class="danger reject-submission" data-type="${escapeHtml(item.submissionType)}" data-id="${item.id}">رفض</button>
+          </td>
+        </tr>`;
+      }).join('')}</tbody>
+    </table></div></div>`;
+
+  target.querySelectorAll('.approve-submission').forEach((button) => {
+    button.addEventListener('click', async () => {
+      try {
+        await request(`/admin/submissions/${button.dataset.type}/${button.dataset.id}/approve`, { method: 'PATCH' });
+        await loadSection();
+      } catch (error) {
+        target.querySelector('.panel').insertAdjacentHTML('afterbegin', `<p class="error">${escapeHtml(error.message)}</p>`);
+      }
+    });
+  });
+  target.querySelectorAll('.reject-submission').forEach((button) => {
+    button.addEventListener('click', async () => {
+      const select = target.querySelector(`.reject-reason[data-id="${button.dataset.id}"][data-type="${button.dataset.type}"]`);
+      if (!select.value) return alert('اختر سبب الرفض أولاً');
+      try {
+        await request(`/admin/submissions/${button.dataset.type}/${button.dataset.id}/reject`, {
+          method: 'PATCH',
+          body: JSON.stringify({ rejectionReason: select.value }),
+        });
+        await loadSection();
+      } catch (error) {
+        target.querySelector('.panel').insertAdjacentHTML('afterbegin', `<p class="error">${escapeHtml(error.message)}</p>`);
+      }
+    });
+  });
 };
 
 const renderTable = (payload, target, title) => {

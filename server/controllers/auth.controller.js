@@ -132,6 +132,7 @@ async function register(req, res) {
             userId: createdUser.id,
             latitude: Number.isFinite(Number(latitude)) ? Number(latitude) : null,
             longitude: Number.isFinite(Number(longitude)) ? Number(longitude) : null,
+            approvalStatus: 'PENDING_ADMIN_REVIEW',
           },
         });
       }

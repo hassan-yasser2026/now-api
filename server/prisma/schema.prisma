@@ -2,9 +2,36 @@ generator client {
   provider = "prisma-client-js"
 }
 
+model Offer {
+  id              Int              @id @default(autoincrement())
+  storeId         Int
+  store           Store            @relation(fields: [storeId], references: [id], onDelete: Cascade)
+  title           String
+  description     String?
+  discountType    String           @default("PERCENTAGE")
+  discountValue   Decimal          @db.Decimal(12, 2)
+  image           String?
+  startsAt        DateTime?
+  endsAt          DateTime?
+  isActive        Boolean          @default(true)
+  approvalStatus  SubmissionStatus @default(PENDING_ADMIN_REVIEW)
+  rejectionReason String?
+  createdAt       DateTime         @default(now())
+  updatedAt       DateTime         @updatedAt
+
+  @@index([storeId, approvalStatus, isActive])
+  @@map("offers")
+}
+
 datasource db {
   provider = "postgresql"
   url      = env("DATABASE_URL")
+}
+
+enum SubmissionStatus {
+  PENDING_ADMIN_REVIEW
+  APPROVED
+  REJECTED
 }
 
 model User {
@@ -125,9 +152,12 @@ model Store {
   latitude       Decimal?           @db.Decimal(9, 6)
   longitude      Decimal?           @db.Decimal(9, 6)
   image          String?
+  approvalStatus SubmissionStatus @default(APPROVED)
+  rejectionReason String?
   menuItems      MenuItem[]
   menuCategories MenuItemCategory[]
   orders         Order[]
+  offers         Offer[]
   favorites      Favorite[]
   createdAt      DateTime           @default(now())
   updatedAt      DateTime           @updatedAt
@@ -167,7 +197,9 @@ model MenuItem {
   price       Decimal           @db.Decimal(12, 2)
   isAvailable Boolean           @default(true)
   image       String?
-  orderItems  OrderItem[]
+  approvalStatus SubmissionStatus @default(APPROVED)
+  rejectionReason String?
+  orderItems    OrderItem[]
   createdAt   DateTime          @default(now())
   updatedAt   DateTime          @updatedAt
 

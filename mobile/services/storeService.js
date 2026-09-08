@@ -137,6 +137,15 @@ const storeService = {
     }
   },
 
+  getVendorMenu: async (vendorId) => {
+    try {
+      const response = await api.get(`/vendor/${vendorId}/menu`);
+      return { success: true, menu: normalizeMenu(response) };
+    } catch (error) {
+      return { success: false, menu: [], message: getErrorMessage(error, 'فشل جلب قائمة الأصناف') };
+    }
+  },
+
   addMenuItem: async (storeId, itemData) => {
     try {
       if (!storeId) return { success: false, message: 'رقم المتجر مطلوب' };

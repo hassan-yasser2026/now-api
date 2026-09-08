@@ -85,7 +85,7 @@ const VendorMenu = ({ navigation }) => {
       }
 
       try {
-        const result = await storeService.getMenu(storeId);
+        const result = await storeService.getVendorMenu(user?.id);
 
         if (!mountedRef.current) return;
 
@@ -124,7 +124,7 @@ const VendorMenu = ({ navigation }) => {
         }
       }
     },
-    [storeId]
+    [storeId, user?.id]
   );
 
   useEffect(() => {
@@ -530,6 +530,12 @@ const VendorMenu = ({ navigation }) => {
                   numberOfLines={2}
                 >
                   {item.description}
+                </Text>
+              )}
+              {item?.approvalStatus && item.approvalStatus !== 'APPROVED' && (
+                <Text style={item.approvalStatus === 'REJECTED' ? styles.rejectedText : styles.pendingText}>
+                  {item.approvalStatus === 'REJECTED' ? 'مرفوض من الإدارة' : 'في انتظار مراجعة الإدارة'}
+                  {item.rejectionReason ? ` (${item.rejectionReason})` : ''}
                 </Text>
               )}
             </View>
@@ -1374,6 +1380,22 @@ const styles = StyleSheet.create({
     color:
       COLORS.textSecondary,
     textAlign: 'right',
+  },
+
+  pendingText: {
+    marginTop: 5,
+    color: '#B7791F',
+    fontSize: 11,
+    textAlign: 'right',
+    fontWeight: '700',
+  },
+
+  rejectedText: {
+    marginTop: 5,
+    color: COLORS.error,
+    fontSize: 11,
+    textAlign: 'right',
+    fontWeight: '700',
   },
 
   disabledText: {

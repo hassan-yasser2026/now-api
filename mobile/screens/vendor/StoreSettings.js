@@ -26,7 +26,7 @@ export default function StoreSettings({ navigation }) {
   const loadSettings = async () => {
     if (!storeId) { setLoading(false); return; }
     try {
-      const res = await api.get(`/stores/${storeId}`);
+      const res = await api.get(`/vendor/${user?.id}/store`);
       const store = res.data?.data ?? res.data;
       if (store) {
         setIsOpen(store.isOpen ?? true);

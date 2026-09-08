@@ -16,6 +16,7 @@ const MENU_ITEMS = [
   { label: 'الرئيسية', icon: '🏠', route: 'VendorDashboard' },
   { label: 'الطلبات', icon: '📦', route: 'VendorOrders' },
   { label: 'الخدمات / المنتجات', icon: '🛍️', route: 'VendorMenu' },
+  { label: 'العروض والخصومات', icon: '🏷️', route: 'VendorOffers' },
   { label: 'المحفظة والأرباح', icon: '💰', route: 'VendorEarnings' },
   { label: 'التقارير', icon: '📊' },
   { label: 'التقييمات', icon: '⭐' },
@@ -45,10 +46,8 @@ const VendorDashboard = ({ navigation }) => {
 
     const loadVendorStore = async () => {
       try {
-        const response = await api.get('/stores?includeClosed=true');
-        const payload = response.data?.data ?? response.data;
-        const stores = Array.isArray(payload) ? payload : payload?.stores || [];
-        const vendorStore = stores.find((store) => Number(store.vendorId) === Number(user.id));
+        const response = await api.get(`/vendor/${user.id}/store`);
+        const vendorStore = response.data?.data ?? response.data;
         if (vendorStore?.id) {
           setStoreId(vendorStore.id);
           setStoreOpen(vendorStore.isOpen !== false);

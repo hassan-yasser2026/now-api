@@ -10,6 +10,7 @@ import VendorOrderDetails from '../screens/vendor/VendorOrderDetails';
 import VendorEarnings from '../screens/vendor/VendorEarnings';
 import StoreSettings from '../screens/vendor/StoreSettings';
 import VendorProfile from '../screens/vendor/VendorProfile';
+import VendorOffers from '../screens/vendor/VendorOffers';
 import AboutScreen from '../screens/auth/AboutScreen';
 
 const Stack = createNativeStackNavigator();
@@ -29,6 +30,7 @@ const VendorNavigator = () => {
     >
       <Stack.Screen name="VendorDashboard" component={VendorDashboard} />
       <Stack.Screen name="VendorMenu" component={VendorMenu} />
+      <Stack.Screen name="VendorOffers" component={VendorOffers} />
       <Stack.Screen name="AddMenuItem" component={AddMenuItem} />
       <Stack.Screen name="EditMenuItem" component={EditMenuItem} />
       <Stack.Screen name="VendorOrders" component={VendorOrders} />
