@@ -2004,7 +2004,7 @@ app.post(
       const order =
         await prisma.$transaction(
           async (tx) => {
-            return tx.order.create({
+            const createdOrder = await tx.order.create({
               data: {
                 customerId:
                   req.user.userId,
@@ -2039,6 +2039,27 @@ app.post(
                 items: true,
               },
             });
+
+            if (store.vendorId) {
+              const vendor = await tx.user.findUnique({
+                where: { id: store.vendorId },
+                select: { notificationsEnabled: true },
+              });
+
+              if (vendor?.notificationsEnabled !== false) {
+                await tx.notification.create({
+                  data: {
+                    userId: store.vendorId,
+                    type: 'ORDER_STATUS',
+                    title: 'طلب جديد',
+                    body: `لديك طلب جديد رقم #${createdOrder.id}`,
+                    data: { orderId: createdOrder.id, storeId },
+                  },
+                });
+              }
+            }
+
+            return createdOrder;
           }
         );
 
@@ -2047,6 +2068,88 @@ app.post(
         order,
         201
       );
+    } catch (error) {
+      return handlePrismaError(error, res);
+    }
+  }
+);
+
+// ============================================================
+// VENDOR NOTIFICATIONS
+// ============================================================
+
+app.get(
+  '/api/notifications',
+  authMiddleware,
+  roleMiddleware(ROLES.VENDOR),
+  async (req, res) => {
+    try {
+      const notifications = await prisma.notification.findMany({
+        where: { userId: req.user.userId },
+        orderBy: { createdAt: 'desc' },
+        take: 100,
+      });
+      return successResponse(res, notifications);
+    } catch (error) {
+      return handlePrismaError(error, res);
+    }
+  }
+);
+
+app.patch(
+  '/api/notifications/:id/read',
+  authMiddleware,
+  roleMiddleware(ROLES.VENDOR),
+  async (req, res) => {
+    const id = normalizeId(req.params.id);
+    if (!id) return errorResponse(res, 'رقم الإشعار غير صالح', 400);
+
+    try {
+      const result = await prisma.notification.updateMany({
+        where: { id, userId: req.user.userId },
+        data: { readAt: new Date() },
+      });
+      if (!result.count) return errorResponse(res, 'الإشعار غير موجود', 404);
+      return successResponse(res, { id, readAt: new Date() });
+    } catch (error) {
+      return handlePrismaError(error, res);
+    }
+  }
+);
+
+app.get(
+  '/api/notifications/preferences',
+  authMiddleware,
+  roleMiddleware(ROLES.VENDOR),
+  async (req, res) => {
+    try {
+      const user = await prisma.user.findUnique({
+        where: { id: req.user.userId },
+        select: { notificationsEnabled: true },
+      });
+      return successResponse(res, { enabled: user?.notificationsEnabled !== false });
+    } catch (error) {
+      return handlePrismaError(error, res);
+    }
+  }
+);
+
+app.patch(
+  '/api/notifications/preferences',
+  authMiddleware,
+  roleMiddleware(ROLES.VENDOR),
+  async (req, res) => {
+    if (typeof req.body.enabled !== 'boolean') {
+      return errorResponse(res, 'قيمة الإشعارات غير صالحة', 400);
+    }
+
+    try {
+      const user = await prisma.user.update({
+        where: { id: req.user.userId },
+        data: { notificationsEnabled: req.body.enabled },
+        select: { notificationsEnabled: true },
+      });
+      return successResponse(res, { enabled: user.notificationsEnabled });
     } catch (error) {
       return handlePrismaError(error, res);
     }

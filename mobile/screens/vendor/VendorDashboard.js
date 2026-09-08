@@ -21,7 +21,7 @@ const MENU_ITEMS = [
   { label: 'المحفظة والأرباح', icon: '💰', route: 'VendorEarnings' },
   { label: 'التقييمات', icon: '⭐', route: 'VendorRatings' },
   { label: 'الدعم', icon: '💬', supportPhone: '01067254988' },
-  { label: 'الإشعارات', icon: '🔔' },
+  { label: 'الإشعارات', icon: '🔔', route: 'VendorNotifications' },
   { label: 'الملف الشخصي', icon: '👤', route: 'VendorProfile' },
   { label: 'حالة المتجر', icon: '🟢', statusAction: true },
   { label: 'الموقع', icon: '📍', route: 'StoreSettings' },
