@@ -6,6 +6,7 @@ import {
 import { Ionicons } from '@expo/vector-icons';
 import { COLORS } from '../../constants/colors';
 import api from '../../services/api';
+import useAppStore from '../../store/appStore';
 
 type EarningsPeriod = 'day' | 'week' | 'month';
 
@@ -16,6 +17,7 @@ type EarningsSummary = {
 };
 
 const VendorEarnings: React.FC = () => {
+  const user = useAppStore((state) => state.user);
   const [period, setPeriod] = useState<EarningsPeriod>('day');
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
@@ -25,8 +27,34 @@ const VendorEarnings: React.FC = () => {
     setLoading(true);
     setError(null);
     try {
-      const res = await api.get(`/vendor/earnings?period=${period}`);
-      const data = res.data?.data ?? res.data;
+      let data;
+      try {
+        const res = await api.get(`/vendor/earnings?period=${period}`);
+        data = res.data?.data ?? res.data;
+      } catch (err: any) {
+        if (err?.response?.status !== 404 || !user?.id) {
+          throw err;
+        }
+        const res = await api.get(`/vendor/${user.id}/orders`);
+        const allOrders = res.data?.data ?? res.data ?? [];
+        const startDate = new Date();
+        if (period === 'day') startDate.setHours(0, 0, 0, 0);
+        if (period === 'week') startDate.setDate(startDate.getDate() - 7);
+        if (period === 'month') startDate.setDate(startDate.getDate() - 30);
+        const orders = allOrders.filter(
+          (order: any) =>
+            order.status === 'DELIVERED' &&
+            new Date(order.createdAt) >= startDate
+        );
+        data = {
+          total: orders.reduce(
+            (sum: number, order: any) => sum + Number(order.totalPrice || 0),
+            0
+          ),
+          count: orders.length,
+          orders,
+        };
+      }
       setSummary({
         total: data?.total || 0,
         count: data?.count || 0,
@@ -37,7 +65,7 @@ const VendorEarnings: React.FC = () => {
     } finally {
       setLoading(false);
     }
-  }, [period]);
+  }, [period, user?.id]);
 
   useEffect(() => { loadEarnings(); }, [loadEarnings]);
 
