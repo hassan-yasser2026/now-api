@@ -46,6 +46,8 @@ async function register(req, res) {
       profileImage,
       latitude,
       longitude,
+      role: requestedRole = 'customer',
+      storeName,
     } = req.body;
 
     // تنظيف الرقم لتوحيد الصيغة (حتى لو اتبعت بـ رمز دولة)
@@ -83,35 +85,69 @@ async function register(req, res) {
       });
     }
 
-    const customerRole = await prisma.role.findUnique({
+    const roleName = String(requestedRole).trim().toUpperCase();
+    const allowedRoles = new Set(['CUSTOMER', 'VENDOR', 'DELIVERY']);
+    if (!allowedRoles.has(roleName)) {
+      return res.status(400).json({
+        success: false,
+        message: 'نوع الحساب غير صحيح',
+      });
+    }
+
+    const accountRole = await prisma.role.findUnique({
       where: {
-        name: 'CUSTOMER',
+        name: roleName,
       },
     });
 
-    if (!customerRole) {
+    if (!accountRole) {
       return res.status(500).json({
         success: false,
-        message: 'دور CUSTOMER غير موجود في قاعدة البيانات',
+        message: `دور ${roleName} غير موجود في قاعدة البيانات`,
       });
     }
 
     const hashedPassword = await hashPassword(password);
 
-    const user = await prisma.user.create({
-      data: {
-        name,
-        phone,
-        password: hashedPassword,
-        email: email || null,
-        profileImage: profileImage || null,
-        latitude: Number.isFinite(Number(latitude)) ? Number(latitude) : null,
-        longitude: Number.isFinite(Number(longitude)) ? Number(longitude) : null,
-        roleId: customerRole.id,
-      },
-      include: {
-        role: true,
-      },
+    const user = await prisma.$transaction(async (transaction) => {
+      const createdUser = await transaction.user.create({
+        data: {
+          name,
+          phone,
+          password: hashedPassword,
+          email: email || null,
+          profileImage: profileImage || null,
+          latitude: Number.isFinite(Number(latitude)) ? Number(latitude) : null,
+          longitude: Number.isFinite(Number(longitude)) ? Number(longitude) : null,
+          roleId: accountRole.id,
+        },
+        include: {
+          role: true,
+        },
+      });
+
+      if (roleName === 'DELIVERY') {
+        await transaction.deliveryProfile.create({
+          data: {
+            userId: createdUser.id,
+            latitude: Number.isFinite(Number(latitude)) ? Number(latitude) : null,
+            longitude: Number.isFinite(Number(longitude)) ? Number(longitude) : null,
+          },
+        });
+      }
+
+      if (roleName === 'VENDOR') {
+        await transaction.store.create({
+          data: {
+            vendorId: createdUser.id,
+            name: String(storeName || name).trim(),
+            latitude: Number.isFinite(Number(latitude)) ? Number(latitude) : null,
+            longitude: Number.isFinite(Number(longitude)) ? Number(longitude) : null,
+          },
+        });
+      }
+
+      return createdUser;
     });
 
     const token = generateToken(user);
