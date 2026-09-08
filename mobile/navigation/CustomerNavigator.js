@@ -5,7 +5,6 @@ import { Ionicons } from '@expo/vector-icons';
 
 import CustomerHome from '../screens/customer/CustomerHome';
 import StoreMenu from '../screens/customer/StoreMenu';
-import SearchScreen from '../screens/customer/SearchScreen';
 import OrdersScreen from '../screens/customer/OrdersScreen';
 import FavoritesScreen from '../screens/customer/FavoritesScreen';
 import SettingsScreen from '../screens/customer/SettingsScreen';
@@ -35,14 +34,6 @@ const CustomerTabs = () => (
       options={{
         tabBarLabel: 'الرئيسية',
         tabBarIcon: ({ color, size }) => <Ionicons name="home-outline" size={size} color={color} />,
-      }}
-    />
-    <Tab.Screen
-      name="Search"
-      component={SearchScreen}
-      options={{
-        tabBarLabel: 'بحث',
-        tabBarIcon: ({ color, size }) => <Ionicons name="search-outline" size={size} color={color} />,
       }}
     />
     <Tab.Screen
