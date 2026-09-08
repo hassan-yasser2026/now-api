@@ -142,7 +142,7 @@ const storeService = {
       if (!storeId) return { success: false, message: 'رقم المتجر مطلوب' };
       const response = await api.post(`/stores/${storeId}/menu`, {
         ...itemData,
-        image: itemData?.image || 'https://images.unsplash.com/photo-1544025162-d76694265947?auto=format&fit=crop&w=900&q=80',
+        image: itemData?.image || null,
       });
       return {
         success: true,
@@ -164,7 +164,7 @@ const storeService = {
       if (!storeId || !itemId) return { success: false, message: 'بيانات الصنف غير مكتملة' };
       const response = await api.patch(`/stores/${storeId}/menu/${itemId}`, {
         ...itemData,
-        image: itemData?.image || 'https://images.unsplash.com/photo-1544025162-d76694265947?auto=format&fit=crop&w=900&q=80',
+        image: itemData?.image || null,
       });
       return {
         success: true,

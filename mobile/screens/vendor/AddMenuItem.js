@@ -1,4 +1,5 @@
 import React, { useCallback, useMemo, useState } from 'react';
+import * as ImagePicker from 'expo-image-picker';
 
 import {
   Alert,
@@ -18,7 +19,7 @@ import {
 
 import { Ionicons } from '@expo/vector-icons';
 
-import { COLORS } from '../../constants/colors';
+import { COLORS as BASE_COLORS } from '../../constants/colors';
 import useAppStore from '../../store/appStore';
 import { storeService } from '../../services/storeService';
 import PrimaryButton from '../../components/PrimaryButton';
@@ -27,6 +28,13 @@ const MAX_NAME_LENGTH = 80;
 const MAX_DESCRIPTION_LENGTH = 500;
 const MIN_PRICE = 0.01;
 const MAX_PRICE = 1000000;
+
+const COLORS = {
+  ...BASE_COLORS,
+  primary: '#10C7E8',
+  primaryDark: '#0891B2',
+  primaryLight: '#CFFAFE',
+};
 
 const AddMenuItem = ({ navigation, route }) => {
   const { user } = useAppStore();
@@ -41,6 +49,32 @@ const AddMenuItem = ({ navigation, route }) => {
 
   const [loading, setLoading] = useState(false);
   const [focusedInput, setFocusedInput] = useState(null);
+
+  const pickProductImage = useCallback(async () => {
+    if (loading) return;
+
+    const permission = await ImagePicker.requestMediaLibraryPermissionsAsync();
+    if (!permission.granted) {
+      Alert.alert('السماح بالصور مطلوب', 'اسمح للتطبيق بالوصول إلى الصور لاختيار صورة المنتج.');
+      return;
+    }
+
+    const result = await ImagePicker.launchImageLibraryAsync({
+      allowsEditing: true,
+      aspect: [1, 1],
+      quality: 0.7,
+      base64: true,
+    });
+
+    const asset = result.assets?.[0];
+    if (!result.canceled && asset?.uri) {
+      setImageUrl(
+        asset.base64
+          ? `data:${asset.mimeType || 'image/jpeg'};base64,${asset.base64}`
+          : asset.uri
+      );
+    }
+  }, [loading]);
 
   /*
    * ==========================================
@@ -154,7 +188,7 @@ const AddMenuItem = ({ navigation, route }) => {
       name: trimmedName,
       price: Number(numericPrice.toFixed(2)),
       description: trimmedDescription,
-      image: imageUrl.trim() || item?.image || item?.img || 'https://images.unsplash.com/photo-1544025162-d76694265947?auto=format&fit=crop&w=900&q=80',
+      image: imageUrl.trim() || null,
       isAvailable: item?.isAvailable !== false,
     };
 
@@ -325,7 +359,7 @@ const AddMenuItem = ({ navigation, route }) => {
     []
   );
 
-  const imageSource = imageUrl.trim() || 'https://images.unsplash.com/photo-1544025162-d76694265947?auto=format&fit=crop&w=900&q=80';
+  const imageSource = imageUrl.trim() || null;
 
   return (
     <SafeAreaView style={styles.safeArea}>
@@ -395,12 +429,7 @@ const AddMenuItem = ({ navigation, route }) => {
                 <TouchableOpacity
                   activeOpacity={0.8}
                   style={styles.imagePlaceholder}
-                  onPress={() =>
-                    Alert.alert(
-                      'رابط الصورة',
-                      'أدخل رابط صورة مباشر من الإنترنت، أو اتركه فارغًا لاستخدام صورة افتراضية.'
-                    )
-                  }
+                  onPress={pickProductImage}
                 >
                   {imageSource ? (
                     <Image source={{ uri: imageSource }} style={styles.previewImage} resizeMode="cover" />
@@ -414,9 +443,7 @@ const AddMenuItem = ({ navigation, route }) => {
                         />
                       </View>
 
-                      <Text style={styles.imageTitle}>
-                        إضافة صورة
-                      </Text>
+                      <Text style={styles.imageTitle}>اختيار صورة المنتج</Text>
 
                       <Text style={styles.imageSubtitle}>
                         اختياري
@@ -424,19 +451,9 @@ const AddMenuItem = ({ navigation, route }) => {
                     </>
                   )}
                 </TouchableOpacity>
-
-                <View style={[styles.inputContainer, { marginTop: 12 }]}>
-                  <Ionicons name="link-outline" size={20} color={COLORS.primary} />
-                  <TextInput
-                    style={styles.input}
-                    value={imageUrl}
-                    onChangeText={setImageUrl}
-                    placeholder="رابط صورة المنتج"
-                    placeholderTextColor={COLORS.textLight}
-                    textAlign="right"
-                    editable={!loading}
-                  />
-                </View>
+                <Text style={styles.imageHint}>
+                  اضغط على الصورة لاختيار صورة من جهازك
+                </Text>
               </View>
             </View>
 
@@ -788,7 +805,7 @@ const styles = StyleSheet.create({
     width: 64,
     height: 64,
     borderRadius: 20,
-    backgroundColor: '#FCE7F3',
+    backgroundColor: '#CFFAFE',
     alignItems: 'center',
     justifyContent: 'center',
     marginBottom: 10,
@@ -804,6 +821,13 @@ const styles = StyleSheet.create({
     marginTop: 4,
     fontSize: 11,
     color: COLORS.textSecondary,
+  },
+
+  imageHint: {
+    textAlign: 'center',
+    color: COLORS.primaryDark,
+    fontSize: 12,
+    fontWeight: '700',
   },
 
   imagePreviewWrapper: {
