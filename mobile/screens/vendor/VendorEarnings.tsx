@@ -96,6 +96,10 @@ const VendorEarnings: React.FC = () => {
   return (
     <SafeAreaView style={styles.container}>
       <View style={styles.header}>
+        <View style={styles.logo}>
+          <Text style={styles.logoRed}>N</Text>
+          <Text style={styles.logoBlack}>OW</Text>
+        </View>
         <Text style={styles.headerTitle}>إيرادات المتجر</Text>
       </View>
 
@@ -163,26 +167,47 @@ const VendorEarnings: React.FC = () => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: COLORS.background,
-    paddingHorizontal: 16,
-    paddingTop: 8,
+    backgroundColor: '#EEEEEE',
   },
   header: {
-    marginBottom: 16,
+    height: 148,
+    backgroundColor: '#10C7E8',
+    borderBottomWidth: 7,
+    borderBottomColor: '#FFFFFF',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingHorizontal: 16,
+  },
+  logo: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  logoRed: {
+    color: '#D92838',
+    fontSize: 58,
+    fontWeight: '900',
+    letterSpacing: -7,
+  },
+  logoBlack: {
+    color: '#050505',
+    fontSize: 58,
+    fontWeight: '900',
+    letterSpacing: -7,
   },
   headerTitle: {
-    fontSize: 24,
-    fontWeight: '700',
-    color: COLORS.text,
+    marginTop: 2,
+    fontSize: 20,
+    fontWeight: '800',
+    color: '#050505',
   },
   periodSelector: {
     flexDirection: 'row',
-    backgroundColor: COLORS.surface,
-    borderRadius: 12,
-    padding: 4,
-    borderWidth: 1,
-    borderColor: COLORS.border,
-    marginBottom: 16,
+    backgroundColor: '#FFFFFF',
+    borderRadius: 4,
+    padding: 5,
+    margin: 16,
+    marginBottom: 12,
   },
   periodButton: {
     flex: 1,
@@ -191,7 +216,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   periodButtonActive: {
-    backgroundColor: COLORS.primary,
+    backgroundColor: '#10C7E8',
   },
   periodText: {
     fontSize: 14,
@@ -231,11 +256,11 @@ const styles = StyleSheet.create({
   },
   summaryCard: {
     flex: 1,
-    backgroundColor: COLORS.surface,
-    borderRadius: 12,
+    backgroundColor: '#FFFFFF',
+    borderRadius: 4,
     padding: 16,
-    borderWidth: 1,
-    borderColor: COLORS.border,
+    borderTopWidth: 5,
+    borderTopColor: '#10C7E8',
   },
   summaryLabel: {
     fontSize: 14,
@@ -255,15 +280,16 @@ const styles = StyleSheet.create({
     marginBottom: 12,
   },
   listContainer: {
+    paddingHorizontal: 16,
     paddingBottom: 20,
   },
   itemCard: {
-    backgroundColor: COLORS.surface,
-    borderRadius: 12,
+    backgroundColor: '#FFFFFF',
+    borderRadius: 4,
     padding: 16,
     marginBottom: 8,
-    borderWidth: 1,
-    borderColor: COLORS.border,
+    borderRightWidth: 5,
+    borderRightColor: '#10C7E8',
   },
   itemHeader: {
     flexDirection: 'row',
