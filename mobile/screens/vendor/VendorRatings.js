@@ -1,11 +1,12 @@
 import React, { useCallback, useState } from 'react';
-import { ActivityIndicator, FlatList, StyleSheet, Text, View } from 'react-native';
+import { ActivityIndicator, FlatList, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { useFocusEffect } from '@react-navigation/native';
+import { Ionicons } from '@expo/vector-icons';
 import api from '../../services/api';
 
 const ACCENT = '#0B8FA3';
 
-export default function VendorRatings() {
+export default function VendorRatings({ navigation }) {
   const [data, setData] = useState({ ratings: [], average: 0, count: 0 });
   const [loading, setLoading] = useState(true);
 
@@ -24,7 +25,13 @@ export default function VendorRatings() {
   if (loading) return <View style={styles.center}><ActivityIndicator size="large" color={ACCENT} /></View>;
   return (
     <View style={styles.container}>
-      <Text style={styles.title}>تقييمات العملاء</Text>
+      <View style={styles.header}>
+        <Text style={styles.title}>تقييمات العملاء</Text>
+        <TouchableOpacity style={styles.exitButton} onPress={() => navigation.goBack()}>
+          <Ionicons name="arrow-forward-outline" size={18} color="#D92838" />
+          <Text style={styles.exitText}>خروج من اللوحة</Text>
+        </TouchableOpacity>
+      </View>
       <View style={styles.summary}>
         <Text style={styles.average}>⭐ {data.average.toFixed(1)}</Text>
         <Text style={styles.count}>{data.count} تقييم</Text>
@@ -53,6 +60,19 @@ const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: '#F7FBFC', padding: 20 },
   center: { flex: 1, alignItems: 'center', justifyContent: 'center' },
   title: { color: '#111', fontSize: 28, fontWeight: '900', textAlign: 'right', marginTop: 30 },
+  header: { alignItems: 'stretch', paddingTop: 8 },
+  exitButton: {
+    alignSelf: 'flex-end',
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    backgroundColor: '#FFFFFF',
+    borderRadius: 5,
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    marginTop: 10,
+  },
+  exitText: { color: '#D92838', fontSize: 13, fontWeight: '800' },
   summary: { backgroundColor: ACCENT, borderRadius: 18, padding: 18, marginVertical: 18, alignItems: 'center' },
   average: { color: '#fff', fontSize: 30, fontWeight: '900' },
   count: { color: '#D9F8FC', fontSize: 14, marginTop: 4 },
