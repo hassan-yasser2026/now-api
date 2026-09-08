@@ -68,6 +68,14 @@ const CustomerTabs = () => (
         tabBarIcon: ({ color, size }) => <Ionicons name="person-outline" size={size} color={color} />,
       }}
     />
+    <Tab.Screen
+      name="About"
+      component={AboutScreen}
+      options={{
+        tabBarLabel: 'حول التطبيق',
+        tabBarIcon: ({ color, size }) => <Ionicons name="information-circle-outline" size={size} color={color} />,
+      }}
+    />
   </Tab.Navigator>
 );
 

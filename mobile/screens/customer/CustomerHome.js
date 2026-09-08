@@ -686,15 +686,6 @@ const CustomerHome = ({ navigation }) => {
       </View>
       </ScrollView>
 
-      <TouchableOpacity
-        onPress={() => navigation.navigate('About')}
-        style={styles.aboutLink}
-        activeOpacity={0.7}
-      >
-        <Ionicons name="information-circle-outline" size={18} color={HOME_ACCENT} />
-        <Text style={styles.aboutText}>حول تطبيق ناو</Text>
-      </TouchableOpacity>
-
       {/* Cart Bars */}
       {cartByStore.length > 0 && (
         <View style={styles.cartBarsContainer}>
@@ -1397,24 +1388,6 @@ const styles = StyleSheet.create({
   },
   assistantFabAboveCart: {
     bottom: 180,
-  },
-  aboutLink: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: 6,
-    paddingVertical: 10,
-    marginHorizontal: 16,
-    marginTop: 8,
-    backgroundColor: COLORS.surface,
-    borderWidth: 1,
-    borderColor: COLORS.border,
-    borderRadius: 12,
-  },
-  aboutText: {
-    color: HOME_ACCENT,
-    fontSize: 14,
-    fontWeight: '700',
   },
   cartBarsContainer: {
     position: 'absolute',
