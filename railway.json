@@ -1,5 +1,5 @@
 {
   "builder": "nixpacks",
   "buildCommand": "npm run build",
-  "startCommand": "npm run start:prod"
+  "startCommand": "node server.js"
 }
