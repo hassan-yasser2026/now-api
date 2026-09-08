@@ -768,7 +768,7 @@ const styles = StyleSheet.create({
   hero: {
     backgroundColor: HOME_ACCENT,
     paddingTop: 8,
-    paddingBottom: 14,
+    paddingBottom: 8,
   },
   header: {
     flexDirection: 'row',
@@ -776,7 +776,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     paddingHorizontal: 16,
     paddingTop: 8,
-    paddingBottom: 16,
+    paddingBottom: 10,
   },
   headerTextContainer: {
     flex: 1,
@@ -789,12 +789,12 @@ const styles = StyleSheet.create({
     marginBottom: 5,
   },
   greeting: {
-    fontSize: 21,
+    fontSize: 19,
     fontWeight: '800',
     color: '#FFFFFF',
   },
   subGreeting: {
-    fontSize: 13,
+    fontSize: 12,
     color: 'rgba(255,255,255,0.88)',
     marginTop: 4,
   },
@@ -889,7 +889,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     alignSelf: 'center',
     marginHorizontal: 16,
-    marginBottom: 12,
+    marginBottom: 8,
     paddingHorizontal: 12,
     paddingVertical: 8,
     borderRadius: 14,
@@ -1011,7 +1011,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     marginHorizontal: 16,
     paddingHorizontal: 14,
-    height: 52,
+    height: 44,
     borderRadius: 15,
     backgroundColor: COLORS.surface,
     borderWidth: 1,
@@ -1025,10 +1025,10 @@ const styles = StyleSheet.create({
   brandLogo: {
     alignItems: 'center',
     justifyContent: 'center',
-    height: 58,
+    height: 34,
   },
   brandLogoText: {
-    fontSize: 44,
+    fontSize: 30,
     fontWeight: '900',
     letterSpacing: -4,
   },
