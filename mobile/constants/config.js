@@ -19,9 +19,8 @@ export const CONFIG = {
   SUPPORTED_LANGUAGES: ['ar', 'en'],
 
   // بيانات الدعم
-  SUPPORT_EMAIL: 'support@nowdelivery.com',
-  SUPPORT_PHONE: '+201000000000',
-  SUPPORT_WHATSAPP: '+201000000000',
+  SUPPORT_PHONE: '+201067254988',
+  SUPPORT_WHATSAPP: '+201067254988',
 
   // العملة
   CURRENCY: 'EGP',

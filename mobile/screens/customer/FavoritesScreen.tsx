@@ -121,7 +121,7 @@ const FavoritesScreen = ({ navigation }: FavoritesScreenProps) => {
         <View style={styles.emptyState}>
           <Ionicons name="heart-outline" size={52} color={COLORS.inactive} />
           <Text style={styles.emptyText}>لا توجد متاجر مفضلة</Text>
-          <TouchableOpacity style={styles.emptyButton} onPress={() => navigation.navigate('Search')}>
+          <TouchableOpacity style={styles.emptyButton} onPress={() => navigation.navigate('CustomerHome')}>
             <Text style={styles.emptyButtonText}>استكشاف المتاجر</Text>
           </TouchableOpacity>
         </View>

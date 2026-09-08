@@ -18,9 +18,8 @@ import { getTranslations } from '../../constants/i18n';
 
 type Language = 'ar' | 'en';
 
-type SupportType = 'email' | 'whatsapp';
-const SUPPORT_EMAIL = 'support@nowdelivery.com';
-const WHATSAPP_NUMBER = '966500000000';
+type SupportType = 'whatsapp';
+const WHATSAPP_NUMBER = '201067254988';
 
 type SettingsScreenProps = {
   navigation?: {
@@ -88,14 +87,6 @@ const SettingsScreen: React.FC<SettingsScreenProps> = ({ navigation }) => {
 
   const openSupport = async (type: SupportType) => {
     try {
-      if (type === 'email') {
-        const mailto = `mailto:${SUPPORT_EMAIL}?subject=${encodeURIComponent(
-          'NOW Support Request'
-        )}`;
-        await Linking.openURL(mailto);
-        return;
-      }
-
       const message = encodeURIComponent('Hello NOW support, I need help.');
       const url = `https://wa.me/${WHATSAPP_NUMBER}?text=${message}`;
       await Linking.openURL(url);
@@ -320,22 +311,6 @@ const SettingsScreen: React.FC<SettingsScreenProps> = ({ navigation }) => {
           <Text style={[styles.sectionTitle, isRTL && styles.rtlText]}>
             {t.settings.support}
           </Text>
-
-          <TouchableOpacity
-            accessibilityRole="button"
-            style={[styles.supportCard, isRTL && styles.supportCardRTL]}
-            onPress={() => openSupport('email')}
-          >
-            <Ionicons name="mail-outline" size={20} color={COLORS.secondaryText} />
-            <View style={[styles.supportTextWrap, isRTL && styles.supportTextWrapRTL]}>
-              <Text style={[styles.supportText, isRTL && styles.rtlText]}>
-                {t.settings.email}
-              </Text>
-              <Text style={[styles.supportValue, isRTL && styles.rtlText]}>
-                {SUPPORT_EMAIL}
-              </Text>
-            </View>
-          </TouchableOpacity>
 
           <TouchableOpacity
             accessibilityRole="button"

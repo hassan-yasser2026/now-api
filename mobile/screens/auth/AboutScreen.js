@@ -87,13 +87,6 @@ const AboutScreen = ({ navigation }) => {
     }
   };
 
-  const handleEmail = () => {
-    openUrl(
-      `mailto:${CONFIG.SUPPORT_EMAIL}`,
-      'لا يمكن فتح تطبيق البريد الإلكتروني على هذا الجهاز.'
-    );
-  };
-
   const handlePhone = () => {
     openUrl(
       `tel:${CONFIG.SUPPORT_PHONE}`,
@@ -347,37 +340,6 @@ const AboutScreen = ({ navigation }) => {
 
               <Text style={styles.contactValue}>
                 تواصل معنا مباشرة
-              </Text>
-            </View>
-
-            <Ionicons
-              name="chevron-back"
-              size={20}
-              color={COLORS.textLight}
-            />
-          </TouchableOpacity>
-
-          {/* Email */}
-          <TouchableOpacity
-            style={styles.contactButton}
-            onPress={handleEmail}
-            activeOpacity={0.8}
-          >
-            <View style={styles.contactIcon}>
-              <Ionicons
-                name="mail-outline"
-                size={22}
-                color={COLORS.primary}
-              />
-            </View>
-
-            <View style={styles.contactInfo}>
-              <Text style={styles.contactTitle}>
-                البريد الإلكتروني
-              </Text>
-
-              <Text style={styles.contactValue}>
-                {CONFIG.SUPPORT_EMAIL}
               </Text>
             </View>
 
