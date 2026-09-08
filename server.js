@@ -907,16 +907,22 @@ app.get('/api/stores', async (req, res) => {
           },
           orderBy: { createdAt: 'desc' },
         },
+        ratings: { select: { stars: true } },
       },
       orderBy: {
         id: 'desc',
       },
     });
 
-    return successResponse(
-      res,
-      stores
-    );
+    return successResponse(res, stores.map((store) => {
+      const total = store.ratings.reduce((sum, rating) => sum + rating.stars, 0);
+      const { ratings, ...storeData } = store;
+      return {
+        ...storeData,
+        ratingAverage: ratings.length ? Number((total / ratings.length).toFixed(1)) : 0,
+        ratingCount: ratings.length,
+      };
+    }));
   } catch (error) {
     return handlePrismaError(error, res);
   }
@@ -988,6 +994,7 @@ app.get(
             },
             orderBy: { createdAt: 'desc' },
           },
+          ratings: { select: { stars: true } },
         },
       });
 
@@ -999,10 +1006,13 @@ app.get(
         );
       }
 
-      return successResponse(
-        res,
-        store
-      );
+      const totalRating = store.ratings.reduce((sum, rating) => sum + rating.stars, 0);
+      const { ratings, ...storeData } = store;
+      return successResponse(res, {
+        ...storeData,
+        ratingAverage: ratings.length ? Number((totalRating / ratings.length).toFixed(1)) : 0,
+        ratingCount: ratings.length,
+      });
     } catch (error) {
       return handlePrismaError(error, res);
     }
@@ -1760,6 +1770,7 @@ const orderInclude = {
       name: true,
       latitude: true,
       longitude: true,
+      ratings: { select: { stars: true } },
     },
   },
 
@@ -1786,6 +1797,7 @@ const orderInclude = {
       },
     },
   },
+  rating: true,
 };
 
 // ============================================================
@@ -2200,6 +2212,61 @@ app.get(
         res,
         orders
       );
+    } catch (error) {
+      return handlePrismaError(error, res);
+    }
+  }
+);
+
+app.post(
+  '/api/orders/:orderId/rating',
+  authMiddleware,
+  roleMiddleware(ROLES.CUSTOMER),
+  async (req, res) => {
+    const orderId = normalizeId(req.params.orderId);
+    const stars = Number(req.body?.stars);
+    const comment = typeof req.body?.comment === 'string' ? req.body.comment.trim() : null;
+    if (!orderId || !Number.isInteger(stars) || stars < 1 || stars > 5) {
+      return errorResponse(res, 'التقييم يجب أن يكون من نجمة إلى خمس نجوم', 400);
+    }
+    if (comment && comment.length > 1000) return errorResponse(res, 'التعليق طويل جداً', 400);
+    try {
+      const order = await prisma.order.findFirst({
+        where: { id: orderId, customerId: req.user.userId },
+        select: { storeId: true, status: true },
+      });
+      if (!order) return errorResponse(res, 'الطلب غير موجود', 404);
+      if (order.status !== ORDER_STATUS.DELIVERED) {
+        return errorResponse(res, 'يمكن تقييم الطلبات التي تم توصيلها فقط', 400);
+      }
+      const rating = await prisma.rating.create({
+        data: { orderId, customerId: req.user.userId, storeId: order.storeId, stars, comment: comment || null },
+      });
+      return successResponse(res, rating, 201, { message: 'تم إرسال تقييمك بنجاح' });
+    } catch (error) {
+      if (error?.code === 'P2002') return errorResponse(res, 'تم تقييم هذا الطلب من قبل', 409);
+      return handlePrismaError(error, res);
+    }
+  }
+);
+
+app.get(
+  '/api/vendor/ratings',
+  authMiddleware,
+  roleMiddleware(ROLES.VENDOR),
+  async (req, res) => {
+    try {
+      const store = await prisma.store.findUnique({ where: { vendorId: req.user.userId }, select: { id: true } });
+      if (!store) return errorResponse(res, 'المتجر غير موجود', 404);
+      const ratings = await prisma.rating.findMany({
+        where: { storeId: store.id },
+        include: { customer: { select: { name: true } }, order: { select: { id: true } } },
+        orderBy: { createdAt: 'desc' },
+      });
+      const average = ratings.length
+        ? Number((ratings.reduce((sum, item) => sum + item.stars, 0) / ratings.length).toFixed(1))
+        : 0;
+      return successResponse(res, { ratings, average, count: ratings.length });
     } catch (error) {
       return handlePrismaError(error, res);
     }

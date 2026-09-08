@@ -2,6 +2,8 @@ import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import {
   View,
   Text,
+  Modal,
+  TextInput,
   ScrollView,
   TouchableOpacity,
   StyleSheet,
@@ -152,6 +154,10 @@ const OrderTracking = ({ route, navigation }) => {
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState('');
+  const [ratingModalVisible, setRatingModalVisible] = useState(false);
+  const [ratingStars, setRatingStars] = useState(0);
+  const [ratingComment, setRatingComment] = useState('');
+  const [ratingSubmitting, setRatingSubmitting] = useState(false);
 
   const fetchOrder = useCallback(
     async ({ showLoader = false } = {}) => {
@@ -349,6 +355,23 @@ const OrderTracking = ({ route, navigation }) => {
 
   const handleBack = () => {
     navigation.goBack();
+  };
+
+  const submitRating = async () => {
+    if (!ratingStars) {
+      Alert.alert('التقييم مطلوب', 'اختر عدد النجوم أولاً');
+      return;
+    }
+    setRatingSubmitting(true);
+    const result = await orderService.rateOrder(order.id, ratingStars, ratingComment);
+    setRatingSubmitting(false);
+    if (!result.success) {
+      Alert.alert('تعذر إرسال التقييم', result.message);
+      return;
+    }
+    setRatingModalVisible(false);
+    setOrder((current) => ({ ...current, rating: result.rating }));
+    Alert.alert('شكراً لك', 'تم حفظ تقييمك للمتجر');
   };
 
   if (loading && !order) {
@@ -554,6 +577,17 @@ const OrderTracking = ({ route, navigation }) => {
                 #{order.id}
               </Text>
             </View>
+
+            {currentStatus === 'DELIVERED' && !order.rating && (
+              <TouchableOpacity
+                style={styles.rateButton}
+                onPress={() => setRatingModalVisible(true)}
+                activeOpacity={0.85}
+              >
+                <Ionicons name="star-outline" size={21} color="#fff" />
+                <Text style={styles.rateButtonText}>قيّم المتجر</Text>
+              </TouchableOpacity>
+            )}
 
             <View style={styles.statusBadge}>
               <Ionicons
@@ -927,11 +961,57 @@ const OrderTracking = ({ route, navigation }) => {
 
         <View style={styles.bottomSpace} />
       </ScrollView>
+
+      <Modal
+        visible={ratingModalVisible}
+        transparent
+        animationType="slide"
+        onRequestClose={() => setRatingModalVisible(false)}
+      >
+        <View style={styles.modalBackdrop}>
+          <View style={styles.ratingModal}>
+            <Text style={styles.modalTitle}>قيّم تجربتك</Text>
+            <View style={styles.starRow}>
+              {[1, 2, 3, 4, 5].map((star) => (
+                <TouchableOpacity key={star} onPress={() => setRatingStars(star)}>
+                  <Ionicons name={star <= ratingStars ? 'star' : 'star-outline'} size={38} color="#F59E0B" />
+                </TouchableOpacity>
+              ))}
+            </View>
+            <TextInput
+              style={styles.commentInput}
+              value={ratingComment}
+              onChangeText={setRatingComment}
+              placeholder="تعليق اختياري"
+              placeholderTextColor="#999"
+              multiline
+              maxLength={1000}
+            />
+            <TouchableOpacity style={styles.submitRatingButton} onPress={submitRating} disabled={ratingSubmitting}>
+              {ratingSubmitting ? <ActivityIndicator color="#fff" /> : <Text style={styles.submitRatingText}>إرسال التقييم</Text>}
+            </TouchableOpacity>
+            <TouchableOpacity onPress={() => setRatingModalVisible(false)} style={styles.cancelRatingButton}>
+              <Text style={styles.cancelRatingText}>إلغاء</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </Modal>
     </View>
   );
 };
 
 const styles = StyleSheet.create({
+  rateButton: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8, backgroundColor: COLORS.primary, borderRadius: 14, paddingVertical: 14, marginHorizontal: 16, marginBottom: 14 },
+  rateButtonText: { color: '#fff', fontSize: 16, fontWeight: '900' },
+  modalBackdrop: { flex: 1, backgroundColor: 'rgba(0,0,0,0.45)', justifyContent: 'flex-end' },
+  ratingModal: { backgroundColor: '#fff', borderTopLeftRadius: 24, borderTopRightRadius: 24, padding: 24 },
+  modalTitle: { color: COLORS.textPrimary, fontSize: 23, fontWeight: '900', textAlign: 'center', marginBottom: 18 },
+  starRow: { flexDirection: 'row', justifyContent: 'center', gap: 8, marginBottom: 18 },
+  commentInput: { minHeight: 90, borderWidth: 1, borderColor: '#DCECEF', borderRadius: 12, padding: 12, color: COLORS.textPrimary, textAlign: 'right', textAlignVertical: 'top' },
+  submitRatingButton: { backgroundColor: COLORS.primary, borderRadius: 12, paddingVertical: 14, alignItems: 'center', marginTop: 14 },
+  submitRatingText: { color: '#fff', fontSize: 16, fontWeight: '900' },
+  cancelRatingButton: { paddingVertical: 12, alignItems: 'center' },
+  cancelRatingText: { color: COLORS.textSecondary, fontSize: 15, fontWeight: '700' },
   container: {
     flex: 1,
     backgroundColor: COLORS.background,

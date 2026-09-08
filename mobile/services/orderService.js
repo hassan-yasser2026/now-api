@@ -138,6 +138,18 @@ export const orderService = {
     }
   },
 
+  rateOrder: async (orderId, stars, comment = '') => {
+    try {
+      const response = await api.post(`/orders/${orderId}/rating`, {
+        stars: Number(stars),
+        comment: comment.trim(),
+      });
+      return { success: true, rating: response?.data?.data, message: response?.data?.message };
+    } catch (error) {
+      return { success: false, message: getErrorMessage(error, 'فشل إرسال التقييم') };
+    }
+  },
+
   // ============ إلغاء الطلب ============
   cancelOrder: async (orderId, reason = '') => {
     try {

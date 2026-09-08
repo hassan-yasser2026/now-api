@@ -4,6 +4,7 @@ import {
   SafeAreaView, ActivityIndicator,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import { useNavigation } from '@react-navigation/native';
 import { COLORS } from '../../constants/colors';
 import api from '../../services/api';
 import useAppStore from '../../store/appStore';
@@ -18,6 +19,7 @@ type EarningsSummary = {
 
 const VendorEarnings: React.FC = () => {
   const user = useAppStore((state) => state.user);
+  const navigation = useNavigation();
   const [period, setPeriod] = useState<EarningsPeriod>('day');
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
@@ -101,6 +103,13 @@ const VendorEarnings: React.FC = () => {
           <Text style={styles.logoBlack}>OW</Text>
         </View>
         <Text style={styles.headerTitle}>إيرادات المتجر</Text>
+        <TouchableOpacity
+          style={styles.logoutButton}
+          onPress={() => navigation.goBack()}
+        >
+          <Ionicons name="arrow-forward-outline" size={18} color="#D92838" />
+          <Text style={styles.logoutText}>خروج من اللوحة</Text>
+        </TouchableOpacity>
       </View>
 
       <View style={styles.periodSelector}>
@@ -200,6 +209,23 @@ const styles = StyleSheet.create({
     fontSize: 20,
     fontWeight: '800',
     color: '#050505',
+  },
+  logoutButton: {
+    position: 'absolute',
+    right: 16,
+    top: 12,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    backgroundColor: '#FFFFFF',
+    borderRadius: 5,
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+  },
+  logoutText: {
+    color: '#D92838',
+    fontSize: 13,
+    fontWeight: '800',
   },
   periodSelector: {
     flexDirection: 'row',

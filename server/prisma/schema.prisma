@@ -58,6 +58,7 @@ model User {
   grantedPermissions  SubAdminPermission[] @relation("GrantedSubAdminPermissions")
   auditLogs           AuditLog[]           @relation("AuditActor")
   chatSessions        ChatSession[]
+  ratings             Rating[]       @relation("CustomerRatings")
   createdAt           DateTime             @default(now())
   updatedAt           DateTime             @updatedAt
 
@@ -159,6 +160,7 @@ model Store {
   orders         Order[]
   offers         Offer[]
   favorites      Favorite[]
+  ratings        Rating[]
   createdAt      DateTime           @default(now())
   updatedAt      DateTime           @updatedAt
 
@@ -268,6 +270,7 @@ model Order {
   paymentTransactions PaymentTransaction[]
   scheduledAt         DateTime?
   chatSessions        ChatSession[]
+  rating              Rating?
   createdAt           DateTime             @default(now())
   updatedAt           DateTime             @updatedAt
 
@@ -276,6 +279,23 @@ model Order {
   @@index([deliveryId, status])
   @@index([status, createdAt])
   @@map("orders")
+}
+
+model Rating {
+  id         Int      @id @default(autoincrement())
+  orderId    Int      @unique
+  order      Order    @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  customerId Int
+  customer   User     @relation("CustomerRatings", fields: [customerId], references: [id], onDelete: Restrict)
+  storeId    Int
+  store      Store    @relation(fields: [storeId], references: [id], onDelete: Cascade)
+  stars      Int
+  comment    String?
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  @@index([storeId, createdAt])
+  @@map("ratings")
 }
 
 model OrderItem {
