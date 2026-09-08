@@ -1,7 +1,7 @@
 {
   "expo": {
     "name": "NOW Delivery",
-    "slug": "now-delivery",
+    "slug": "now-server",
     "version": "1.0.0",
     "platforms": [
       "ios",
@@ -28,7 +28,9 @@
       "versionCode": 1,
       "permissions": [
         "ACCESS_COARSE_LOCATION",
-        "ACCESS_FINE_LOCATION"
+        "ACCESS_FINE_LOCATION",
+        "android.permission.ACCESS_COARSE_LOCATION",
+        "android.permission.ACCESS_FINE_LOCATION"
       ],
       "adaptiveIcon": {
         "foregroundImage": "./assets/images/android-icon-foreground.png",
@@ -60,6 +62,12 @@
       ],
       "expo-font",
       "expo-secure-store"
-    ]
+    ],
+    "extra": {
+      "eas": {
+        "projectId": "13a5b445-4140-4f6c-88c9-a38ca31b28ff"
+      }
+    },
+    "owner": "hassan-yasser2026"
   }
 }

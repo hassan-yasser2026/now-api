@@ -13,6 +13,9 @@ model User {
   password            String
   name                String
   email               String?              @unique
+  profileImage        String?
+  latitude            Decimal?             @db.Decimal(9, 6)
+  longitude           Decimal?             @db.Decimal(9, 6)
   isActive            Boolean              @default(true)
   roleId              Int
   role                Role                 @relation(fields: [roleId], references: [id], onDelete: Restrict)

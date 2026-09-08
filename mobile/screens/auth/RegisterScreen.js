@@ -15,6 +15,7 @@ import {
 
 import { LinearGradient } from 'expo-linear-gradient';
 import * as ImagePicker from 'expo-image-picker';
+import * as Location from 'expo-location';
 import { Ionicons } from '@expo/vector-icons';
 
 import { COLORS } from '../../constants/colors';
@@ -22,9 +23,8 @@ import { authService } from '../../services/authService';
 import PhoneInput from '../../components/PhoneInput';
 import useAppStore from '../../store/appStore';
 
-const RegisterScreen = ({ navigation, route }) => {
+const RegisterScreen = ({ navigation }) => {
   const storeCountry = useAppStore((state) => state.country);
-  const initialRole = route?.params?.role === 'vendor' ? 'vendor' : 'customer';
 
   const [name, setName] = useState('');
   const [phone, setPhone] = useState('');
@@ -36,9 +36,8 @@ const RegisterScreen = ({ navigation, route }) => {
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
 
-  const [role, setRole] = useState(initialRole);
-  const [storeName, setStoreName] = useState('');
-  const [idCardImage, setIdCardImage] = useState(null);
+  const [profileImage, setProfileImage] = useState(null);
+  const [location, setLocation] = useState(null);
 
   const [loading, setLoading] = useState(false);
 
@@ -48,7 +47,6 @@ const RegisterScreen = ({ navigation, route }) => {
 
   const [nameFocused, setNameFocused] = useState(false);
   const [emailFocused, setEmailFocused] = useState(false);
-  const [storeFocused, setStoreFocused] = useState(false);
   const [passwordFocused, setPasswordFocused] = useState(false);
   const [confirmFocused, setConfirmFocused] = useState(false);
 
@@ -59,14 +57,14 @@ const RegisterScreen = ({ navigation, route }) => {
     setCountry(countryCode);
   };
 
-  const pickIdCardImage = async () => {
+  const pickProfileImage = async () => {
     if (loading) return;
 
     const permission = await ImagePicker.requestMediaLibraryPermissionsAsync();
     if (!permission.granted) {
       Alert.alert(
         'السماح بالصور مطلوب',
-        'اسمح للتطبيق بالوصول إلى الصور لاختيار صورة البطاقة.'
+        'اسمح للتطبيق بالوصول إلى الصور لاختيار الصورة الشخصية.'
       );
       return;
     }
@@ -77,8 +75,26 @@ const RegisterScreen = ({ navigation, route }) => {
     });
 
     if (!result.canceled && result.assets?.[0]?.uri) {
-      setIdCardImage(result.assets[0].uri);
+      setProfileImage(result.assets[0].uri);
     }
+  };
+
+  const pickLocation = async () => {
+    if (loading) return;
+
+    const permission = await Location.requestForegroundPermissionsAsync();
+    if (permission.status !== 'granted') {
+      Alert.alert('السماح بالموقع مطلوب', 'اسمح للتطبيق بالوصول إلى موقعك اختياريًا.');
+      return;
+    }
+
+    const position = await Location.getCurrentPositionAsync({
+      accuracy: Location.Accuracy.Balanced,
+    });
+    setLocation({
+      latitude: position.coords.latitude,
+      longitude: position.coords.longitude,
+    });
   };
 
   // ==========================================
@@ -88,7 +104,6 @@ const RegisterScreen = ({ navigation, route }) => {
   const validateForm = () => {
     const cleanName = name.trim();
     const cleanEmail = email.trim();
-    const cleanStoreName = storeName.trim();
 
     if (!cleanName) {
       Alert.alert('تنبيه', 'من فضلك أدخل الاسم الكامل');
@@ -130,14 +145,6 @@ const RegisterScreen = ({ navigation, route }) => {
         );
         return false;
       }
-    }
-
-    if (role === 'vendor' && !cleanStoreName) {
-      Alert.alert(
-        'تنبيه',
-        'من فضلك أدخل اسم المتجر'
-      );
-      return false;
     }
 
     if (!password) {
@@ -193,23 +200,13 @@ const RegisterScreen = ({ navigation, route }) => {
         country,
         password,
         email: email.trim() || undefined,
-        role,
-        ...(role === 'vendor'
-          ? {
-              storeName: storeName.trim(),
-            idCardImage,
-          }
-          : {}),
+        role: 'customer',
+        profileImage: profileImage || undefined,
+        latitude: location?.latitude,
+        longitude: location?.longitude,
       };
 
-      let result;
-      if (role === 'vendor') {
-        result = await authService.registerVendor(userData);
-      } else if (role === 'delivery') {
-        result = await authService.registerDelivery(userData);
-      } else {
-        result = await authService.registerCustomer(userData);
-      }
+      const result = await authService.registerCustomer(userData);
 
       if (!result?.success) {
         Alert.alert(
@@ -218,16 +215,6 @@ const RegisterScreen = ({ navigation, route }) => {
             'حدث خطأ أثناء إنشاء الحساب'
         );
 
-        return;
-      }
-
-      if (role === 'vendor') {
-        Alert.alert(
-          '🎉 تم بنجاح',
-          'تم استلام طلب انضمامك كشريك. سيظل حسابك داخل شاشة الشراكة لحين استكمال المراجعة.',
-          [{ text: 'حسناً' }],
-          { cancelable: false }
-        );
         return;
       }
 
@@ -256,88 +243,6 @@ const RegisterScreen = ({ navigation, route }) => {
     } finally {
       setLoading(false);
     }
-  };
-
-  // ==========================================
-  // ROLE
-  // ==========================================
-
-  const handleRoleChange = (selectedRole) => {
-    if (loading) return;
-
-    setRole(selectedRole);
-
-    if (selectedRole !== 'vendor') {
-      setStoreName('');
-    }
-  };
-
-  const goToPartnerLogin = () => {
-    if (loading) return;
-
-    navigation.navigate('PartnerLogin');
-  };
-
-  // ==========================================
-  // ROLE BUTTON
-  // ==========================================
-
-  const RoleButton = ({
-    value,
-    label,
-    icon,
-  }) => {
-    const active = role === value;
-
-    return (
-      <TouchableOpacity
-        activeOpacity={0.8}
-        disabled={loading}
-        onPress={() =>
-          handleRoleChange(value)
-        }
-        style={[
-          styles.roleButton,
-          active && styles.roleButtonActive,
-        ]}
-      >
-        <View
-          style={[
-            styles.roleIcon,
-            active && styles.roleIconActive,
-          ]}
-        >
-          <Ionicons
-            name={icon}
-            size={25}
-            color={
-              active
-                ? '#FFFFFF'
-                : COLORS.textSecondary
-            }
-          />
-        </View>
-
-        <Text
-          style={[
-            styles.roleText,
-            active && styles.roleTextActive,
-          ]}
-        >
-          {label}
-        </Text>
-
-        {active && (
-          <View style={styles.selectedMark}>
-            <Ionicons
-              name="checkmark"
-              size={14}
-              color="#FFFFFF"
-            />
-          </View>
-        )}
-      </TouchableOpacity>
-    );
   };
 
   return (
@@ -385,121 +290,12 @@ const RegisterScreen = ({ navigation, route }) => {
 
         <View style={styles.formCard}>
           <Text style={styles.sectionTitle}>
-            انضم كشريك
+            إنشاء حساب جديد
           </Text>
 
           <Text style={styles.sectionSubtitle}>
-            اختر نوع الحساب وأدخل بياناتك
+            أدخل بياناتك لإنشاء حسابك في ناو
           </Text>
-
-          {/* ====================================
-              ROLE
-          ==================================== */}
-
-          <Text style={styles.label}>
-            نوع الحساب
-          </Text>
-
-          <View style={styles.rolesContainer}>
-            <RoleButton
-              value="vendor"
-              label="بائع NOW"
-              icon="storefront-outline"
-            />
-
-            <RoleButton
-              value="delivery"
-              label="مندوب NOW"
-              icon="bicycle-outline"
-            />
-            {initialRole !== 'vendor' && (
-              <RoleButton
-                value="customer"
-                label="عميل"
-                icon="bag-handle-outline"
-              />
-            )}
-          </View>
-
-          {/* ====================================
-              STORE
-          ==================================== */}
-
-          {role === 'vendor' && (
-            <>
-              <Text style={styles.label}>
-                اسم المتجر
-              </Text>
-
-              <View
-                style={[
-                  styles.inputContainer,
-                  storeFocused &&
-                    styles.inputContainerFocused,
-                ]}
-              >
-                <Ionicons
-                  name="storefront-outline"
-                  size={21}
-                  color={
-                    storeFocused
-                      ? COLORS.primary
-                      : COLORS.textSecondary
-                  }
-                  style={styles.inputIcon}
-                />
-
-                <TextInput
-                  style={styles.input}
-                  placeholder="مثال: مطعم ناو"
-                  placeholderTextColor={
-                    COLORS.textLight
-                  }
-                  value={storeName}
-                  onChangeText={setStoreName}
-                  autoCapitalize="words"
-                  onFocus={() =>
-                    setStoreFocused(true)
-                  }
-                  onBlur={() =>
-                    setStoreFocused(false)
-                  }
-                />
-              </View>
-
-              <Text style={styles.label}>
-                صورة البطاقة
-              </Text>
-
-              <TouchableOpacity
-                style={[
-                  styles.idCardPicker,
-                  idCardImage && styles.idCardPickerSelected,
-                ]}
-                onPress={pickIdCardImage}
-                disabled={loading}
-                activeOpacity={0.8}
-              >
-                {idCardImage ? (
-                  <Image
-                    source={{ uri: idCardImage }}
-                    style={styles.idCardPreview}
-                  />
-                ) : (
-                  <>
-                    <Ionicons
-                      name="camera-outline"
-                      size={27}
-                      color="#65C9DE"
-                    />
-                    <Text style={styles.idCardPlaceholder}>
-                      اضغط لاختيار صورة البطاقة
-                    </Text>
-                  </>
-                )}
-              </TouchableOpacity>
-            </>
-          )}
 
           {/* ====================================
               NAME
@@ -610,6 +406,46 @@ const RegisterScreen = ({ navigation, route }) => {
               }
             />
           </View>
+
+          <Text style={styles.label}>
+            الموقع
+            <Text style={styles.optional}> (اختياري)</Text>
+          </Text>
+
+          <TouchableOpacity
+            style={[styles.optionalPicker, location && styles.optionalPickerSelected]}
+            onPress={pickLocation}
+            disabled={loading}
+          >
+            <Ionicons
+              name={location ? 'checkmark-circle-outline' : 'location-outline'}
+              size={22}
+              color="#27B8D5"
+            />
+            <Text style={styles.optionalPickerText}>
+              {location ? 'تم تحديد موقعك' : 'تحديد موقعي'}
+            </Text>
+          </TouchableOpacity>
+
+          <Text style={styles.label}>
+            الصورة الشخصية
+            <Text style={styles.optional}> (اختياري)</Text>
+          </Text>
+
+          <TouchableOpacity
+            style={[styles.optionalPicker, profileImage && styles.optionalPickerSelected]}
+            onPress={pickProfileImage}
+            disabled={loading}
+          >
+            {profileImage ? (
+              <Image source={{ uri: profileImage }} style={styles.profilePreview} />
+            ) : (
+              <Ionicons name="camera-outline" size={22} color="#27B8D5" />
+            )}
+            <Text style={styles.optionalPickerText}>
+              {profileImage ? 'تم اختيار الصورة' : 'اختيار صورة شخصية'}
+            </Text>
+          </TouchableOpacity>
 
           {/* ====================================
               PASSWORD
@@ -764,8 +600,7 @@ const RegisterScreen = ({ navigation, route }) => {
             />
 
             <Text style={styles.infoText}>
-              بعد التسجيل سيتم إنشاء حسابك حسب نوع
-              الحساب الذي اخترته.
+              البريد الإلكتروني والموقع والصورة الشخصية بيانات اختيارية ويمكنك إضافتها لاحقًا.
             </Text>
           </View>
 
@@ -821,11 +656,11 @@ const RegisterScreen = ({ navigation, route }) => {
 
           <View style={styles.loginContainer}>
             <Text style={styles.loginText}>
-              لديك حساب شريك بالفعل؟
+              لديك حساب بالفعل؟
             </Text>
 
             <TouchableOpacity
-              onPress={goToPartnerLogin}
+              onPress={() => navigation.navigate('Login')}
               disabled={loading}
               activeOpacity={0.7}
             >
@@ -842,7 +677,6 @@ const RegisterScreen = ({ navigation, route }) => {
       <View style={styles.bottomNav}>
         {[
           { key: 'account', label: 'حسابي', icon: 'person-outline' },
-          { key: 'partner', label: 'انضم كشريك', icon: 'hand-left-outline' },
           { key: 'home', label: 'الرئيسية', icon: 'home-outline' },
           { key: 'orders', label: 'طلباتك', icon: 'receipt-outline' },
           { key: 'about', label: 'عنا', icon: 'people-outline' },
@@ -852,7 +686,6 @@ const RegisterScreen = ({ navigation, route }) => {
             style={styles.bottomNavItem}
             onPress={() => {
               const routeNames = navigation.getState()?.routeNames || [];
-              if (item.key === 'partner') return;
               if (item.key === 'about' && routeNames.includes('About')) {
                 navigation.navigate('About');
               } else if (
@@ -871,19 +704,18 @@ const RegisterScreen = ({ navigation, route }) => {
               ) {
                 navigation.navigate('Orders');
               } else if (item.key === 'account') {
-                navigation.navigate('Register', { role: 'customer' });
+                navigation.navigate('Register');
               }
             }}
           >
             <Ionicons
               name={item.icon}
               size={22}
-              color={item.key === 'partner' ? '#27B8D5' : '#6FAEC0'}
+              color="#6FAEC0"
             />
             <Text
               style={[
                 styles.bottomNavLabel,
-                item.key === 'partner' && styles.bottomNavLabelActive,
               ]}
             >
               {item.label}
@@ -993,60 +825,35 @@ const styles = StyleSheet.create({
     fontWeight: '400',
   },
 
-  // ========================================
-  // ROLES
-  // ========================================
-
-  rolesContainer: {
-    flexDirection: 'row',
-    gap: 0,
-    marginBottom: 19,
-    borderRadius: 28,
-    backgroundColor: '#32B7D7',
-    padding: 2,
-  },
-
-  roleButton: {
-    flex: 1,
-    minHeight: 55,
-    borderRadius: 27,
-    backgroundColor: 'transparent',
+  optionalPicker: {
+    minHeight: 58,
+    flexDirection: 'row-reverse',
     alignItems: 'center',
     justifyContent: 'center',
-    position: 'relative',
+    gap: 8,
+    borderRadius: 29,
+    borderWidth: 2,
+    borderColor: '#D8D8D8',
+    backgroundColor: COLORS.surface,
+    marginBottom: 15,
+    overflow: 'hidden',
   },
 
-  roleButtonActive: {
-    backgroundColor: '#FFFFFF',
+  optionalPickerSelected: {
+    borderColor: '#65C9DE',
+    backgroundColor: '#F3FDFF',
   },
 
-  roleIcon: {
-    display: 'none',
-    width: 0,
-    height: 0,
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: 'transparent',
-    marginBottom: 0,
+  optionalPickerText: {
+    color: COLORS.textSecondary,
+    fontSize: 15,
+    fontWeight: '700',
   },
 
-  roleIconActive: {
-    backgroundColor: 'transparent',
-  },
-
-  roleText: {
-    color: '#FFFFFF',
-    fontSize: 17,
-    fontWeight: '800',
-  },
-
-  roleTextActive: {
-    color: '#333333',
-  },
-
-  selectedMark: {
-    position: 'absolute',
-    display: 'none',
+  profilePreview: {
+    width: 42,
+    height: 42,
+    borderRadius: 21,
   },
 
   // ========================================

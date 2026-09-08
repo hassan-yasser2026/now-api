@@ -61,6 +61,7 @@ const CustomerHome = ({ navigation }) => {
   const isRTL = language === 'ar' || I18nManager.isRTL;
 
   const [stores, setStores] = useState([]);
+  const [featuredItems, setFeaturedItems] = useState([]);
   const [orders, setOrders] = useState([]);
   const [locationPickerVisible, setLocationPickerVisible] = useState(false);
 
@@ -87,7 +88,22 @@ const CustomerHome = ({ navigation }) => {
       ]);
 
       if (storesResult.success) {
-        setStores(Array.isArray(storesResult.stores) ? storesResult.stores : []);
+        const loadedStores = Array.isArray(storesResult.stores) ? storesResult.stores : [];
+        setStores(loadedStores);
+
+        const menuResults = await Promise.all(
+          loadedStores.slice(0, 6).map(async (store) => {
+            const menuResult = await storeService.getMenu(store.id);
+            if (!menuResult.success) return [];
+            return (menuResult.menu || []).slice(0, 4).map((item) => ({
+              ...item,
+              storeId: store.id,
+              storeName: store.name,
+              storeImage: store.image || store.logo,
+            }));
+          })
+        );
+        setFeaturedItems(menuResults.flat().slice(0, 12));
       } else {
         throw new Error(storesResult.message || 'فشل تحميل المتاجر');
       }
@@ -461,6 +477,44 @@ const CustomerHome = ({ navigation }) => {
                 )}
               </View>
               <Text style={styles.categoryLabel} numberOfLines={1}>{item.name || item.category || 'متجر'}</Text>
+            </TouchableOpacity>
+          )}
+        />
+      </View>
+
+      <View style={styles.productsSection}>
+        <View style={styles.sectionHeader}>
+          <Text style={styles.sectionTitle}>منتجات مقترحة</Text>
+          <Ionicons name="fast-food-outline" size={20} color={HOME_ACCENT} />
+        </View>
+        <FlatList
+          horizontal
+          inverted={isRTL}
+          data={featuredItems}
+          showsHorizontalScrollIndicator={false}
+          keyExtractor={(item, index) => `${item.storeId}-${item.id}-${index}`}
+          contentContainerStyle={styles.productsList}
+          ListEmptyComponent={
+            <Text style={styles.productsEmpty}>المنتجات ستظهر هنا قريباً</Text>
+          }
+          renderItem={({ item }) => (
+            <TouchableOpacity
+              style={styles.productCard}
+              onPress={() => handleStorePress(stores.find((store) => store.id === item.storeId))}
+              activeOpacity={0.85}
+            >
+              <Image
+                source={{
+                  uri: item.image || item.img || 'https://images.unsplash.com/photo-1544025162-d76694265947?auto=format&fit=crop&w=900&q=80',
+                }}
+                style={styles.productImage}
+                resizeMode="cover"
+              />
+              <View style={styles.productCardBody}>
+                <Text style={styles.productName} numberOfLines={1}>{item.name || 'منتج'}</Text>
+                <Text style={styles.productStore} numberOfLines={1}>{item.storeName}</Text>
+                <Text style={styles.productPrice}>{Number(item.price || 0).toFixed(2)} ج.م</Text>
+              </View>
             </TouchableOpacity>
           )}
         />
@@ -1102,6 +1156,63 @@ const styles = StyleSheet.create({
     marginHorizontal: 16,
     marginTop: 17,
     marginBottom: 4,
+  },
+  productsSection: {
+    marginTop: 12,
+    marginBottom: 4,
+  },
+  productsList: {
+    paddingHorizontal: 16,
+    paddingBottom: 4,
+  },
+  productCard: {
+    width: 178,
+    marginRight: 12,
+    borderRadius: 18,
+    backgroundColor: '#FFFFFF',
+    borderWidth: 1,
+    borderColor: '#D7EEF1',
+    overflow: 'hidden',
+    elevation: 2,
+    shadowColor: '#0B8FA3',
+    shadowOffset: { width: 0, height: 3 },
+    shadowOpacity: 0.1,
+    shadowRadius: 7,
+  },
+  productImage: {
+    width: '100%',
+    height: 112,
+    backgroundColor: '#E9FAFD',
+  },
+  productCardBody: {
+    padding: 10,
+    alignItems: 'flex-end',
+  },
+  productName: {
+    width: '100%',
+    color: COLORS.textPrimary,
+    fontSize: 14,
+    fontWeight: '800',
+    textAlign: 'right',
+  },
+  productStore: {
+    width: '100%',
+    color: COLORS.textSecondary,
+    fontSize: 11,
+    marginTop: 4,
+    textAlign: 'right',
+  },
+  productPrice: {
+    color: HOME_ACCENT,
+    fontSize: 13,
+    fontWeight: '900',
+    marginTop: 7,
+  },
+  productsEmpty: {
+    color: COLORS.textSecondary,
+    fontSize: 13,
+    paddingHorizontal: 16,
+    paddingVertical: 16,
   },
   categoriesList: {
     paddingVertical: 4,

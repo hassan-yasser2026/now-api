@@ -6,6 +6,8 @@ const {
   register,
   login,
   me,
+  updateProfile,
+  deleteAccount,
 } = require('../controllers/auth.controller');
 
 const {
@@ -17,5 +19,7 @@ router.post('/register', register);
 router.post('/login', login);
 
 router.get('/me', authenticate, me);
+router.patch('/profile', authenticate, updateProfile);
+router.delete('/profile', authenticate, deleteAccount);
 
 module.exports = router;

@@ -36,6 +36,33 @@ export const authService = {
     }
   },
 
+  updateProfile: async (data) => {
+    try {
+      const response = await api.patch('/auth/profile', data);
+      const payload = response.data?.data ?? response.data;
+      return payload?.user
+        ? { success: true, user: payload.user }
+        : { success: false, message: 'استجابة الخادم غير صحيحة' };
+    } catch (error) {
+      return {
+        success: false,
+        message: error.response?.data?.message || 'فشل تحديث بيانات الحساب',
+      };
+    }
+  },
+
+  deleteAccount: async () => {
+    try {
+      const response = await api.delete('/auth/profile');
+      return response.data?.data ?? response.data;
+    } catch (error) {
+      return {
+        success: false,
+        message: error.response?.data?.message || 'تعذر حذف الحساب',
+      };
+    }
+  },
+
   // تسجيل عميل جديد
   registerCustomer: async (data) => {
     return register('customer', data);
