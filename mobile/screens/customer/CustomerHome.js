@@ -6,6 +6,7 @@ import {
   Image,
   I18nManager,
   RefreshControl,
+  ScrollView,
   StyleSheet,
   Text,
   TextInput,
@@ -340,6 +341,19 @@ const CustomerHome = ({ navigation }) => {
 
   return (
     <View style={styles.container}>
+      <ScrollView
+        style={styles.contentScroll}
+        contentContainerStyle={styles.contentScrollContainer}
+        showsVerticalScrollIndicator={false}
+        refreshControl={
+          <RefreshControl
+            refreshing={status === 'refreshing'}
+            onRefresh={onRefresh}
+            colors={[HOME_ACCENT]}
+            tintColor={HOME_ACCENT}
+          />
+        }
+      >
       <View style={styles.hero}>
         <View style={styles.header}>
           <View style={styles.headerTextContainer}>
@@ -641,56 +655,36 @@ const CustomerHome = ({ navigation }) => {
           <Text style={styles.storeCount}>{filteredStores.length} متجر</Text>
         </View>
 
-        <FlatList
-          data={filteredStores}
-          renderItem={({ item }) => (
-            <StoreCard store={item} onPress={() => handleStorePress(item)} />
-          )}
-          keyExtractor={(item) => String(item.id)}
-          contentContainerStyle={styles.storesList}
-          showsVerticalScrollIndicator={false}
-          refreshControl={
-            <RefreshControl
-              refreshing={status === 'refreshing'}
-              onRefresh={onRefresh}
-              colors={[HOME_ACCENT]}
-              tintColor={HOME_ACCENT}
-            />
-          }
-          ListEmptyComponent={
-            status === 'error' ? (
-              <EmptyState
-                icon="cloud-offline-outline"
-                title="حدث خطأ"
-                message={error || 'فشل تحميل البيانات، حاول التحديث.'}
-                onRetry={onRefresh}
+        {filteredStores.length > 0 ? (
+          <View style={styles.storesList}>
+            {filteredStores.map((store) => (
+              <StoreCard
+                key={String(store.id)}
+                store={store}
+                onPress={() => handleStorePress(store)}
               />
-            ) : (
-              <EmptyState
-                icon="storefront-outline"
-                title={searchText ? 'لا توجد نتائج' : 'لا توجد متاجر'}
-                message={
-                  searchText
-                    ? 'جرّب البحث بكلمة مختلفة أو غيّر الفلتر.'
-                    : 'لا توجد متاجر متاحة في منطقتك حالياً.'
-                }
-              />
-            )
-          }
-        />
+            ))}
+          </View>
+        ) : status === 'error' ? (
+          <EmptyState
+            icon="cloud-offline-outline"
+            title="حدث خطأ"
+            message={error || 'فشل تحميل البيانات، حاول التحديث.'}
+            onRetry={onRefresh}
+          />
+        ) : (
+          <EmptyState
+            icon="storefront-outline"
+            title={searchText ? 'لا توجد نتائج' : 'لا توجد متاجر'}
+            message={
+              searchText
+                ? 'جرّب البحث بكلمة مختلفة أو غيّر الفلتر.'
+                : 'لا توجد متاجر متاحة في منطقتك حالياً.'
+            }
+          />
+        )}
       </View>
-
-      <TouchableOpacity
-        onPress={() => navigation.navigate('Assistant')}
-        style={[
-          styles.assistantFab,
-          isRTL ? { right: 20, left: 'auto' } : { left: 20, right: 'auto' },
-          cartByStore.length > 0 && styles.assistantFabAboveCart,
-        ]}
-        activeOpacity={0.9}
-      >
-        <Ionicons name="sparkles" size={22} color="#fff" />
-      </TouchableOpacity>
+      </ScrollView>
 
       <TouchableOpacity
         onPress={() => navigation.navigate('About')}
@@ -765,18 +759,24 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: '#FFFFFF',
   },
+  contentScroll: {
+    flex: 1,
+  },
+  contentScrollContainer: {
+    paddingBottom: 24,
+  },
   hero: {
     backgroundColor: HOME_ACCENT,
-    paddingTop: 8,
-    paddingBottom: 8,
+    paddingTop: 4,
+    paddingBottom: 6,
   },
   header: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
     paddingHorizontal: 16,
-    paddingTop: 8,
-    paddingBottom: 10,
+    paddingTop: 6,
+    paddingBottom: 6,
   },
   headerTextContainer: {
     flex: 1,
@@ -1011,7 +1011,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     marginHorizontal: 16,
     paddingHorizontal: 14,
-    height: 44,
+    height: 40,
     borderRadius: 15,
     backgroundColor: COLORS.surface,
     borderWidth: 1,
@@ -1025,10 +1025,10 @@ const styles = StyleSheet.create({
   brandLogo: {
     alignItems: 'center',
     justifyContent: 'center',
-    height: 34,
+    height: 26,
   },
   brandLogoText: {
-    fontSize: 30,
+    fontSize: 24,
     fontWeight: '900',
     letterSpacing: -4,
   },
