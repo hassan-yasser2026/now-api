@@ -2206,6 +2206,62 @@ app.get(
   }
 );
 
+app.get(
+  '/api/vendor/earnings',
+  authMiddleware,
+  roleMiddleware(ROLES.VENDOR),
+  async (req, res) => {
+    const period = String(req.query.period || 'day');
+    if (!['day', 'week', 'month'].includes(period)) {
+      return errorResponse(res, 'الفترة غير صالحة', 400);
+    }
+
+    const startDate = new Date();
+    if (period === 'day') {
+      startDate.setHours(0, 0, 0, 0);
+    } else if (period === 'week') {
+      startDate.setDate(startDate.getDate() - 7);
+    } else {
+      startDate.setDate(startDate.getDate() - 30);
+    }
+
+    try {
+      const store = await prisma.store.findUnique({
+        where: { vendorId: req.user.userId },
+      });
+      if (!store) return errorResponse(res, 'المتجر غير موجود', 404);
+
+      const orders = await prisma.order.findMany({
+        where: {
+          storeId: store.id,
+          status: ORDER_STATUS.DELIVERED,
+          createdAt: { gte: startDate },
+        },
+        select: {
+          id: true,
+          totalPrice: true,
+          createdAt: true,
+          status: true,
+        },
+        orderBy: { createdAt: 'desc' },
+      });
+
+      const total = orders.reduce(
+        (sum, order) => sum + Number(order.totalPrice || 0),
+        0
+      );
+
+      return successResponse(res, {
+        total,
+        count: orders.length,
+        orders,
+      });
+    } catch (error) {
+      return handlePrismaError(error, res);
+    }
+  }
+);
+
 // ============================================================
 // DELIVERY ORDERS
 // Returns assigned orders + available orders.
