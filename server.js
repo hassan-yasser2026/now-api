@@ -527,7 +527,7 @@ app.get('/', (req, res) => {
     res,
     {
       name: 'NOW Delivery API',
-      version: '1.0.0',
+      version: '1.0.1',
       description: 'Backend API for NOW delivery application',
       status: 'online',
       endpoints: {
@@ -546,7 +546,7 @@ app.get('/api', (req, res) => {
     res,
     {
       name: 'NOW',
-      version: '1.0.0',
+      version: '1.0.1',
       description: 'NOW Delivery API',
       environment: NODE_ENV,
       status: 'online',
