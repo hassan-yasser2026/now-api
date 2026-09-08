@@ -72,17 +72,8 @@ const VendorDashboard = ({ navigation }) => {
     }
 
     if (item.supportPhone) {
-      Alert.alert(
-        'الدعم الفني',
-        `رقم الدعم: ${item.supportPhone}`,
-        [
-          { text: 'إلغاء', style: 'cancel' },
-          {
-            text: 'اتصال',
-            onPress: () => Linking.openURL(`tel:${item.supportPhone}`),
-          },
-        ]
-      );
+      const whatsappNumber = item.supportPhone.replace(/^0/, '20');
+      Linking.openURL(`https://wa.me/${whatsappNumber}`);
       return;
     }
 
