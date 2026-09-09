@@ -13,6 +13,7 @@ import {
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { COLORS } from '../../constants/colors';
+import api from '../../services/api';
 
 // ========== Types ==========
 type Message = {
@@ -38,9 +39,9 @@ const AssistantScreen: React.FC = () => {
 
   const generateId = () => Math.random().toString(36).substr(2, 9);
 
-  const sendMessage = () => {
+  const sendMessage = async () => {
     const text = inputText.trim();
-    if (!text) return;
+    if (!text || isTyping) return;
 
     const userMessage: Message = {
       id: generateId(),
@@ -53,37 +54,44 @@ const AssistantScreen: React.FC = () => {
     setInputText('');
     setIsTyping(true);
 
-    // محاكاة رد المساعد بعد تأخير قصير
-    setTimeout(() => {
+    try {
+      const history = [...messages, userMessage]
+        .slice(-12)
+        .map((message) => ({
+          role: message.sender === 'user' ? 'user' : 'assistant',
+          content: message.text,
+        }));
+      const response = await api.post('/assistant/chat', { messages: history });
+      const reply = response.data?.data?.reply || response.data?.reply;
+      if (!reply) throw new Error('لم يصل رد صالح من المساعد');
+
       const assistantReply: Message = {
         id: generateId(),
-        text: getAssistantResponse(text),
+        text: reply,
         sender: 'assistant',
         timestamp: new Date().toISOString(),
       };
       setMessages((prev) => [...prev, assistantReply]);
+    } catch (error) {
+      setMessages((prev) => [
+        ...prev,
+        {
+          id: generateId(),
+          text:
+            error.response?.data?.message ||
+            'تعذر الاتصال بالمساعد حالياً. حاول مرة أخرى بعد قليل.',
+          sender: 'assistant',
+          timestamp: new Date().toISOString(),
+        },
+      ]);
+    } finally {
       setIsTyping(false);
-    }, 1200);
+    }
 
     // تمرير لأسفل بعد الإرسال
     setTimeout(() => {
       listRef.current?.scrollToEnd({ animated: true });
     }, 100);
-  };
-
-  const getAssistantResponse = (query: string): string => {
-    const lower = query.toLowerCase();
-    if (lower.includes('توصيل') || lower.includes('شحن')) {
-      return 'نوفر خدمة توصيل سريعة حتى باب المنزل. يمكنك تتبع طلبك لحظيًا من خلال التطبيق.';
-    } else if (lower.includes('دفع')) {
-      return 'حاليًا ندعم الدفع عند الاستلام (كاش). قريبًا سنضيف الدفع الإلكتروني.';
-    } else if (lower.includes('مطعم') || lower.includes('متجر') || lower.includes('محل')) {
-      return 'يمكنك استكشاف المتاجر والمطاعم من خلال الشاشة الرئيسية والبحث عن الأصناف المفضلة لديك.';
-    } else if (lower.includes('شكوى') || lower.includes('مشكلة')) {
-      return 'نأسف لسماع ذلك. يمكنك التواصل مع الدعم الفني من خلال الإعدادات، وسنسعد بمساعدتك.';
-    } else {
-      return 'شكرًا لتواصلك! سأقوم بتحويل استفسارك لفريق الدعم إن لزم الأمر. هل هناك شيء آخر يمكنني مساعدتك به؟';
-    }
   };
 
   const renderMessage = ({ item }: { item: Message }) => {
