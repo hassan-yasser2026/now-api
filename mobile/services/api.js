@@ -45,10 +45,10 @@ const getApiBaseUrl = () => {
   }
 
   if (Platform.OS === 'web' && !configuredUrl) {
-    return 'http://localhost:5000/api';
+    return 'https://now-api-production-ca56.up.railway.app/api';
   }
 
-  return 'http://192.168.100.40:5000/api';
+  return 'https://now-api-production-ca56.up.railway.app/api';
 };
 
 const api = axios.create({
