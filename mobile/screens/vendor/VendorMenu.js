@@ -85,7 +85,10 @@ const VendorMenu = ({ navigation }) => {
       }
 
       try {
-        const result = await storeService.getVendorMenu(user?.id);
+        const storeResult = await storeService.getVendorStore(user?.id);
+        const result = storeResult.success && storeResult.store?.id
+          ? await storeService.getMenu(storeResult.store.id)
+          : storeResult;
 
         if (!mountedRef.current) return;
 
