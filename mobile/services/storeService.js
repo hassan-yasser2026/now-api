@@ -152,6 +152,22 @@ const storeService = {
       const response = await api.get(`/vendor/${vendorId}/store`);
       return { success: true, store: normalizeStore(response) };
     } catch (error) {
+      // Keep vendor screens working while older API deployments are being updated.
+      if (error?.response?.status === 404) {
+        try {
+          const response = await api.get('/stores');
+          const store = normalizeStores(response).find(
+            (candidate) => Number(candidate?.vendorId) === Number(vendorId)
+          );
+          if (store) return { success: true, store };
+        } catch (fallbackError) {
+          console.error(
+            'GET VENDOR STORE FALLBACK ERROR:',
+            fallbackError?.response?.data || fallbackError.message
+          );
+        }
+      }
+
       console.error('GET VENDOR STORE ERROR:', error?.response?.data || error.message);
       return {
         success: false,
