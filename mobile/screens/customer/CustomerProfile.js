@@ -21,7 +21,24 @@ const SUPPORT_WHATSAPP = '201067254988';
 
 const CustomerProfile = ({ navigation }) => {
   const user = useAppStore((state) => state.user);
+  const logout = useAppStore((state) => state.logout);
   const profileImage = user?.profileImage;
+
+  const handleLogout = () => {
+    Alert.alert(
+      'تسجيل الخروج',
+      'هل أنت متأكد أنك تريد تسجيل الخروج؟',
+      [
+        { text: 'إلغاء', style: 'cancel' },
+        {
+          text: 'تسجيل الخروج',
+          style: 'destructive',
+          onPress: () => logout(),
+        },
+      ],
+      { cancelable: true }
+    );
+  };
 
   const handleDeleteAccount = () => {
     Alert.alert(
@@ -126,6 +143,11 @@ const CustomerProfile = ({ navigation }) => {
           <Ionicons name="trash-outline" size={20} color="#B42318" />
           <Text style={styles.deleteText}>حذف الحساب</Text>
         </TouchableOpacity>
+
+        <TouchableOpacity style={styles.logoutButton} onPress={handleLogout}>
+          <Ionicons name="log-out-outline" size={20} color="#1684A0" />
+          <Text style={styles.logoutText}>تسجيل الخروج</Text>
+        </TouchableOpacity>
       </ScrollView>
     </SafeAreaView>
   );
@@ -184,6 +206,20 @@ const styles = StyleSheet.create({
     borderColor: '#F5B8B1',
   },
   deleteText: { color: '#B42318', fontSize: 15, fontWeight: '800' },
+  logoutButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
+    marginHorizontal: 18,
+    marginTop: 12,
+    paddingVertical: 13,
+    borderRadius: 13,
+    backgroundColor: '#F2FCFD',
+    borderWidth: 1,
+    borderColor: '#1684A0',
+  },
+  logoutText: { color: '#1684A0', fontSize: 15, fontWeight: '800' },
   menu: { paddingHorizontal: 18, marginTop: 4 },
   menuItem: {
     minHeight: 82,
