@@ -956,6 +956,141 @@ app.get(
   }
 );
 
+app.patch(
+  '/api/auth/profile',
+  authMiddleware,
+  async (req, res) => {
+    const name = req.body.name === undefined
+      ? undefined
+      : normalizeString(req.body.name);
+    const phone = req.body.phone === undefined
+      ? undefined
+      : normalizePhone(req.body.phone);
+    const email = req.body.email === undefined
+      ? undefined
+      : normalizeString(req.body.email) || null;
+    const profileImage = req.body.profileImage === undefined
+      ? undefined
+      : normalizeString(req.body.profileImage) || null;
+    const { currentPassword, newPassword } = req.body;
+
+    if (name !== undefined && name.length < 2) {
+      return errorResponse(res, 'اسم المستخدم غير صالح', 400);
+    }
+
+    if (phone !== undefined && !isValidPhone(phone)) {
+      return errorResponse(res, 'رقم الهاتف غير صحيح', 400);
+    }
+
+    if (email !== undefined && email !== null && !isValidEmail(email)) {
+      return errorResponse(res, 'البريد الإلكتروني غير صالح', 400);
+    }
+
+    const changingPassword =
+      currentPassword !== undefined || newPassword !== undefined;
+
+    if (changingPassword && (!currentPassword || !isValidPassword(newPassword))) {
+      return errorResponse(
+        res,
+        'أدخل كلمة المرور الحالية وكلمة مرور جديدة صحيحة',
+        400
+      );
+    }
+
+    try {
+      const currentUser = await prisma.user.findUnique({
+        where: { id: req.user.userId },
+        include: { role: true },
+      });
+
+      if (!currentUser) {
+        return errorResponse(res, 'المستخدم غير موجود', 404);
+      }
+
+      if (changingPassword) {
+        const passwordValid = await bcrypt.compare(
+          currentPassword,
+          currentUser.password
+        );
+
+        if (!passwordValid) {
+          return errorResponse(res, 'كلمة المرور الحالية غير صحيحة', 400);
+        }
+      }
+
+      if (phone !== undefined || email !== undefined) {
+        const duplicate = await prisma.user.findFirst({
+          where: {
+            id: { not: req.user.userId },
+            OR: [
+              ...(phone ? [{ phone: { in: phoneVariants(phone) } }] : []),
+              ...(email ? [{ email }] : []),
+            ],
+          },
+        });
+
+        if (duplicate) {
+          return errorResponse(res, 'رقم الهاتف أو البريد الإلكتروني مستخدم بالفعل', 409);
+        }
+      }
+
+      const user = await prisma.user.update({
+        where: { id: req.user.userId },
+        data: {
+          ...(name !== undefined ? { name } : {}),
+          ...(phone !== undefined ? { phone } : {}),
+          ...(email !== undefined ? { email } : {}),
+          ...(profileImage !== undefined ? { profileImage } : {}),
+          ...(changingPassword
+            ? { password: await bcrypt.hash(newPassword, 12) }
+            : {}),
+        },
+        include: { role: true },
+      });
+
+      return successResponse(res, {
+        user: {
+          id: user.id,
+          name: user.name,
+          phone: user.phone,
+          email: user.email,
+          profileImage: user.profileImage,
+          latitude: user.latitude,
+          longitude: user.longitude,
+          role: user.role.name.toLowerCase(),
+        },
+      });
+    } catch (error) {
+      return handlePrismaError(error, res);
+    }
+  }
+);
+
+app.delete(
+  '/api/auth/profile',
+  authMiddleware,
+  async (req, res) => {
+    try {
+      await prisma.user.update({
+        where: { id: req.user.userId },
+        data: {
+          name: 'حساب محذوف',
+          phone: `deleted_${req.user.userId}_${Date.now()}`,
+          email: null,
+          password: await bcrypt.hash(`deleted_${Date.now()}`, 12),
+          isActive: false,
+        },
+      });
+
+      return successResponse(res, null, 200, {
+        message: 'تم حذف الحساب بنجاح',
+      });
+    } catch (error) {
+      return handlePrismaError(error, res);
+    }
+  }
+);
+
 // ============================================================
 // STORE ROUTES
 // ============================================================
