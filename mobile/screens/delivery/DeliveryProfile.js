@@ -83,7 +83,7 @@ const DeliveryProfile = ({ navigation }) => {
         </View>
 
         <View style={styles.menu}>
-          <TouchableOpacity style={styles.menuItem} onPress={() => Alert.alert('قريباً', 'سيتم إضافة هذه الميزة')}>
+          <TouchableOpacity style={styles.menuItem} onPress={() => navigation.navigate('DeliveryEarnings')}>
             <Ionicons name="card-outline" size={24} color={COLORS.textPrimary} />
             <Text style={styles.menuLabel}>الأرباح</Text>
             <Ionicons name="chevron-forward" size={20} color={COLORS.textSecondary} />
