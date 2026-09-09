@@ -4,6 +4,8 @@ import { Platform } from 'react-native';
 import Constants from 'expo-constants';
 import useAppStore from '../store/appStore';
 
+const PRODUCTION_API_URL = 'https://now-api-production-ca56.up.railway.app/api';
+
 const getLocalNetworkHost = () => {
   const hostUri =
     Constants?.expoConfig?.hostUri ||
@@ -28,6 +30,10 @@ const getApiBaseUrl = () => {
   const configuredUrl = process.env.EXPO_PUBLIC_API_URL?.trim();
 
   if (configuredUrl) {
+    const isLocalUrl = /^https?:\/\/(localhost|127\.0\.0\.1)(?::\d+)?\b/i.test(configuredUrl);
+    if (Platform.OS === 'web' && process.env.NODE_ENV === 'production' && isLocalUrl) {
+      return PRODUCTION_API_URL;
+    }
     return configuredUrl.replace(/\/+$/, '');
   }
 
@@ -45,10 +51,10 @@ const getApiBaseUrl = () => {
   }
 
   if (Platform.OS === 'web' && !configuredUrl) {
-    return 'https://now-api-production-ca56.up.railway.app/api';
+    return PRODUCTION_API_URL;
   }
 
-  return 'https://now-api-production-ca56.up.railway.app/api';
+  return PRODUCTION_API_URL;
 };
 
 const api = axios.create({
