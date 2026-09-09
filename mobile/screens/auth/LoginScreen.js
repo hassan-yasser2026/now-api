@@ -89,11 +89,9 @@ const LoginScreen = ({ navigation, route }) => {
     try {
       setLoading(true);
 
-      // السيرفر هو المسؤول عن تحديد Role المستخدم
-      const result = await authService.login(
-        phoneE164,
-        password
-      );
+      // Keep the national form for compatibility with deployed API versions
+      // that store legacy Egyptian numbers without the country prefix.
+      const result = await authService.login(phone, password);
 
       if (!result?.success) {
         Alert.alert(
