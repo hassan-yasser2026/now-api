@@ -7,14 +7,14 @@ const seedUsers = [
     name: 'المدير العام',
     phone: '01000000099',
     email: 'admin@now.com',
-    password: '123456',
+    password: '12345678',
     role: 'admin',
   },
   {
     name: 'أحمد العميل',
     phone: '01000000000',
     email: 'customer@now.com',
-    password: '123456',
+    password: '12345678',
     role: 'customer',
   },
   {
