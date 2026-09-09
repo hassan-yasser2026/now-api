@@ -451,6 +451,7 @@ export const AR_EN = {
   'فشل تحديث المتجر': 'Failed to update the store',
   'فشل حذف المتجر': 'Failed to delete the store',
   'فشل حفظ الإعدادات': 'Failed to save settings',
+  'تعذر تحميل إعدادات المتجر': 'Could not load store settings',
   'فشل جلب المتجر': 'Failed to fetch the store',
   'فشل جلب المتاجر': 'Failed to fetch stores',
   'فشل تحميل المتاجر': 'Failed to load stores',

@@ -44,6 +44,10 @@ const getApiBaseUrl = () => {
     return 'http://192.168.100.40:5000/api';
   }
 
+  if (Platform.OS === 'web' && !configuredUrl) {
+    return 'http://localhost:5000/api';
+  }
+
   return 'http://192.168.100.40:5000/api';
 };
 

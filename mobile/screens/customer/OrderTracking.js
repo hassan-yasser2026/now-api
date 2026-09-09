@@ -234,23 +234,12 @@ const OrderTracking = ({ route, navigation }) => {
   );
 
   /*
-   * علامات الخريطة: المتجر، موقع التوصيل، والمندوب أثناء الطريق.
+   * علامات الخريطة: موقع التوصيل والمندوب أثناء الطريق.
    */
   const trackingMarkers = useMemo(() => {
     if (!order) return [];
 
     const markers = [];
-
-    const storeLat = Number(order.store?.latitude);
-    const storeLng = Number(order.store?.longitude);
-    if (Number.isFinite(storeLat) && Number.isFinite(storeLng)) {
-      markers.push({
-        lat: storeLat,
-        lng: storeLng,
-        label: order.store?.name || 'المتجر',
-        color: 'blue',
-      });
-    }
 
     const dropLat = Number(order.deliveryLat);
     const dropLng = Number(order.deliveryLng);

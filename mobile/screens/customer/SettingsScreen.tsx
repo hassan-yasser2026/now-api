@@ -436,11 +436,10 @@ const GuestAccountView = ({
 
         <View style={styles.socialRow}>
           {[
-            ['logo-tiktok', 'https://www.tiktok.com/'],
-            ['sparkles-outline', 'https://now-delivery.com/'],
-            ['logo-facebook', 'https://www.facebook.com/'],
-            ['logo-youtube', 'https://www.youtube.com/'],
-            ['logo-instagram', 'https://www.instagram.com/'],
+            ['logo-facebook', 'https://www.facebook.com/share/1HgLvQ7ies/'],
+            ['logo-tiktok', 'https://www.tiktok.com/@nowmart1?_r=1&_t=ZS-99YyjqdHnZk'],
+            ['logo-youtube', 'https://www.youtube.com/@now-mart'],
+            ['logo-instagram', 'https://www.instagram.com/nowmart1/'],
           ].map(([icon, url]) => (
             <TouchableOpacity key={icon} onPress={() => openSocial(url)} style={styles.socialButton} activeOpacity={0.75}>
               <Ionicons name={icon as keyof typeof Ionicons.glyphMap} size={30} color={COLORS.primary} />

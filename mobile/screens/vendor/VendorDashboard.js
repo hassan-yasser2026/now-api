@@ -15,6 +15,7 @@ import api from '../../services/api';
 
 const MENU_ITEMS = [
   { label: 'الرئيسية', icon: '🏠', route: 'VendorDashboard' },
+  { label: 'اللغة', icon: '🌐', languageAction: true },
   { label: 'الطلبات', icon: '📦', route: 'VendorOrders' },
   { label: 'الخدمات / المنتجات', icon: '🛍️', route: 'VendorMenu' },
   { label: 'العروض والخصومات', icon: '🏷️', route: 'VendorOffers' },
@@ -25,7 +26,7 @@ const MENU_ITEMS = [
   { label: 'الملف الشخصي', icon: '👤', route: 'VendorProfile' },
   { label: 'حالة المتجر', icon: '🟢', statusAction: true },
   { label: 'الموقع', icon: '📍', route: 'StoreSettings' },
-  { label: 'الإعدادات', icon: '⚙️', route: 'StoreSettings' },
+  { label: 'الإعدادات', icon: '⚙️', route: 'AccountSettings' },
 ];
 
 const VendorDashboard = ({ navigation }) => {
@@ -33,13 +34,9 @@ const VendorDashboard = ({ navigation }) => {
   const [storeId, setStoreId] = useState(user?.store?.id || null);
   const [storeOpen, setStoreOpen] = useState(user?.store?.isOpen !== false);
   const [statusModalVisible, setStatusModalVisible] = useState(false);
+  const [statusUpdating, setStatusUpdating] = useState(false);
+  const [languageModalVisible, setLanguageModalVisible] = useState(false);
   const displayName = user?.name && !user.name.includes('?') ? user.name : 'المهندس حسن';
-
-  useEffect(() => {
-    if (language !== 'ar') {
-      setLanguage('ar');
-    }
-  }, [language, setLanguage]);
 
   useEffect(() => {
     if (storeId || !user?.id) return;
@@ -53,6 +50,26 @@ const VendorDashboard = ({ navigation }) => {
           setStoreOpen(vendorStore.isOpen !== false);
         }
       } catch (error) {
+        try {
+          const response = await api.get('/stores');
+          const stores = response.data?.data?.stores
+            || response.data?.data
+            || response.data?.stores
+            || response.data;
+          const vendorStore = Array.isArray(stores)
+            ? stores.find((store) => (
+              Number(store?.vendorId) === Number(user.id)
+              || Number(store?.vendor?.id) === Number(user.id)
+            ))
+            : null;
+          if (vendorStore?.id) {
+            setStoreId(vendorStore.id);
+            setStoreOpen(vendorStore.isOpen !== false);
+            return;
+          }
+        } catch (fallbackError) {
+          console.error('Unable to load vendor store:', fallbackError);
+        }
         console.error('Unable to load vendor store:', error);
       }
     };
@@ -61,6 +78,11 @@ const VendorDashboard = ({ navigation }) => {
   }, [storeId, user?.id]);
 
   const handleMenuPress = (item) => {
+    if (item.languageAction) {
+      setLanguageModalVisible(true);
+      return;
+    }
+
     if (item.statusAction) {
       handleStoreStatus();
       return;
@@ -86,6 +108,7 @@ const VendorDashboard = ({ navigation }) => {
       return;
     }
 
+    setStatusUpdating(true);
     try {
       await api.put(`/stores/${storeId}`, { isOpen });
       setStoreOpen(isOpen);
@@ -94,6 +117,8 @@ const VendorDashboard = ({ navigation }) => {
     } catch (error) {
       console.error('Unable to update store status:', error);
       Alert.alert('خطأ', 'تعذر تغيير حالة المتجر.');
+    } finally {
+      setStatusUpdating(false);
     }
   };
 
@@ -161,6 +186,40 @@ const VendorDashboard = ({ navigation }) => {
       </View>
 
       <Modal
+        visible={languageModalVisible}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setLanguageModalVisible(false)}
+      >
+        <View style={styles.modalBackdrop}>
+          <View style={styles.statusModal}>
+            <Text style={styles.modalTitle}>اللغة</Text>
+            <TouchableOpacity
+              style={[styles.languageOption, language === 'ar' && styles.languageOptionActive]}
+              onPress={() => {
+                setLanguage('ar');
+                setLanguageModalVisible(false);
+              }}
+            >
+              <Text style={styles.languageOptionText}>العربية</Text>
+            </TouchableOpacity>
+            <TouchableOpacity
+              style={[styles.languageOption, language === 'en' && styles.languageOptionActive]}
+              onPress={() => {
+                setLanguage('en');
+                setLanguageModalVisible(false);
+              }}
+            >
+              <Text style={styles.languageOptionText}>English</Text>
+            </TouchableOpacity>
+            <TouchableOpacity style={styles.cancelButton} onPress={() => setLanguageModalVisible(false)}>
+              <Text style={styles.cancelText}>إلغاء</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </Modal>
+
+      <Modal
         visible={statusModalVisible}
         transparent
         animationType="fade"
@@ -170,11 +229,11 @@ const VendorDashboard = ({ navigation }) => {
           <View style={styles.statusModal}>
             <Text style={styles.modalTitle}>حالة المتجر</Text>
             <Text style={styles.modalHint}>اختر الإجراء المطلوب</Text>
-            <TouchableOpacity style={styles.openButton} onPress={() => updateStoreStatus(true)}>
-              <Text style={styles.statusButtonText}>فتح المتجر</Text>
+            <TouchableOpacity style={styles.openButton} onPress={() => updateStoreStatus(true)} disabled={statusUpdating}>
+              <Text style={styles.statusButtonText}>{statusUpdating ? 'جار الحفظ...' : 'فتح المتجر'}</Text>
             </TouchableOpacity>
-            <TouchableOpacity style={styles.closeButton} onPress={() => updateStoreStatus(false)}>
-              <Text style={styles.statusButtonText}>قفل المتجر</Text>
+            <TouchableOpacity style={styles.closeButton} onPress={() => updateStoreStatus(false)} disabled={statusUpdating}>
+              <Text style={styles.statusButtonText}>{statusUpdating ? 'جار الحفظ...' : 'قفل المتجر'}</Text>
             </TouchableOpacity>
             <TouchableOpacity style={styles.cancelButton} onPress={() => setStatusModalVisible(false)}>
               <Text style={styles.cancelText}>إلغاء</Text>
@@ -192,10 +251,10 @@ const styles = StyleSheet.create({
     backgroundColor: '#EEEEEE',
   },
   topBar: {
-    height: 148,
-    backgroundColor: '#10C7E8',
-    borderBottomWidth: 7,
-    borderBottomColor: '#FFFFFF',
+    height: 92,
+    backgroundColor: '#DCEFF1',
+    borderBottomWidth: 1,
+    borderBottomColor: '#C4E1E4',
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -206,13 +265,13 @@ const styles = StyleSheet.create({
   },
   logoRed: {
     color: '#D92838',
-    fontSize: 76,
+    fontSize: 48,
     fontWeight: '900',
     letterSpacing: -8,
   },
   logoBlack: {
     color: '#050505',
-    fontSize: 76,
+    fontSize: 48,
     fontWeight: '900',
     letterSpacing: -8,
   },
@@ -255,7 +314,7 @@ const styles = StyleSheet.create({
     width: 57,
     height: 57,
     borderRadius: 29,
-    backgroundColor: '#10C7E8',
+    backgroundColor: '#DCEFF1',
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -374,6 +433,23 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: '700',
     textAlign: 'center',
+  },
+  languageOption: {
+    paddingVertical: 13,
+    borderRadius: 10,
+    borderWidth: 1,
+    borderColor: '#E2E8F0',
+    alignItems: 'center',
+    marginTop: 10,
+  },
+  languageOptionActive: {
+    borderColor: '#10C7E8',
+    backgroundColor: '#E0F8FC',
+  },
+  languageOptionText: {
+    color: '#1E293B',
+    fontSize: 16,
+    fontWeight: '700',
   },
 });
 

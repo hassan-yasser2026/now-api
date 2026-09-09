@@ -16,12 +16,11 @@ import { COLORS } from '../constants/colors';
 import { DEFAULT_CENTER } from '../utils/mapHtml';
 import LocationMap from './LocationMap';
 import useAppStore from '../store/appStore';
-
 const MAP_ACCENT = '#00A6B8';
 
 /**
- * Full-screen map picker used by checkout (customer) and store settings
- * (vendor). Returns the chosen point via onConfirm({ lat, lng }).
+ * Full-screen map picker used for the vendor store location and customer
+ * delivery location. Returns the chosen point via onConfirm({ lat, lng }).
  */
 const LocationPickerModal = ({
   visible,
@@ -29,6 +28,7 @@ const LocationPickerModal = ({
   initial,
   onConfirm,
   onClose,
+  showSchedule = true,
 }) => {
   const insets = useSafeAreaInsets();
   const mapRef = useRef(null);
@@ -83,27 +83,30 @@ const LocationPickerModal = ({
       return;
     }
 
-    const day = Number.parseInt(dateText, 10);
-    const hour = Number.parseInt(timeText, 10);
-    const now = new Date();
-    const selectedDate = new Date(now.getFullYear(), now.getMonth(), day, hour, 0, 0, 0);
+    if (showSchedule) {
+      const day = Number.parseInt(dateText, 10);
+      const hour = Number.parseInt(timeText, 10);
+      const now = new Date();
+      const selectedDate = new Date(now.getFullYear(), now.getMonth(), day, hour, 0, 0, 0);
 
-    if (
-      !/^\d{1,2}$/.test(dateText) ||
-      !/^\d{1,2}$/.test(timeText) ||
-      !Number.isInteger(day) ||
-      day < 1 ||
-      day > new Date(now.getFullYear(), now.getMonth() + 1, 0).getDate() ||
-      !Number.isInteger(hour) ||
-      hour < 0 ||
-      hour > 23 ||
-      selectedDate <= now
-    ) {
-      Alert.alert('تنبيه', 'اكتب رقم اليوم (1 إلى 31) والساعة (0 إلى 23) في المستقبل');
-      return;
+      if (
+        !/^\d{1,2}$/.test(dateText) ||
+        !/^\d{1,2}$/.test(timeText) ||
+        !Number.isInteger(day) ||
+        day < 1 ||
+        day > new Date(now.getFullYear(), now.getMonth() + 1, 0).getDate() ||
+        !Number.isInteger(hour) ||
+        hour < 0 ||
+        hour > 23 ||
+        selectedDate <= now
+      ) {
+        Alert.alert('تنبيه', 'اكتب رقم اليوم (1 إلى 31) والساعة (0 إلى 23) في المستقبل');
+        return;
+      }
+
+      setScheduledDate(selectedDate.toISOString());
     }
 
-    setScheduledDate(selectedDate.toISOString());
     onConfirm?.(current);
     setPicked(null);
     onClose?.();
@@ -144,58 +147,60 @@ const LocationPickerModal = ({
           style={styles.map}
         />
 
-        <View style={styles.scheduleSection}>
-          <Text style={styles.scheduleTitle}>موعد الطلب</Text>
-          <View style={styles.scheduleOptions}>
-            <TouchableOpacity
-              style={[styles.scheduleButton, activePicker === 'day' && styles.scheduleButtonActive]}
-              onPress={() => setActivePicker(activePicker === 'day' ? null : 'day')}
-            >
-              <Ionicons name="calendar-outline" size={22} color={MAP_ACCENT} />
-              <Text style={styles.scheduleButtonLabel}>عايز الأوردر يوم إيه؟</Text>
-              <Text style={styles.scheduleButtonValue}>{dateText || 'اختار اليوم'}</Text>
-            </TouchableOpacity>
-            <TouchableOpacity
-              style={[styles.scheduleButton, activePicker === 'hour' && styles.scheduleButtonActive]}
-              onPress={() => setActivePicker(activePicker === 'hour' ? null : 'hour')}
-            >
-              <Ionicons name="time-outline" size={22} color={MAP_ACCENT} />
-              <Text style={styles.scheduleButtonLabel}>عايز الأوردر الساعة كام؟</Text>
-              <Text style={styles.scheduleButtonValue}>{timeText ? `${timeText}:00` : 'اختار الساعة'}</Text>
-            </TouchableOpacity>
-          </View>
-          {activePicker && (
-            <View style={styles.picker}>
-              <Text style={styles.pickerTitle}>
-                {activePicker === 'day' ? 'اختار يوم الطلب' : 'اختار ساعة الطلب'}
-              </Text>
-              <View style={styles.pickerGrid}>
-                {(activePicker === 'day'
-                  ? Array.from({ length: new Date(new Date().getFullYear(), new Date().getMonth() + 1, 0).getDate() }, (_, index) => index + 1)
-                  : Array.from({ length: 24 }, (_, index) => index)
-                ).map((value) => {
-                  const text = String(value);
-                  const selected = activePicker === 'day' ? dateText === text : timeText === text;
-                  return (
-                    <TouchableOpacity
-                      key={text}
-                      style={[styles.pickerOption, selected && styles.pickerOptionSelected]}
-                      onPress={() => {
-                        if (activePicker === 'day') setDateText(text);
-                        else setTimeText(text);
-                        setActivePicker(null);
-                      }}
-                    >
-                      <Text style={[styles.pickerOptionText, selected && styles.pickerOptionTextSelected]}>
-                        {text}
-                      </Text>
-                    </TouchableOpacity>
-                  );
-                })}
-              </View>
+        {showSchedule && (
+          <View style={styles.scheduleSection}>
+            <Text style={styles.scheduleTitle}>موعد الطلب</Text>
+            <View style={styles.scheduleOptions}>
+              <TouchableOpacity
+                style={[styles.scheduleButton, activePicker === 'day' && styles.scheduleButtonActive]}
+                onPress={() => setActivePicker(activePicker === 'day' ? null : 'day')}
+              >
+                <Ionicons name="calendar-outline" size={22} color={MAP_ACCENT} />
+                <Text style={styles.scheduleButtonLabel}>عايز الأوردر يوم إيه؟</Text>
+                <Text style={styles.scheduleButtonValue}>{dateText || 'اختار اليوم'}</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={[styles.scheduleButton, activePicker === 'hour' && styles.scheduleButtonActive]}
+                onPress={() => setActivePicker(activePicker === 'hour' ? null : 'hour')}
+              >
+                <Ionicons name="time-outline" size={22} color={MAP_ACCENT} />
+                <Text style={styles.scheduleButtonLabel}>عايز الأوردر الساعة كام؟</Text>
+                <Text style={styles.scheduleButtonValue}>{timeText ? `${timeText}:00` : 'اختار الساعة'}</Text>
+              </TouchableOpacity>
             </View>
-          )}
-        </View>
+            {activePicker && (
+              <View style={styles.picker}>
+                <Text style={styles.pickerTitle}>
+                  {activePicker === 'day' ? 'اختار يوم الطلب' : 'اختار ساعة الطلب'}
+                </Text>
+                <View style={styles.pickerGrid}>
+                  {(activePicker === 'day'
+                    ? Array.from({ length: new Date(new Date().getFullYear(), new Date().getMonth() + 1, 0).getDate() }, (_, index) => index + 1)
+                    : Array.from({ length: 24 }, (_, index) => index)
+                  ).map((value) => {
+                    const text = String(value);
+                    const selected = activePicker === 'day' ? dateText === text : timeText === text;
+                    return (
+                      <TouchableOpacity
+                        key={text}
+                        style={[styles.pickerOption, selected && styles.pickerOptionSelected]}
+                        onPress={() => {
+                          if (activePicker === 'day') setDateText(text);
+                          else setTimeText(text);
+                          setActivePicker(null);
+                        }}
+                      >
+                        <Text style={[styles.pickerOptionText, selected && styles.pickerOptionTextSelected]}>
+                          {text}
+                        </Text>
+                      </TouchableOpacity>
+                    );
+                  })}
+                </View>
+              </View>
+            )}
+          </View>
+        )}
 
         <View style={[styles.footer, { paddingBottom: insets.bottom + 14 }]}>
           <TouchableOpacity
@@ -248,21 +253,6 @@ const styles = StyleSheet.create({
     gap: 10,
     paddingHorizontal: 12,
     paddingTop: 12,
-  },
-  scheduleSection: {
-    paddingHorizontal: 12,
-    paddingTop: 10,
-  },
-  scheduleTitle: {
-    color: COLORS.textPrimary,
-    fontSize: 14,
-    fontWeight: '800',
-    textAlign: 'right',
-    marginBottom: 8,
-  },
-  scheduleOptions: {
-    flexDirection: 'row',
-    gap: 8,
   },
   scheduleOption: {
     flex: 1,

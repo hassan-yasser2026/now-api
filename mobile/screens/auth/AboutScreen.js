@@ -16,6 +16,36 @@ import { COLORS } from '../../constants/colors';
 import { CONFIG } from '../../constants/config';
 
 const AboutScreen = ({ navigation }) => {
+  const roleSections = [
+    {
+      icon: 'person-outline',
+      title: 'لوحة العميل',
+      description: 'تصفح المتاجر والمنتجات، اطلب بسهولة، تابع طلبك وقيّم المطعم والمندوب بعد إتمام الطلب.',
+    },
+    {
+      icon: 'storefront-outline',
+      title: 'لوحة البائع',
+      description: 'إدارة بيانات المتجر وموقعه، المنتجات والعروض، حالة المتجر، أوقات العمل، الطلبات والأرباح.',
+    },
+    {
+      icon: 'bicycle-outline',
+      title: 'لوحة المندوب',
+      description: 'استقبال طلبات التوصيل، معرفة موقع المتجر والعميل، وتحديث حالة الطلب حتى التسليم.',
+    },
+    {
+      icon: 'shield-checkmark-outline',
+      title: 'لوحة الإدارة',
+      description: 'إدارة المستخدمين والمتاجر والطلبات، مراجعة المحتوى، التقارير والتقييمات ودعم المنصة.',
+    },
+  ];
+
+  const socialLinks = [
+    ['logo-facebook', 'https://www.facebook.com/share/1HgLvQ7ies/'],
+    ['logo-tiktok', 'https://www.tiktok.com/@nowmart1?_r=1&_t=ZS-99YyjqdHnZk'],
+    ['logo-youtube', 'https://www.youtube.com/@now-mart'],
+    ['logo-instagram', 'https://www.instagram.com/nowmart1/'],
+  ];
+
   const features = [
     {
       icon: 'storefront-outline',
@@ -155,6 +185,18 @@ const AboutScreen = ({ navigation }) => {
     </View>
   );
 
+  const renderRoleSection = (item) => (
+    <View key={item.title} style={styles.roleRow}>
+      <View style={styles.roleIcon}>
+        <Ionicons name={item.icon} size={24} color={COLORS.primary} />
+      </View>
+      <View style={styles.featureInfo}>
+        <Text style={styles.featureTitle}>{item.title}</Text>
+        <Text style={styles.featureDescription}>{item.description}</Text>
+      </View>
+    </View>
+  );
+
   return (
     <View style={styles.container}>
       {/* Header */}
@@ -246,6 +288,19 @@ const AboutScreen = ({ navigation }) => {
             والبائع والمندوب في منصة واحدة، بهدف جعل تجربة
             الطلب والتوصيل أسهل وأسرع وأكثر تنظيمًا.
           </Text>
+        </View>
+
+        <View style={styles.card}>
+          <View style={styles.cardHeader}>
+            <View style={styles.cardHeaderIcon}>
+              <Ionicons name="grid-outline" size={22} color={COLORS.primary} />
+            </View>
+            <Text style={styles.cardTitle}>لوحات ناو</Text>
+          </View>
+          <Text style={styles.cardText}>كل لوحة مصممة لدور مختلف داخل المنصة:</Text>
+          <View style={styles.featureList}>
+            {roleSections.map(renderRoleSection)}
+          </View>
         </View>
 
         {/* Current Features */}
@@ -413,6 +468,20 @@ const AboutScreen = ({ navigation }) => {
           <Text style={styles.footerText}>
             تطبيق توصيل مصمم لتسهيل حياتك
           </Text>
+
+          <Text style={styles.socialTitle}>تابعنا على قنواتنا</Text>
+          <View style={styles.socialRow}>
+            {socialLinks.map(([icon, url]) => (
+              <TouchableOpacity
+                key={icon}
+                style={styles.socialButton}
+                onPress={() => openUrl(url, 'تعذر فتح الرابط')}
+                activeOpacity={0.8}
+              >
+                <Ionicons name={icon} size={25} color={COLORS.primary} />
+              </TouchableOpacity>
+            ))}
+          </View>
 
           <Text style={styles.footerCopyright}>
             © 2026 {CONFIG.APP_NAME} - جميع الحقوق محفوظة
@@ -633,6 +702,26 @@ const styles = StyleSheet.create({
     borderColor: COLORS.border,
   },
 
+  roleRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: COLORS.background,
+    borderRadius: 15,
+    padding: 12,
+    borderWidth: 1,
+    borderColor: COLORS.border,
+  },
+
+  roleIcon: {
+    width: 44,
+    height: 44,
+    borderRadius: 13,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: COLORS.primaryLight,
+    marginRight: 10,
+  },
+
   featureIcon: {
     width: 42,
     height: 42,
@@ -791,6 +880,28 @@ const styles = StyleSheet.create({
     fontSize: 13,
     color: COLORS.textSecondary,
     marginTop: 4,
+  },
+
+  socialTitle: {
+    fontSize: 13,
+    fontWeight: '700',
+    color: COLORS.textPrimary,
+    marginTop: 18,
+  },
+
+  socialRow: {
+    flexDirection: 'row',
+    gap: 12,
+    marginTop: 10,
+  },
+
+  socialButton: {
+    width: 44,
+    height: 44,
+    borderRadius: 13,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: COLORS.primaryLight,
   },
 
   footerCopyright: {

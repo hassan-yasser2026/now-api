@@ -8,6 +8,7 @@ import {
   TouchableOpacity,
   View,
 } from 'react-native';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import api from '../../services/api';
 
 const VendorNotifications = ({ navigation }) => {
@@ -16,15 +17,23 @@ const VendorNotifications = ({ navigation }) => {
   const [loading, setLoading] = useState(true);
 
   const load = useCallback(async () => {
+    const savedPreference = await AsyncStorage.getItem('vendorNotificationsEnabled');
+    setEnabled(savedPreference !== 'false');
+
     try {
-      const [listResponse, preferenceResponse] = await Promise.all([
-        api.get('/notifications'),
-        api.get('/notifications/preferences'),
-      ]);
-      setNotifications(listResponse.data?.data || []);
-      setEnabled(preferenceResponse.data?.data?.enabled !== false);
+      const response = await api.get('/notifications');
+      setNotifications(response.data?.data || []);
     } catch (error) {
-      console.error('Unable to load vendor notifications:', error);
+      console.warn('Vendor notifications are not available on the server yet:', error?.response?.status);
+    }
+
+    try {
+      const response = await api.get('/notifications/preferences');
+      const serverEnabled = response.data?.data?.enabled !== false;
+      setEnabled(serverEnabled);
+      await AsyncStorage.setItem('vendorNotificationsEnabled', String(serverEnabled));
+    } catch (error) {
+      console.warn('Vendor notification preferences are not available on the server yet:', error?.response?.status);
     } finally {
       setLoading(false);
     }
@@ -37,10 +46,11 @@ const VendorNotifications = ({ navigation }) => {
   const toggleNotifications = async (value) => {
     const previous = enabled;
     setEnabled(value);
+    await AsyncStorage.setItem('vendorNotificationsEnabled', String(value));
     try {
       await api.patch('/notifications/preferences', { enabled: value });
     } catch (error) {
-      setEnabled(previous);
+      console.warn('Vendor notification preference sync is unavailable:', error?.response?.status);
     }
   };
 

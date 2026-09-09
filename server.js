@@ -33,6 +33,85 @@ if (!JWT_SECRET) {
   );
 }
 
+const normalizeOperatingHours = (value) => {
+  if (!value || typeof value !== 'object' || Array.isArray(value)) return null;
+
+  const normalized = {};
+  for (let day = 0; day <= 6; day += 1) {
+    const entry = value[String(day)];
+    if (!entry || entry.enabled === false) {
+      normalized[String(day)] = { enabled: false, start: null, end: null };
+      continue;
+    }
+
+    if (
+      typeof entry.start !== 'string' ||
+      typeof entry.end !== 'string' ||
+      !/^(?:[01]\d|2[0-3]):[0-5]\d$/.test(entry.start) ||
+      !/^(?:[01]\d|2[0-3]):[0-5]\d$/.test(entry.end)
+    ) {
+      return null;
+    }
+
+    normalized[String(day)] = {
+      enabled: true,
+      start: entry.start,
+      end: entry.end,
+    };
+  }
+  return normalized;
+};
+
+const isStoreOpenBySchedule = (operatingHours, date = new Date()) => {
+  const timeZone = process.env.STORE_TIMEZONE || 'Africa/Cairo';
+  const parts = new Intl.DateTimeFormat('en-US', {
+    timeZone,
+    weekday: 'short',
+    hour: '2-digit',
+    minute: '2-digit',
+    hour12: false,
+  }).formatToParts(date);
+  const dayByName = { Sun: 0, Mon: 1, Tue: 2, Wed: 3, Thu: 4, Fri: 5, Sat: 6 };
+  const day = dayByName[parts.find((part) => part.type === 'weekday')?.value];
+  const hour = Number(parts.find((part) => part.type === 'hour')?.value);
+  const minute = Number(parts.find((part) => part.type === 'minute')?.value);
+  const schedule = operatingHours?.[String(day)];
+  if (!schedule?.enabled) return false;
+
+  const currentMinutes = hour * 60 + minute;
+  const [startHour, startMinute] = schedule.start.split(':').map(Number);
+  const [endHour, endMinute] = schedule.end.split(':').map(Number);
+  const start = startHour * 60 + startMinute;
+  const end = endHour * 60 + endMinute;
+
+  if (start === end) return true;
+  return start < end
+    ? currentMinutes >= start && currentMinutes < end
+    : currentMinutes >= start || currentMinutes < end;
+};
+
+const syncScheduledStoreStatuses = async () => {
+  try {
+    const stores = await prisma.store.findMany({
+      where: { operatingHours: { not: null } },
+      select: { id: true, isOpen: true, operatingHours: true },
+    });
+
+    await Promise.all(
+      stores
+        .filter((store) => store.isOpen !== isStoreOpenBySchedule(store.operatingHours))
+        .map((store) =>
+          prisma.store.update({
+            where: { id: store.id },
+            data: { isOpen: isStoreOpenBySchedule(store.operatingHours) },
+          })
+        )
+    );
+  } catch (error) {
+    console.error('فشل تحديث حالات المتاجر حسب أوقات العمل:', error);
+  }
+};
+
 // ============================================================
 // App Configuration
 // ============================================================
@@ -1105,6 +1184,19 @@ app.put(
 
       if (req.body.image !== undefined) {
         data.image = normalizeString(req.body.image) || null;
+      }
+
+      if (req.body.operatingHours !== undefined) {
+        if (req.body.operatingHours === null) {
+          data.operatingHours = null;
+        } else {
+          const operatingHours = normalizeOperatingHours(req.body.operatingHours);
+          if (!operatingHours) {
+            return errorResponse(res, 'أوقات العمل غير صالحة', 422);
+          }
+          data.operatingHours = operatingHours;
+          data.isOpen = isStoreOpenBySchedule(operatingHours);
+        }
       }
 
       if (typeof req.body.isOpen === 'boolean') {
@@ -4357,6 +4449,9 @@ const startServer =
       console.log(
         '✅ Database connected'
       );
+
+      await syncScheduledStoreStatuses();
+      setInterval(syncScheduledStoreStatuses, 60 * 1000);
 
       app.listen(
         PORT,

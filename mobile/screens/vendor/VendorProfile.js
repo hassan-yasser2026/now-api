@@ -1,5 +1,5 @@
 import React from 'react';
-import { View, Text, TouchableOpacity, StyleSheet, ScrollView, Alert } from 'react-native';
+import { View, Text, TouchableOpacity, StyleSheet, ScrollView, Alert, Image } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { COLORS } from '../../constants/colors';
 import useAppStore from '../../store/appStore';
@@ -27,7 +27,11 @@ const VendorProfile = ({ navigation }) => {
       <ScrollView contentContainerStyle={styles.content}>
         <View style={styles.profileHeader}>
           <View style={styles.avatar}>
-            <Text style={styles.avatarText}>{user?.name?.charAt(0) || 'V'}</Text>
+            {user?.profileImage ? (
+              <Image source={{ uri: user.profileImage }} style={styles.avatarImage} />
+            ) : (
+              <Text style={styles.avatarText}>{user?.name?.charAt(0) || 'V'}</Text>
+            )}
           </View>
           <Text style={styles.userName}>{user?.name || 'بائع'}</Text>
           <Text style={styles.userPhone}>{user?.phone}</Text>
@@ -38,17 +42,17 @@ const VendorProfile = ({ navigation }) => {
         </View>
 
         <View style={styles.menu}>
-          <TouchableOpacity style={styles.menuItem} onPress={() => Alert.alert('قريباً', 'سيتم إضافة هذه الميزة')}>
-            <Ionicons name="business-outline" size={24} color={COLORS.textPrimary} />
-            <Text style={styles.menuLabel}>بيانات المتجر</Text>
+          <TouchableOpacity style={styles.menuItem} onPress={() => navigation.navigate('AccountSettings')}>
+            <Ionicons name="person-outline" size={24} color={COLORS.textPrimary} />
+            <Text style={styles.menuLabel}>تعديل بيانات الحساب</Text>
             <Ionicons name="chevron-forward" size={20} color={COLORS.textSecondary} />
           </TouchableOpacity>
-          <TouchableOpacity style={styles.menuItem} onPress={() => Alert.alert('قريباً', 'سيتم إضافة هذه الميزة')}>
-            <Ionicons name="card-outline" size={24} color={COLORS.textPrimary} />
-            <Text style={styles.menuLabel}>طرق الدفع</Text>
+          <TouchableOpacity style={styles.menuItem} onPress={() => navigation.navigate('StoreSettings')}>
+            <Ionicons name="storefront-outline" size={24} color={COLORS.textPrimary} />
+            <Text style={styles.menuLabel}>بيانات المتجر والموقع</Text>
             <Ionicons name="chevron-forward" size={20} color={COLORS.textSecondary} />
           </TouchableOpacity>
-          <TouchableOpacity style={styles.menuItem} onPress={() => Alert.alert('قريباً', 'سيتم إضافة هذه الميزة')}>
+          <TouchableOpacity style={styles.menuItem} onPress={() => navigation.navigate('VendorWorkingHours')}>
             <Ionicons name="time-outline" size={24} color={COLORS.textPrimary} />
             <Text style={styles.menuLabel}>أوقات العمل</Text>
             <Ionicons name="chevron-forward" size={20} color={COLORS.textSecondary} />
@@ -77,6 +81,7 @@ const styles = StyleSheet.create({
   content: { padding: 16 },
   profileHeader: { alignItems: 'center', marginBottom: 24 },
   avatar: { width: 80, height: 80, borderRadius: 40, backgroundColor: COLORS.primary, justifyContent: 'center', alignItems: 'center', marginBottom: 12 },
+  avatarImage: { width: '100%', height: '100%', borderRadius: 40 },
   avatarText: { fontSize: 32, fontWeight: 'bold', color: '#fff' },
   userName: { fontSize: 22, fontWeight: 'bold', color: COLORS.textPrimary },
   userPhone: { fontSize: 14, color: COLORS.textSecondary, marginTop: 4 },

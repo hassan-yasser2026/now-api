@@ -17,32 +17,44 @@ export default function StoreSettings({ navigation }) {
   const [pickerVisible, setPickerVisible] = useState(false);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
-  const storeId = user?.store?.id;
+  const [storeId, setStoreId] = useState(user?.storeId || user?.store?.id || null);
 
   useEffect(() => {
-    loadSettings();
-  }, []);
+    let mounted = true;
 
-  const loadSettings = async () => {
-    if (!storeId) { setLoading(false); return; }
-    try {
-      const res = await api.get(`/vendor/${user?.id}/store`);
-      const store = res.data?.data ?? res.data;
-      if (store) {
-        setIsOpen(store.isOpen ?? true);
-
-        const lat = Number(store.latitude);
-        const lng = Number(store.longitude);
-        if (Number.isFinite(lat) && Number.isFinite(lng)) {
-          setLocation({ lat, lng });
-        }
+    const loadSettings = async () => {
+      if (!user?.id) {
+        setLoading(false);
+        return;
       }
-    } catch (e) {
-      // keep defaults
-    } finally {
-      setLoading(false);
-    }
-  };
+
+      try {
+        const res = await api.get(`/vendor/${user.id}/store`);
+        const store = res.data?.data ?? res.data;
+        if (mounted && store) {
+          setStoreId(store.id || user.storeId || user.store?.id || null);
+          setIsOpen(store.isOpen ?? true);
+
+          const lat = Number(store.latitude);
+          const lng = Number(store.longitude);
+          if (Number.isFinite(lat) && Number.isFinite(lng)) {
+            setLocation({ lat, lng });
+          }
+        }
+      } catch (e) {
+        if (mounted) {
+          Alert.alert('خطأ', 'تعذر تحميل إعدادات المتجر');
+        }
+      } finally {
+        if (mounted) setLoading(false);
+      }
+    };
+
+    loadSettings();
+    return () => {
+      mounted = false;
+    };
+  }, [user?.id, user?.storeId, user?.store?.id]);
 
   const handleSave = async () => {
     if (!storeId) {
@@ -147,6 +159,7 @@ export default function StoreSettings({ navigation }) {
         visible={pickerVisible}
         title="تحديد موقع المتجر"
         initial={location}
+        showSchedule={false}
         onConfirm={setLocation}
         onClose={() => setPickerVisible(false)}
       />

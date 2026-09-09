@@ -118,9 +118,9 @@ const AccountSettingsScreen = ({ navigation }) => {
           </Text>
         </TouchableOpacity>
 
+        <Text style={styles.sectionTitle}>بيانات الحساب</Text>
         <Text style={styles.label}>الاسم</Text>
         <View style={styles.inputContainer}>
-          <Ionicons name="person-outline" size={21} color="#1684A0" />
           <TextInput style={styles.input} value={name} onChangeText={setName} />
         </View>
 
@@ -138,7 +138,6 @@ const AccountSettingsScreen = ({ navigation }) => {
 
         <Text style={styles.label}>البريد الإلكتروني</Text>
         <View style={styles.inputContainer}>
-          <Ionicons name="mail-outline" size={21} color="#1684A0" />
           <TextInput
             style={styles.input}
             value={email}
@@ -153,7 +152,6 @@ const AccountSettingsScreen = ({ navigation }) => {
         <Text style={styles.sectionTitle}>تغيير كلمة المرور</Text>
         <Text style={styles.label}>كلمة المرور الحالية</Text>
         <View style={styles.inputContainer}>
-          <Ionicons name="lock-closed-outline" size={21} color="#1684A0" />
           <TextInput
             style={styles.input}
             value={currentPassword}
@@ -166,7 +164,6 @@ const AccountSettingsScreen = ({ navigation }) => {
 
         <Text style={styles.label}>كلمة المرور الجديدة</Text>
         <View style={styles.inputContainer}>
-          <Ionicons name="key-outline" size={21} color="#1684A0" />
           <TextInput
             style={styles.input}
             value={newPassword}
@@ -179,7 +176,6 @@ const AccountSettingsScreen = ({ navigation }) => {
 
         <Text style={styles.label}>تأكيد كلمة المرور الجديدة</Text>
         <View style={styles.inputContainer}>
-          <Ionicons name="shield-checkmark-outline" size={21} color="#1684A0" />
           <TextInput
             style={styles.input}
             value={confirmPassword}
