@@ -11,7 +11,7 @@ import SettingsScreen from '../screens/customer/SettingsScreen';
 import OrderConfirmation from '../screens/customer/OrderConfirmation';
 import OrderTracking from '../screens/customer/OrderTracking';
 import CustomerProfile from '../screens/customer/CustomerProfile';
-import AssistantScreen from '../screens/customer/AssisantScreen';
+import RegisteredContactScreen from '../screens/customer/RegisteredContactScreen';
 import CartScreen from '../screens/customer/CartScreen';
 import DeliverySchedule from '../screens/customer/DeliverySchedule';
 import AboutScreen from '../screens/auth/AboutScreen';
@@ -53,11 +53,11 @@ const CustomerTabs = () => (
       }}
     />
     <Tab.Screen
-      name="Assistant"
-      component={AssistantScreen}
+      name="RegisteredContact"
+      component={RegisteredContactScreen}
       options={{
-        tabBarLabel: 'المساعد',
-        tabBarIcon: ({ color, size }) => <Ionicons name="chatbubble-ellipses-outline" size={size} color={color} />,
+        tabBarLabel: 'رقم التواصل',
+        tabBarIcon: ({ color, size }) => <Ionicons name="call-outline" size={size} color={color} />,
       }}
     />
     <Tab.Screen
