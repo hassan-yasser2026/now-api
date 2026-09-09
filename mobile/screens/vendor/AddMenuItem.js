@@ -40,7 +40,9 @@ const AddMenuItem = ({ navigation, route }) => {
   const { user } = useAppStore();
   const item = route?.params?.item || null;
   const isEditMode = Boolean(item || route?.params?.mode === 'edit');
-  const storeId = route?.params?.storeId || user?.storeId || user?.store?.id || user?.id;
+  const initialStoreId = route?.params?.storeId || user?.storeId || user?.store?.id || null;
+  const [resolvedStoreId, setResolvedStoreId] = useState(initialStoreId);
+  const storeId = resolvedStoreId || user?.id;
 
   const [name, setName] = useState(item?.name || '');
   const [price, setPrice] = useState(item?.price ? String(item.price) : '');
@@ -184,6 +186,18 @@ const AddMenuItem = ({ navigation, route }) => {
       return;
     }
 
+    let targetStoreId = storeId;
+    if (!resolvedStoreId && user?.id) {
+      const storeResult = await storeService.getVendorStore(user.id);
+      targetStoreId = storeResult.store?.id;
+      if (targetStoreId) setResolvedStoreId(targetStoreId);
+    }
+
+    if (!targetStoreId) {
+      Alert.alert('تعذر إضافة الصنف', 'لم يتم العثور على متجر مرتبط بهذا الحساب');
+      return;
+    }
+
     const itemData = {
       name: trimmedName,
       price: Number(numericPrice.toFixed(2)),
@@ -196,8 +210,8 @@ const AddMenuItem = ({ navigation, route }) => {
       setLoading(true);
 
       const result = isEditMode
-        ? await storeService.updateMenuItem(storeId, item?.id, itemData)
-        : await storeService.addMenuItem(storeId, itemData);
+        ? await storeService.updateMenuItem(targetStoreId, item?.id, itemData)
+        : await storeService.addMenuItem(targetStoreId, itemData);
 
       if (result?.success) {
         Alert.alert(
@@ -245,6 +259,7 @@ const AddMenuItem = ({ navigation, route }) => {
     item,
     isEditMode,
     storeId,
+    resolvedStoreId,
     user?.id,
     navigation,
   ]);

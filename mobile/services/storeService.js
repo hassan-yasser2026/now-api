@@ -146,6 +146,21 @@ const storeService = {
     }
   },
 
+  getVendorStore: async (vendorId) => {
+    try {
+      if (!vendorId) return { success: false, store: null, message: 'رقم البائع مطلوب' };
+      const response = await api.get(`/vendor/${vendorId}/store`);
+      return { success: true, store: normalizeStore(response) };
+    } catch (error) {
+      console.error('GET VENDOR STORE ERROR:', error?.response?.data || error.message);
+      return {
+        success: false,
+        store: null,
+        message: getErrorMessage(error, 'فشل جلب بيانات المتجر'),
+      };
+    }
+  },
+
   addMenuItem: async (storeId, itemData) => {
     try {
       if (!storeId) return { success: false, message: 'رقم المتجر مطلوب' };
