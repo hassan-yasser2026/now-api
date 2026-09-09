@@ -142,6 +142,14 @@ const storeService = {
       const response = await api.get(`/vendor/${vendorId}/menu`);
       return { success: true, menu: normalizeMenu(response) };
     } catch (error) {
+      if (error?.response?.status === 404) {
+        const storeResult = await storeService.getVendorStore(vendorId);
+        if (storeResult.success && storeResult.store?.id) {
+          return storeService.getMenu(storeResult.store.id);
+        }
+      }
+
+      console.error('GET VENDOR MENU ERROR:', error?.response?.data || error.message);
       return { success: false, menu: [], message: getErrorMessage(error, 'فشل جلب قائمة الأصناف') };
     }
   },
