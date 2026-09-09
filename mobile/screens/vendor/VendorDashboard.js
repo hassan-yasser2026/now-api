@@ -11,7 +11,7 @@ import {
   View,
 } from 'react-native';
 import useAppStore from '../../store/appStore';
-import api from '../../services/api';
+import storeService from '../../services/storeService';
 
 const MENU_ITEMS = [
   { label: 'الرئيسية', icon: '🏠', route: 'VendorDashboard' },
@@ -39,37 +39,18 @@ const VendorDashboard = ({ navigation }) => {
   const displayName = user?.name && !user.name.includes('?') ? user.name : 'المهندس حسن';
 
   useEffect(() => {
-    if (storeId || !user?.id) return;
+    if (!user?.id) return;
 
     const loadVendorStore = async () => {
       try {
-        const response = await api.get(`/vendor/${user.id}/store`);
-        const vendorStore = response.data?.data ?? response.data;
-        if (vendorStore?.id) {
-          setStoreId(vendorStore.id);
-          setStoreOpen(vendorStore.isOpen !== false);
+        const result = await storeService.getVendorStore(user.id);
+        if (result.success && result.store?.id) {
+          setStoreId(result.store.id);
+          setStoreOpen(result.store.isOpen !== false);
+          return;
         }
+        throw new Error(result.message || 'تعذر تحميل المتجر');
       } catch (error) {
-        try {
-          const response = await api.get('/stores');
-          const stores = response.data?.data?.stores
-            || response.data?.data
-            || response.data?.stores
-            || response.data;
-          const vendorStore = Array.isArray(stores)
-            ? stores.find((store) => (
-              Number(store?.vendorId) === Number(user.id)
-              || Number(store?.vendor?.id) === Number(user.id)
-            ))
-            : null;
-          if (vendorStore?.id) {
-            setStoreId(vendorStore.id);
-            setStoreOpen(vendorStore.isOpen !== false);
-            return;
-          }
-        } catch (fallbackError) {
-          console.error('Unable to load vendor store:', fallbackError);
-        }
         console.error('Unable to load vendor store:', error);
       }
     };
@@ -110,7 +91,10 @@ const VendorDashboard = ({ navigation }) => {
 
     setStatusUpdating(true);
     try {
-      await api.put(`/stores/${storeId}`, { isOpen });
+      const result = await storeService.updateStore(storeId, { isOpen });
+      if (!result.success) {
+        throw new Error(result.message || 'تعذر تغيير حالة المتجر');
+      }
       setStoreOpen(isOpen);
       setStatusModalVisible(false);
       Alert.alert('تم بنجاح', isOpen ? 'تم فتح المتجر واستقبال الطلبات.' : 'تم قفل المتجر وإيقاف استقبال الطلبات.');
