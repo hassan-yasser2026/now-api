@@ -24,6 +24,7 @@ const prisma = new PrismaClient();
 const PORT = Number(process.env.PORT) || 5000;
 const NODE_ENV = process.env.NODE_ENV || 'development';
 const WEB_DIST_PATH = path.join(__dirname, 'dist');
+const ADMIN_WEB_PATH = path.join(__dirname, 'admin-web');
 
 const JWT_SECRET = process.env.JWT_SECRET;
 
@@ -4498,6 +4499,11 @@ app.delete(
 // ============================================================
 // 404
 // ============================================================
+
+// Serve the standalone admin center from the same API deployment.
+if (fs.existsSync(ADMIN_WEB_PATH)) {
+  app.use('/admin', express.static(ADMIN_WEB_PATH));
+}
 
 if (fs.existsSync(WEB_DIST_PATH)) {
   app.use(express.static(WEB_DIST_PATH));
