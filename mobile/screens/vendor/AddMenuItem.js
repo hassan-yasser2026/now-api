@@ -186,28 +186,36 @@ const AddMenuItem = ({ navigation, route }) => {
       return;
     }
 
-    let targetStoreId = storeId;
-    if (!resolvedStoreId && user?.id) {
-      const storeResult = await storeService.getVendorStore(user.id);
-      targetStoreId = storeResult.store?.id;
-      if (targetStoreId) setResolvedStoreId(targetStoreId);
-    }
-
-    if (!targetStoreId) {
-      Alert.alert('تعذر إضافة الصنف', 'لم يتم العثور على متجر مرتبط بهذا الحساب');
-      return;
-    }
-
-    const itemData = {
-      name: trimmedName,
-      price: Number(numericPrice.toFixed(2)),
-      description: trimmedDescription,
-      image: imageUrl.trim() || null,
-      isAvailable: item?.isAvailable !== false,
-    };
-
     try {
       setLoading(true);
+
+      let targetStoreId = storeId;
+      if (!resolvedStoreId && user?.id) {
+        const storeResult = await storeService.getVendorStore(user.id);
+        if (!storeResult.success || !storeResult.store?.id) {
+          Alert.alert(
+            'تعذر إضافة الصنف',
+            storeResult.message || 'لم يتم العثور على متجر مرتبط بهذا الحساب'
+          );
+          return;
+        }
+
+        targetStoreId = storeResult.store.id;
+        setResolvedStoreId(targetStoreId);
+      }
+
+      if (!targetStoreId) {
+        Alert.alert('تعذر إضافة الصنف', 'لم يتم العثور على متجر مرتبط بهذا الحساب');
+        return;
+      }
+
+      const itemData = {
+        name: trimmedName,
+        price: Number(numericPrice.toFixed(2)),
+        description: trimmedDescription,
+        image: imageUrl.trim() || null,
+        isAvailable: item?.isAvailable !== false,
+      };
 
       const result = isEditMode
         ? await storeService.updateMenuItem(targetStoreId, item?.id, itemData)
