@@ -40,9 +40,9 @@ const AddMenuItem = ({ navigation, route }) => {
   const { user } = useAppStore();
   const item = route?.params?.item || null;
   const isEditMode = Boolean(item || route?.params?.mode === 'edit');
-  const initialStoreId = route?.params?.storeId || user?.storeId || user?.store?.id || null;
+  const initialStoreId = route?.params?.storeId || null;
   const [resolvedStoreId, setResolvedStoreId] = useState(initialStoreId);
-  const storeId = resolvedStoreId || user?.id;
+  const storeId = resolvedStoreId;
 
   const [name, setName] = useState(item?.name || '');
   const [price, setPrice] = useState(item?.price ? String(item.price) : '');
@@ -190,7 +190,7 @@ const AddMenuItem = ({ navigation, route }) => {
       setLoading(true);
 
       let targetStoreId = storeId;
-      if (!resolvedStoreId && user?.id) {
+      if (user?.id) {
         const storeResult = await storeService.getVendorStore(user.id);
         if (!storeResult.success || !storeResult.store?.id) {
           Alert.alert(
@@ -201,7 +201,9 @@ const AddMenuItem = ({ navigation, route }) => {
         }
 
         targetStoreId = storeResult.store.id;
-        setResolvedStoreId(targetStoreId);
+        if (targetStoreId !== resolvedStoreId) {
+          setResolvedStoreId(targetStoreId);
+        }
       }
 
       if (!targetStoreId) {
