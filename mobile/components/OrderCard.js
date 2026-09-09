@@ -92,7 +92,7 @@ export default function OrderCard({
 
         <Text style={styles.infoText}>
           {order.storeName ||
-            'متجر ناو'}
+            'متجر NOW'}
         </Text>
       </View>
 

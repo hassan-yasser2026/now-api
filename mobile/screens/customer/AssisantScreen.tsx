@@ -27,7 +27,7 @@ const AssistantScreen: React.FC = () => {
   const [messages, setMessages] = useState<Message[]>([
     {
       id: '1',
-      text: 'أهلاً بك! 👋 أنا مساعد ناو الذكي. كيف أقدر أساعدك اليوم؟',
+      text: 'أهلاً بك! 👋 أنا مساعد NOW الذكي. كيف أقدر أساعدك اليوم؟',
       sender: 'assistant',
       timestamp: new Date().toISOString(),
     },
@@ -117,7 +117,7 @@ const AssistantScreen: React.FC = () => {
             <Ionicons name="chatbubble-ellipses" size={24} color="#FFFFFF" />
           </View>
           <View>
-            <Text style={styles.headerTitle}>مساعد ناو</Text>
+            <Text style={styles.headerTitle}>مساعد NOW</Text>
             <View style={styles.onlineRow}>
               <View style={styles.onlineDot} />
               <Text style={styles.onlineText}>متاح الآن</Text>

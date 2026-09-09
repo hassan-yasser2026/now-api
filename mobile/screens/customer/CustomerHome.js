@@ -722,7 +722,7 @@ const CustomerHome = ({ navigation }) => {
             { key: 'partner', label: 'انضم كشريك', icon: 'hand-left-outline' },
             { key: 'home', label: 'الرئيسية', icon: 'home', active: true },
             { key: 'orders', label: 'طلباتي', icon: 'receipt-outline' },
-            { key: 'about', label: 'حول تطبيق ناو', icon: 'information-circle-outline' },
+            { key: 'about', label: 'حول تطبيق NOW', icon: 'information-circle-outline' },
           ].map((item) => (
             <Pressable
               key={item.key}

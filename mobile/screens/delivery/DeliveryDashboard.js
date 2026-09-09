@@ -1865,7 +1865,7 @@ const DeliveryDashboard = ({ navigation }) => {
         />
 
         <Text style={styles.aboutText}>
-          حول تطبيق ناو
+          حول تطبيق NOW
         </Text>
       </TouchableOpacity>
     </View>

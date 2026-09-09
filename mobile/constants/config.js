@@ -1,9 +1,9 @@
 // التكوينات العامة لتطبيق NOW
 
 export const CONFIG = {
-  APP_NAME_AR: 'ناو',
+  APP_NAME_AR: 'NOW',
   APP_NAME_EN: 'NOW',
-  APP_NAME: 'ناو',
+  APP_NAME: 'NOW',
 
   APP_VERSION: '1.0.0',
 

@@ -1,6 +1,6 @@
 const translations = {
   ar: {
-    appName: 'ناو',
+    appName: 'NOW',
 
     common: {
       cancel: 'إلغاء',
@@ -69,7 +69,7 @@ const translations = {
     },
 
     assistant: {
-      title: 'مساعد ناو',
+      title: 'مساعد NOW',
       online: 'متاح الآن',
       placeholder: 'اكتب رسالتك...',
     },

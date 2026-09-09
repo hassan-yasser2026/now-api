@@ -206,7 +206,7 @@ const LoginScreen = ({ navigation, route }) => {
           </View>
 
           <Text style={styles.title}>
-            ناو
+            NOW
           </Text>
 
           <Text style={styles.subtitle}>
@@ -226,7 +226,7 @@ const LoginScreen = ({ navigation, route }) => {
           <Text style={styles.welcomeSubtitle}>
             {isPartnerLogin
               ? 'ادخل لإدارة متجرك أو متابعة طلبات التوصيل'
-              : 'سجل دخولك علشان تكمل استخدام ناو'}
+              : 'سجل دخولك علشان تكمل استخدام NOW'}
           </Text>
 
           {/* ====================================
@@ -408,7 +408,7 @@ const LoginScreen = ({ navigation, route }) => {
             />
 
             <Text style={styles.aboutText}>
-              حول تطبيق ناو
+              حول تطبيق NOW
             </Text>
           </TouchableOpacity>
         </View>
@@ -419,7 +419,7 @@ const LoginScreen = ({ navigation, route }) => {
 
         <View style={styles.footer}>
           <Text style={styles.footerText}>
-            ناو © 2026
+            NOW © 2026
           </Text>
 
           <Text style={styles.footerSubText}>

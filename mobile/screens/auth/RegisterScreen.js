@@ -309,7 +309,7 @@ const RegisterScreen = ({ navigation, route }) => {
           </Text>
 
           <Text style={styles.sectionSubtitle}>
-            أدخل بياناتك لإنشاء حسابك في ناو
+            أدخل بياناتك لإنشاء حسابك في NOW
           </Text>
 
           {/* ====================================

@@ -5,7 +5,7 @@ import colors from '../constants/colors';
 export default function SplashScreen() {
   return (
     <View style={styles.container}>
-      <Text style={styles.brand}>ناو</Text>
+      <Text style={styles.brand}>NOW</Text>
       <ActivityIndicator size="small" color={colors.white} style={styles.spinner} />
     </View>
   );
