@@ -89,9 +89,11 @@ const LoginScreen = ({ navigation, route }) => {
     try {
       setLoading(true);
 
-      // Keep the national form for compatibility with deployed API versions
-      // that store legacy Egyptian numbers without the country prefix.
-      const result = await authService.login(phone, password);
+      // Keep the legacy Egyptian trunk prefix for deployed API versions that
+      // store local numbers without the country prefix.
+      const loginPhone =
+        country === 'EG' && !phone.startsWith('0') ? `0${phone}` : phone;
+      const result = await authService.login(loginPhone, password);
 
       if (!result?.success) {
         Alert.alert(
