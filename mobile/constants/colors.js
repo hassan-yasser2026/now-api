@@ -3,9 +3,9 @@
 
 export const COLORS = {
   // الأساسية
-  primary: '#EC4899',
-  primaryDark: '#BE185D',
-  secondary: '#DB2777',
+  primary: '#06B6D4',
+  primaryDark: '#0E7490',
+  secondary: '#0891B2',
   white: '#FFFFFF',
 
   // الخلفيات والأسطح
@@ -28,8 +28,8 @@ export const COLORS = {
   border: '#E5E7EB',
 
   // ألوان إضافية يمكن استخدامها
-  primaryLight: '#FCE4EC',
-  secondaryLight: '#F3E8FF',
+  primaryLight: '#CFFAFE',
+  secondaryLight: '#E0F2FE',
   textLight: '#94A3B8',
   shadow: 'rgba(0,0,0,0.05)',
 };

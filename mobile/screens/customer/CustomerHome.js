@@ -313,14 +313,14 @@ const CustomerHome = ({ navigation }) => {
       id: 'offer-fast',
       title: 'توصيل سريع',
       subtitle: 'من المتاجر القريبة خلال 25 دقيقة',
-      gradient: ['#EC4899', '#F97316'],
+      gradient: ['#06B6D4', '#0891B2'],
       icon: 'flash-outline',
     },
     {
       id: 'offer-sale',
       title: 'خصومات اليوم',
       subtitle: 'وفر حتى 30% على طلباتك الأولى',
-      gradient: ['#8B5CF6', '#EC4899'],
+      gradient: ['#22D3EE', '#06B6D4'],
       icon: 'pricetag-outline',
     },
     {

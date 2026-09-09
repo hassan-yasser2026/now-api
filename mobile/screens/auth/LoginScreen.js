@@ -587,7 +587,7 @@ const styles = StyleSheet.create({
     alignSelf: 'center',
     width: 150,
     height: 58,
-    shadowColor: '#EC4899',
+    shadowColor: '#06B6D4',
     shadowOffset: { width: 0, height: 8 },
     shadowOpacity: 0.28,
     shadowRadius: 12,

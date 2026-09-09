@@ -23,8 +23,8 @@ export const lightTheme = {
   fonts: baseFonts,
   colors: {
     // الألوان الأساسية
-    primary: '#EC4899',
-    secondary: '#DB2777',
+    primary: '#06B6D4',
+    secondary: '#0891B2',
 
     // الخلفيات والأسطح
     background: '#F8FAFC',
@@ -45,7 +45,7 @@ export const lightTheme = {
 
     // ألوان إضافية لـ NavigationContainer
     card: '#FFFFFF',
-    notification: '#EC4899',
+    notification: '#06B6D4',
   },
 };
 
@@ -54,8 +54,8 @@ export const darkTheme = {
   fonts: baseFonts,
   colors: {
     // الألوان الأساسية (نفسها في الوضع الداكن)
-    primary: '#EC4899',
-    secondary: '#DB2777',
+    primary: '#06B6D4',
+    secondary: '#0891B2',
 
     // الخلفيات والأسطح (داكنة)
     background: '#111827',
@@ -76,6 +76,6 @@ export const darkTheme = {
 
     // ألوان إضافية لـ NavigationContainer
     card: '#1F2937',
-    notification: '#EC4899',
+    notification: '#06B6D4',
   },
 };

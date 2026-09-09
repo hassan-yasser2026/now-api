@@ -7,7 +7,7 @@
   "display": "standalone",
   "orientation": "portrait",
   "background_color": "#F8FAFC",
-  "theme_color": "#EC4899",
+  "theme_color": "#06B6D4",
   "icons": [
     {
       "src": "/now-logo.png",
