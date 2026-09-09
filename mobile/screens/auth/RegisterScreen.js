@@ -15,13 +15,13 @@ import {
 
 import { LinearGradient } from 'expo-linear-gradient';
 import * as ImagePicker from 'expo-image-picker';
-import * as Location from 'expo-location';
 import { Ionicons } from '@expo/vector-icons';
 
 import { COLORS } from '../../constants/colors';
 import { authService } from '../../services/authService';
 import PhoneInput from '../../components/PhoneInput';
 import useAppStore from '../../store/appStore';
+import { getCurrentLocation } from '../../utils/location';
 
 const RegisterScreen = ({ navigation, route }) => {
   const role = route?.params?.role === 'vendor' || route?.params?.role === 'delivery'
@@ -91,19 +91,16 @@ const RegisterScreen = ({ navigation, route }) => {
   const pickLocation = async () => {
     if (loading) return;
 
-    const permission = await Location.requestForegroundPermissionsAsync();
-    if (permission.status !== 'granted') {
-      Alert.alert('السماح بالموقع مطلوب', 'اسمح للتطبيق بالوصول إلى موقعك اختياريًا.');
-      return;
+    try {
+      const point = await getCurrentLocation();
+      setLocation(point);
+      Alert.alert('تم تحديد الموقع', 'تم حفظ موقعك الحالي بنجاح.');
+    } catch (error) {
+      Alert.alert(
+        'تعذر تحديد الموقع',
+        error?.message || 'اسمح بالوصول إلى الموقع ثم حاول مرة أخرى.'
+      );
     }
-
-    const position = await Location.getCurrentPositionAsync({
-      accuracy: Location.Accuracy.Balanced,
-    });
-    setLocation({
-      latitude: position.coords.latitude,
-      longitude: position.coords.longitude,
-    });
   };
 
   // ==========================================

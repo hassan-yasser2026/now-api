@@ -9,13 +9,13 @@ import {
   View,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import * as Location from 'expo-location';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { COLORS } from '../constants/colors';
 import { DEFAULT_CENTER } from '../utils/mapHtml';
 import LocationMap from './LocationMap';
 import useAppStore from '../store/appStore';
+import { getCurrentLocation } from '../utils/location';
 const MAP_ACCENT = '#00A6B8';
 
 /**
@@ -53,25 +53,16 @@ const LocationPickerModal = ({
     try {
       setLocating(true);
 
-      const { status } = await Location.requestForegroundPermissionsAsync();
-      if (status !== 'granted') {
-        Alert.alert('تنبيه', 'لم يتم منح إذن الوصول إلى الموقع');
-        return;
-      }
-
-      const position = await Location.getCurrentPositionAsync({
-        accuracy: Location.Accuracy.Balanced,
-      });
-
-      const point = {
-        lat: position.coords.latitude,
-        lng: position.coords.longitude,
-      };
+      const position = await getCurrentLocation();
+      const point = { lat: position.latitude, lng: position.longitude };
 
       setPicked(point);
       mapRef.current?.setPick(point.lat, point.lng);
-    } catch {
-      Alert.alert('خطأ', 'تعذر تحديد موقعك الحالي');
+    } catch (error) {
+      Alert.alert(
+        'تعذر تحديد الموقع',
+        error?.message || 'اسمح بالوصول إلى الموقع ثم حاول مرة أخرى.'
+      );
     } finally {
       setLocating(false);
     }
