@@ -93,7 +93,10 @@ const LoginScreen = ({ navigation, route }) => {
       // store local numbers without the country prefix.
       const loginPhone =
         country === 'EG' && !phone.startsWith('0') ? `0${phone}` : phone;
-      const result = await authService.login(loginPhone, password);
+      let result = await authService.login(loginPhone, password);
+      if (!result?.success && phoneE164 && phoneE164 !== loginPhone) {
+        result = await authService.login(phoneE164, password);
+      }
 
       if (!result?.success) {
         Alert.alert(
