@@ -86,7 +86,13 @@ const storeService = {
   updateStore: async (storeId, storeData) => {
     try {
       if (!storeId) return { success: false, message: 'رقم المتجر مطلوب' };
-      const response = await api.put(`/stores/${storeId}`, storeData);
+      let response;
+      try {
+        response = await api.put(`/stores/${storeId}`, storeData);
+      } catch (error) {
+        if (error?.response?.status !== 404) throw error;
+        response = await api.patch(`/stores/${storeId}`, storeData);
+      }
       return {
         success: true,
         store: normalizeStore(response),
