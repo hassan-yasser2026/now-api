@@ -74,34 +74,6 @@ const AboutScreen = ({ navigation }) => {
     },
   ];
 
-  const upcomingFeatures = [
-    {
-      icon: 'chatbubble-ellipses-outline',
-      title: 'المساعد الذكي',
-      description: 'دعم ذكي لمساعدة العملاء والإجابة عن الاستفسارات.',
-    },
-    {
-      icon: 'card-outline',
-      title: 'الدفع الإلكتروني',
-      description: 'دعم وسائل دفع إلكترونية متعددة.',
-    },
-    {
-      icon: 'analytics-outline',
-      title: 'الإحصائيات',
-      description: 'تقارير وإحصائيات متقدمة لأصحاب المتاجر والإدارة.',
-    },
-    {
-      icon: 'location-outline',
-      title: 'التتبع المباشر',
-      description: 'متابعة موقع المندوب والطلب بشكل مباشر.',
-    },
-    {
-      icon: 'notifications-outline',
-      title: 'الإشعارات',
-      description: 'تنبيهات فورية لحالة الطلب والتحديثات المهمة.',
-    },
-  ];
-
   const openUrl = async (url, errorMessage) => {
     try {
       const supported = await Linking.canOpenURL(url);
@@ -159,29 +131,6 @@ const AboutScreen = ({ navigation }) => {
         size={22}
         color={COLORS.success}
       />
-    </View>
-  );
-
-  const renderUpcomingFeature = (item, index) => (
-    <View key={`${item.title}-${index}`} style={styles.upcomingRow}>
-      <View style={styles.upcomingIcon}>
-        <Ionicons
-          name={item.icon}
-          size={21}
-          color={COLORS.secondary}
-        />
-      </View>
-
-      <View style={styles.featureInfo}>
-        <Text style={styles.featureTitle}>{item.title}</Text>
-        <Text style={styles.featureDescription}>
-          {item.description}
-        </Text>
-      </View>
-
-      <View style={styles.soonBadge}>
-        <Text style={styles.soonText}>قريبًا</Text>
-      </View>
     </View>
   );
 
@@ -321,35 +270,6 @@ const AboutScreen = ({ navigation }) => {
 
           <View style={styles.featureList}>
             {features.map(renderFeature)}
-          </View>
-        </View>
-
-        {/* Upcoming Features */}
-        <View style={styles.card}>
-          <View style={styles.cardHeader}>
-            <View style={styles.cardHeaderIconSecondary}>
-              <Ionicons
-                name="sparkles-outline"
-                size={22}
-                color={COLORS.secondary}
-              />
-            </View>
-
-            <View style={styles.titleWithBadge}>
-              <Text style={styles.cardTitle}>
-                الميزات القادمة
-              </Text>
-
-              <View style={styles.v2Badge}>
-                <Text style={styles.v2Text}>
-                  V2.0
-                </Text>
-              </View>
-            </View>
-          </View>
-
-          <View style={styles.featureList}>
-            {upcomingFeatures.map(renderUpcomingFeature)}
           </View>
         </View>
 
@@ -634,41 +554,11 @@ const styles = StyleSheet.create({
     marginRight: 10,
   },
 
-  cardHeaderIconSecondary: {
-    width: 42,
-    height: 42,
-    borderRadius: 13,
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: COLORS.secondaryLight,
-    marginRight: 10,
-  },
-
   cardTitle: {
     flex: 1,
     fontSize: 19,
     fontWeight: '800',
     color: COLORS.textPrimary,
-  },
-
-  titleWithBadge: {
-    flex: 1,
-    flexDirection: 'row',
-    alignItems: 'center',
-  },
-
-  v2Badge: {
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-    borderRadius: 8,
-    backgroundColor: COLORS.secondaryLight,
-    marginLeft: 8,
-  },
-
-  v2Text: {
-    color: COLORS.secondary,
-    fontSize: 10,
-    fontWeight: '800',
   },
 
   cardText: {
@@ -683,16 +573,6 @@ const styles = StyleSheet.create({
   },
 
   featureRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: COLORS.background,
-    borderRadius: 15,
-    padding: 12,
-    borderWidth: 1,
-    borderColor: COLORS.border,
-  },
-
-  upcomingRow: {
     flexDirection: 'row',
     alignItems: 'center',
     backgroundColor: COLORS.background,
@@ -732,16 +612,6 @@ const styles = StyleSheet.create({
     marginRight: 10,
   },
 
-  upcomingIcon: {
-    width: 42,
-    height: 42,
-    borderRadius: 13,
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: COLORS.secondaryLight,
-    marginRight: 10,
-  },
-
   featureInfo: {
     flex: 1,
   },
@@ -759,20 +629,6 @@ const styles = StyleSheet.create({
     lineHeight: 19,
     marginTop: 3,
     textAlign: 'right',
-  },
-
-  soonBadge: {
-    backgroundColor: COLORS.warning + '18',
-    paddingHorizontal: 8,
-    paddingVertical: 5,
-    borderRadius: 8,
-    marginLeft: 8,
-  },
-
-  soonText: {
-    color: COLORS.warning,
-    fontSize: 10,
-    fontWeight: '800',
   },
 
   contactButton: {
