@@ -22,7 +22,7 @@ const authRoutes = require('./server/routes/auth.routes');
 const app = express();
 const prisma = new PrismaClient();
 
-const PORT = Number(process.env.PORT) || 5000;
+const PORT = Number.parseInt(process.env.PORT, 10) || 5000;
 const NODE_ENV = process.env.NODE_ENV || 'development';
 const WEB_DIST_PATH = path.join(__dirname, 'dist');
 const ADMIN_WEB_PATH = path.join(__dirname, 'admin-web');
