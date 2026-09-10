@@ -9,6 +9,15 @@ const STATUS_LABELS = {
   REJECTED: 'مرفوض',
 };
 
+const REJECTION_REASON_LABELS = {
+  INVALID_INFORMATION: 'بيانات غير صحيحة',
+  POLICY_VIOLATION: 'مخالفة السياسات',
+  DUPLICATE: 'محتوى مكرر',
+  PRICING_ISSUE: 'مشكلة في السعر',
+  QUALITY_ISSUE: 'مشكلة في الجودة',
+  OTHER: 'سبب آخر',
+};
+
 export default function VendorOffers({ navigation }) {
   const { user } = useAppStore();
   const [offers, setOffers] = useState([]);
@@ -71,7 +80,7 @@ export default function VendorOffers({ navigation }) {
             <Text style={styles.cardTitle}>{item.title}</Text>
             <Text style={styles.cardText}>{item.discountValue}% خصم</Text>
             <Text style={styles.status}>{STATUS_LABELS[item.approvalStatus] || item.approvalStatus}</Text>
-            {item.rejectionReason ? <Text style={styles.reason}>سبب الرفض: {item.rejectionReason}</Text> : null}
+            {item.rejectionReason ? <Text style={styles.reason}>سبب الرفض: {REJECTION_REASON_LABELS[item.rejectionReason] || item.rejectionReason}</Text> : null}
           </View>
         )}
         ListEmptyComponent={<Text style={styles.empty}>لم تُنشئ عروضًا بعد</Text>}

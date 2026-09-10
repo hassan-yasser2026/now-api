@@ -11,6 +11,7 @@ import {
   Alert,
   FlatList,
   Linking,
+  Platform,
   RefreshControl,
   StyleSheet,
   Text,
@@ -268,6 +269,7 @@ const DeliveryDashboard = ({ navigation }) => {
 
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
+  const [locationReady, setLocationReady] = useState(false);
 
   const [processingOrderId, setProcessingOrderId] =
     useState(null);
@@ -293,6 +295,26 @@ const DeliveryDashboard = ({ navigation }) => {
      FETCH ORDERS
   ======================================================= */
 
+  const ensureCurrentLocation = useCallback(async () => {
+    if (locationReady) return true;
+
+    const { status } = await Location.requestForegroundPermissionsAsync();
+    if (status !== 'granted') {
+      Alert.alert('الموقع مطلوب', 'يجب السماح بالموقع الحالي لاستقبال وإدارة الطلبات.');
+      return false;
+    }
+
+    const position = await Location.getCurrentPositionAsync({
+      accuracy: Location.Accuracy.High,
+    });
+    await deliveryService.updateLocation({
+      latitude: position.coords.latitude,
+      longitude: position.coords.longitude,
+    });
+    setLocationReady(true);
+    return true;
+  }, [locationReady]);
+
   const fetchOrders = useCallback(
     async ({ silent = false } = {}) => {
       if (!silent && mountedRef.current) {
@@ -304,6 +326,12 @@ const DeliveryDashboard = ({ navigation }) => {
           if (mountedRef.current) {
             setOrders([]);
           }
+          return;
+        }
+
+        const hasCurrentLocation = await ensureCurrentLocation();
+        if (!hasCurrentLocation) {
+          setOrders([]);
           return;
         }
 
@@ -347,7 +375,7 @@ const DeliveryDashboard = ({ navigation }) => {
         }
       }
     },
-    [user?.id]
+    [ensureCurrentLocation, user?.id]
   );
 
   useEffect(() => {
@@ -784,6 +812,29 @@ const DeliveryDashboard = ({ navigation }) => {
     []
   );
 
+  const callSupport = useCallback(async () => {
+    const phone = '+201067254988';
+    const url = Platform.OS === 'web'
+      ? 'https://wa.me/201067254988?text=%D9%85%D8%B1%D8%AD%D8%A8%D8%A7%D8%8C%20%D8%A3%D8%AD%D8%AA%D8%A7%D8%AC%20%D9%85%D8%B3%D8%A7%D8%B9%D8%AF%D8%A9'
+      : `tel:${phone}`;
+
+    try {
+      await Linking.openURL(url);
+    } catch (error) {
+      Alert.alert(
+        'الدعم',
+        'تعذر فتح الاتصال. يمكنك التواصل عبر واتساب على 01067254988.',
+        [
+          { text: 'إلغاء', style: 'cancel' },
+          {
+            text: 'فتح واتساب',
+            onPress: () => Linking.openURL('https://wa.me/201067254988'),
+          },
+        ]
+      );
+    }
+  }, []);
+
   /* =======================================================
      SHARE MY LOCATION
      يرسل موقع المندوب الحالي ليظهر للعميل على خريطة التتبع.
@@ -943,6 +994,86 @@ const DeliveryDashboard = ({ navigation }) => {
       ]
     );
   }, [logout]);
+
+  const handleSidebarAction = useCallback((item) => {
+    const label = item?.label;
+
+    if (label === 'الرئيسية') {
+      setFilter('all');
+      return;
+    }
+
+    if (label === 'الطلبات') {
+      setFilter('all');
+      navigation.navigate('DeliveryOrders');
+      return;
+    }
+
+    if (label === 'المحفظة') {
+      navigation.navigate('DeliveryEarnings');
+      return;
+    }
+
+    if (label === 'الرحلات') {
+      navigation.navigate('DeliveryOrders');
+      return;
+    }
+
+    if (label === 'التقييمات') {
+      navigation.navigate('DeliveryRatings');
+      return;
+    }
+
+    if (label === 'الإشعارات') {
+      navigation.navigate('DeliveryNotifications');
+      return;
+    }
+
+    if (label === 'الدعم') {
+      callSupport();
+      return;
+    }
+
+    if (label === 'الملف الشخصي' || label === 'الإعدادات') {
+      navigation.navigate('DeliveryProfile');
+      return;
+    }
+
+    if (item?.action) item.action();
+  }, [callSupport, navigation]);
+
+  const handleBottomNavAction = useCallback((item, index) => {
+    if (!item) return;
+
+    if (item.label === 'الرئيسية') {
+      setFilter('all');
+      return;
+    }
+
+    if (item.label === 'الطلب' || item.label === 'الرحلات') {
+      navigation.navigate('DeliveryOrders');
+      return;
+    }
+
+    if (item.label === 'المحفظة') {
+      navigation.navigate('DeliveryEarnings');
+      return;
+    }
+
+    if (item.label === 'المزيد') {
+      navigation.navigate('DeliveryMore');
+      return;
+    }
+
+    if (item.action) {
+      item.action();
+      return;
+    }
+
+    if (index === 0) {
+      setFilter('all');
+    }
+  }, [navigation]);
 
   /* =======================================================
      ORDER CARD
@@ -1480,277 +1611,118 @@ const DeliveryDashboard = ({ navigation }) => {
 
   const renderHeader = useCallback(
     () => (
-      <View>
-        {/* TOP HEADER */}
-
-        <View style={styles.topHeader}>
-          <View style={styles.greetingBox}>
-            <Text style={styles.greeting}>
-              مرحباً{' '}
-              {user?.name || 'مندوب'} 🛵
-            </Text>
-
-            <Text
-              style={styles.subGreeting}
-            >
-              جاهز لتوصيل طلباتك؟
-            </Text>
+      <View style={styles.dashboardWrap}>
+        <View style={styles.topbar}>
+          <View style={styles.topbarRight}>
+            <Text style={styles.brand}>NOW</Text>
           </View>
 
-          <View style={styles.headerActions}>
-            <TouchableOpacity
-              style={styles.headerButton}
-              onPress={handleShareLocation}
-              disabled={sharingLocation}
-            >
+          <View style={styles.topbarActions}>
+            <TouchableOpacity style={styles.iconBubble} onPress={handleShareLocation} disabled={sharingLocation} activeOpacity={0.9}>
               {sharingLocation ? (
-                <ActivityIndicator
-                  size="small"
-                  color={COLORS.primary}
-                />
+                <ActivityIndicator size="small" color={COLORS.primary} />
               ) : (
-                <Ionicons
-                  name="locate-outline"
-                  size={26}
-                  color={COLORS.primary}
-                />
+                <Ionicons name="notifications-outline" size={20} color={COLORS.primary} />
               )}
+              <View style={styles.notificationDot} />
             </TouchableOpacity>
 
-            <TouchableOpacity
-              style={styles.headerButton}
-              onPress={() =>
-                navigation.navigate(
-                  'DeliveryProfile'
-                )
-              }
-            >
-              <Ionicons
-                name="person-circle-outline"
-                size={39}
-                color={COLORS.primary}
-              />
+            <TouchableOpacity style={styles.profileBubble} onPress={() => navigation.navigate('DeliveryProfile')} activeOpacity={0.9}>
+              <Ionicons name="person-circle-outline" size={30} color={COLORS.primary} />
             </TouchableOpacity>
 
-            <TouchableOpacity
-              style={styles.headerButton}
-              onPress={handleLogout}
-            >
-              <Ionicons
-                name="log-out-outline"
-                size={26}
-                color={COLORS.primary}
-              />
-            </TouchableOpacity>
+            <View style={styles.userTag}>
+              <Text style={styles.userTagText}>مندوب</Text>
+              <Text style={styles.userName}>{user?.name || 'أحمد محمد'}</Text>
+            </View>
           </View>
         </View>
 
-        {/* STATISTICS */}
-
-        <View style={styles.statsContainer}>
-          <View style={styles.statCard}>
-            <View
-              style={[
-                styles.statIcon,
-                styles.warningIcon,
-              ]}
-            >
-              <Ionicons
-                name="time-outline"
-                size={20}
-                color={COLORS.warning}
-              />
+        <View style={styles.heroCard}>
+          <View style={styles.heroTextWrap}>
+            <Text style={styles.heroTitle}>مرحبا بعودتك، {user?.name || 'المندوب'}</Text>
+            <Text style={styles.heroSubTitle}>حالة المندوب الآن</Text>
+            <View style={styles.statusRow}>
+              <View style={styles.onlineDot} />
+              <Text style={styles.statusText}>متصل ويستقبل الطلبات</Text>
             </View>
-
-            <Text style={styles.statNumber}>
-              {statistics.pending}
-            </Text>
-
-            <Text style={styles.statLabel}>
-              متاحة
-            </Text>
+            <Text style={styles.heroMeta}>أرباح اليوم: 450.00 ج.م • 12 طلب</Text>
           </View>
 
-          <View style={styles.statCard}>
-            <View
-              style={[
-                styles.statIcon,
-                styles.primaryIcon,
-              ]}
-            >
-              <Ionicons
-                name="bicycle-outline"
-                size={20}
-                color={COLORS.primary}
-              />
-            </View>
-
-            <Text style={styles.statNumber}>
-              {statistics.active}
-            </Text>
-
-            <Text style={styles.statLabel}>
-              جارية
-            </Text>
-          </View>
-
-          <View style={styles.statCard}>
-            <View
-              style={[
-                styles.statIcon,
-                styles.successIcon,
-              ]}
-            >
-              <Ionicons
-                name="checkmark-circle-outline"
-                size={20}
-                color={COLORS.success}
-              />
-            </View>
-
-            <Text style={styles.statNumber}>
-              {statistics.delivered}
-            </Text>
-
-            <Text style={styles.statLabel}>
-              مكتملة
-            </Text>
+          <View style={styles.heroVisual}>
+            <Text style={styles.riderBadge}>NOW</Text>
+            <Ionicons name="bicycle-outline" size={80} color={COLORS.primary} />
           </View>
         </View>
 
-        {/* COMPLETED TOTAL */}
-
-        <View style={styles.earningsCard}>
-          <View style={styles.earningsIcon}>
-            <Ionicons
-              name="wallet-outline"
-              size={25}
-              color="#fff"
-            />
+        <View style={styles.cardGrid}>
+          <View style={styles.metricCard}>
+            <View style={[styles.metricIcon, styles.metricWarning]}><Ionicons name="time-outline" size={20} color={COLORS.warning} /></View>
+            <Text style={styles.metricNumber}>{statistics.pending}</Text>
+            <Text style={styles.metricLabel}>طلبات جديدة</Text>
           </View>
 
-          <View style={styles.earningsInfo}>
-            <Text
-              style={styles.earningsTitle}
-            >
-              إجمالي قيمة الطلبات المكتملة
-            </Text>
+          <View style={styles.metricCard}>
+            <View style={[styles.metricIcon, styles.metricPrimary]}><Ionicons name="bicycle-outline" size={20} color={COLORS.primary} /></View>
+            <Text style={styles.metricNumber}>{statistics.active}</Text>
+            <Text style={styles.metricLabel}>قيد التوصيل</Text>
+          </View>
 
-            <Text
-              style={styles.earningsValue}
-            >
-              {statistics.deliveredTotal.toFixed(
-                2
-              )}{' '}
-              ج.م
-            </Text>
+          <View style={styles.metricCard}>
+            <View style={[styles.metricIcon, styles.metricSuccess]}><Ionicons name="checkmark-circle-outline" size={20} color={COLORS.success} /></View>
+            <Text style={styles.metricNumber}>{statistics.delivered}</Text>
+            <Text style={styles.metricLabel}>مكتملة</Text>
+          </View>
+
+          <View style={styles.metricCard}>
+            <View style={[styles.metricIcon, styles.metricPurple]}><Ionicons name="wallet-outline" size={20} color="#8B5CF6" /></View>
+            <Text style={styles.metricNumber}>{statistics.deliveredTotal.toFixed(0)}</Text>
+            <Text style={styles.metricLabel}>إجمالي الأرباح</Text>
           </View>
         </View>
-
-        {/* SEARCH */}
 
         <View style={styles.searchContainer}>
-          <Ionicons
-            name="search-outline"
-            size={21}
-            color={COLORS.textSecondary}
-          />
-
+          <Ionicons name="search-outline" size={20} color={COLORS.textSecondary} />
           <TextInput
             style={styles.searchInput}
             value={search}
             onChangeText={setSearch}
             placeholder="ابحث برقم الطلب أو العميل أو العنوان"
-            placeholderTextColor={
-              COLORS.textLight
-            }
+            placeholderTextColor={COLORS.textLight}
             textAlign="right"
             returnKeyType="search"
           />
-
           {search.length > 0 ? (
-            <TouchableOpacity
-              onPress={() =>
-                setSearch('')
-              }
-            >
-              <Ionicons
-                name="close-circle"
-                size={20}
-                color={
-                  COLORS.textSecondary
-                }
-              />
+            <TouchableOpacity onPress={() => setSearch('')}>
+              <Ionicons name="close-circle" size={18} color={COLORS.textSecondary} />
             </TouchableOpacity>
           ) : null}
         </View>
-
-        {/* FILTERS */}
 
         <FlatList
           horizontal
           showsHorizontalScrollIndicator={false}
           data={FILTERS}
-          keyExtractor={(item) =>
-            item.id
-          }
-          contentContainerStyle={
-            styles.filtersContainer
-          }
+          keyExtractor={(item) => item.id}
+          contentContainerStyle={styles.filtersContainer}
           renderItem={({ item }) => {
-            const active =
-              filter === item.id;
-
+            const active = filter === item.id;
             return (
               <TouchableOpacity
-                style={[
-                  styles.filterButton,
-                  active &&
-                    styles.filterButtonActive,
-                ]}
-                onPress={() =>
-                  setFilter(item.id)
-                }
+                style={[styles.filterButton, active && styles.filterButtonActive]}
+                onPress={() => setFilter(item.id)}
                 activeOpacity={0.8}
               >
-                <Ionicons
-                  name={item.icon}
-                  size={16}
-                  color={
-                    active
-                      ? '#fff'
-                      : COLORS.textSecondary
-                  }
-                />
-
-                <Text
-                  style={[
-                    styles.filterText,
-                    active &&
-                      styles.filterTextActive,
-                  ]}
-                >
-                  {item.label}
-                </Text>
+                <Ionicons name={item.icon} size={16} color={active ? '#fff' : COLORS.textSecondary} />
+                <Text style={[styles.filterText, active && styles.filterTextActive]}>{item.label}</Text>
               </TouchableOpacity>
             );
           }}
         />
 
-        {/* SECTION TITLE */}
-
         <View style={styles.sectionHeader}>
-          <Text
-            style={styles.sectionTitle}
-          >
-            الطلبات
-          </Text>
-
-          <Text
-            style={styles.resultsCount}
-          >
-            {filteredOrders.length} طلب
-          </Text>
+          <Text style={styles.sectionTitle}>الطلبات</Text>
+          <Text style={styles.resultsCount}>{filteredOrders.length} طلب</Text>
         </View>
       </View>
     ),
@@ -1813,69 +1785,84 @@ const DeliveryDashboard = ({ navigation }) => {
   ======================================================= */
 
   return (
-    <View style={styles.container}>
-      <FlatList
-        data={filteredOrders}
-        renderItem={renderOrder}
-        keyExtractor={(item, index) =>
-          String(
-            item?.id ?? index
-          )
-        }
-        ListHeaderComponent={
-          renderHeader
-        }
-        ListEmptyComponent={
-          renderEmpty
-        }
-        contentContainerStyle={[
-          styles.listContent,
-          filteredOrders.length === 0 &&
-            styles.emptyListContent,
-        ]}
-        refreshControl={
-          <RefreshControl
-            refreshing={refreshing}
-            onRefresh={handleRefresh}
-            colors={[
-              COLORS.primary,
-            ]}
-            tintColor={
-              COLORS.primary
-            }
-          />
-        }
-        showsVerticalScrollIndicator={
-          false
-        }
-        keyboardShouldPersistTaps="handled"
-        extraData={{
-          processingOrderId,
-          expandedOrderId,
-        }}
-      />
+    <View style={styles.shell}>
+      <View style={styles.sidebar}>
+        <Text style={styles.logo}>NOW</Text>
 
-      {/* ABOUT */}
+        <View style={styles.sidebarList}>
+          {[
+            { label: 'الرئيسية', icon: 'home-outline', active: true },
+            { label: 'الطلبات', icon: 'clipboard-outline', active: false },
+            { label: 'المحفظة', icon: 'wallet-outline', active: false },
+            { label: 'الرحلات', icon: 'map-outline', active: false },
+            { label: 'التقييمات', icon: 'star-outline', active: false },
+            { label: 'الإشعارات', icon: 'notifications-outline', active: false },
+            { label: 'الدعم', icon: 'chatbubbles-outline', active: false },
+            { label: 'الملف الشخصي', icon: 'person-outline', active: false },
+            { label: 'الإعدادات', icon: 'settings-outline', active: false },
+          ].map((item) => (
+            <TouchableOpacity
+              key={item.label}
+              style={[styles.sidebarItem, item.active && styles.sidebarItemActive]}
+              activeOpacity={0.9}
+              onPress={() => handleSidebarAction(item)}
+            >
+              <Ionicons name={item.icon} size={18} color={item.active ? '#fff' : '#0EA5E9'} />
+              <Text style={[styles.sidebarText, item.active && styles.sidebarTextActive]}>{item.label}</Text>
+            </TouchableOpacity>
+          ))}
+        </View>
 
-      <TouchableOpacity
-        style={styles.aboutButton}
-        onPress={() =>
-          navigation.navigate(
-            'About'
-          )
-        }
-        activeOpacity={0.85}
-      >
-        <Ionicons
-          name="information-circle-outline"
-          size={18}
-          color={COLORS.primary}
+        <TouchableOpacity style={styles.logoutBox} onPress={handleLogout} activeOpacity={0.9}>
+          <Ionicons name="log-out-outline" size={18} color="#fff" />
+          <Text style={styles.logoutText}>تسجيل الخروج</Text>
+        </TouchableOpacity>
+      </View>
+
+      <View style={styles.mainPanel}>
+        <FlatList
+          data={filteredOrders}
+          renderItem={renderOrder}
+          keyExtractor={(item, index) => String(item?.id ?? index)}
+          ListHeaderComponent={renderHeader}
+          ListEmptyComponent={renderEmpty}
+          contentContainerStyle={[
+            styles.listContent,
+            filteredOrders.length === 0 && styles.emptyListContent,
+          ]}
+          refreshControl={
+            <RefreshControl
+              refreshing={refreshing}
+              onRefresh={handleRefresh}
+              colors={[COLORS.primary]}
+              tintColor={COLORS.primary}
+            />
+          }
+          showsVerticalScrollIndicator={false}
+          keyboardShouldPersistTaps="handled"
+          extraData={{ processingOrderId, expandedOrderId }}
         />
 
-        <Text style={styles.aboutText}>
-          حول تطبيق NOW
-        </Text>
-      </TouchableOpacity>
+        <View style={styles.bottomNav}>
+          {[
+            { label: 'الرئيسية', icon: 'home-outline' },
+            { label: 'الطلب', icon: 'clipboard-outline' },
+            { label: 'الرحلات', icon: 'map-outline' },
+            { label: 'المحفظة', icon: 'wallet-outline' },
+            { label: 'المزيد', icon: 'menu-outline' },
+          ].map((item, index) => (
+            <TouchableOpacity
+              key={index}
+              style={styles.bottomNavItem}
+              activeOpacity={0.8}
+              onPress={() => handleBottomNavAction(item, index)}
+            >
+              <Ionicons name={item.icon} size={20} color={index === 0 ? COLORS.primary : '#64748B'} />
+              <Text style={[styles.bottomNavText, index === 0 && styles.bottomNavActive]}>{item.label}</Text>
+            </TouchableOpacity>
+          ))}
+        </View>
+      </View>
     </View>
   );
 };
@@ -1885,18 +1872,408 @@ const DeliveryDashboard = ({ navigation }) => {
 ========================================================= */
 
 const styles = StyleSheet.create({
-  container: {
+  shell: {
     flex: 1,
-    backgroundColor:
-      COLORS.background,
+    flexDirection: 'row',
+    backgroundColor: '#EAF7FF',
+  },
+
+  sidebar: {
+    width: 210,
+    backgroundColor: '#F7FBFF',
+    paddingHorizontal: 12,
+    paddingTop: 26,
+    paddingBottom: 18,
+    alignItems: 'center',
+    borderRightWidth: 1,
+    borderRightColor: '#E5EEF7',
+  },
+
+  logo: {
+    fontSize: 42,
+    fontWeight: '900',
+    color: '#0EA5E9',
+    letterSpacing: -2,
+    marginBottom: 18,
+  },
+
+  sidebarList: {
+    width: '100%',
+    gap: 10,
+    marginTop: 6,
+  },
+
+  sidebarItem: {
+    flexDirection: 'row-reverse',
+    alignItems: 'center',
+    justifyContent: 'flex-start',
+    gap: 12,
+    paddingVertical: 12,
+    paddingHorizontal: 12,
+    borderRadius: 12,
+    backgroundColor: '#F1F8FF',
+    borderWidth: 1,
+    borderColor: '#E7F4FF',
+  },
+
+  sidebarItemActive: {
+    backgroundColor: '#1DB2E7',
+    borderColor: '#1DB2E7',
+  },
+
+  sidebarText: {
+    fontSize: 14,
+    fontWeight: '700',
+    color: '#0F172A',
+    textAlign: 'right',
+  },
+
+  sidebarTextActive: {
+    color: '#fff',
+  },
+
+  logoutBox: {
+    marginTop: 'auto',
+    width: '100%',
+    backgroundColor: '#1DB2E7',
+    borderRadius: 14,
+    paddingVertical: 12,
+    paddingHorizontal: 14,
+    flexDirection: 'row-reverse',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
+  },
+
+  logoutText: {
+    color: '#fff',
+    fontSize: 14,
+    fontWeight: '800',
+  },
+
+  mainPanel: {
+    flex: 1,
+    backgroundColor: '#F3F9FF',
+    position: 'relative',
+  },
+
+  dashboardWrap: {
+    paddingHorizontal: 14,
+    paddingTop: 10,
+    paddingBottom: 18,
+  },
+
+  topbar: {
+    flexDirection: 'row-reverse',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginBottom: 16,
+  },
+
+  topbarRight: {
+    flexDirection: 'row-reverse',
+    alignItems: 'center',
+    gap: 12,
+  },
+
+  topbarActions: {
+    flexDirection: 'row-reverse',
+    alignItems: 'center',
+    gap: 10,
+  },
+
+  iconBubble: {
+    width: 38,
+    height: 38,
+    borderRadius: 13,
+    backgroundColor: '#FFFFFF',
+    borderWidth: 1,
+    borderColor: '#E1EDF7',
+    alignItems: 'center',
+    justifyContent: 'center',
+    position: 'relative',
+  },
+
+  profileBubble: {
+    width: 42,
+    height: 42,
+    borderRadius: 14,
+    backgroundColor: '#FFFFFF',
+    borderWidth: 1,
+    borderColor: '#E1EDF7',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+
+  userTag: {
+    backgroundColor: '#FFFFFF',
+    borderWidth: 1,
+    borderColor: '#E1EDF7',
+    borderRadius: 12,
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    minWidth: 104,
+  },
+
+  userTagText: {
+    fontSize: 11,
+    color: '#64748B',
+    textAlign: 'right',
+  },
+
+  userName: {
+    fontSize: 13,
+    fontWeight: '800',
+    color: '#0F172A',
+    textAlign: 'right',
+  },
+
+  heroCard: {
+    backgroundColor: '#E9F9FF',
+    borderRadius: 24,
+    borderWidth: 1,
+    borderColor: '#CFEFFC',
+    paddingHorizontal: 16,
+    paddingVertical: 18,
+    flexDirection: 'row-reverse',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginBottom: 16,
+  },
+
+  heroTextWrap: {
+    flex: 1,
+    paddingLeft: 10,
+  },
+
+  heroTitle: {
+    fontSize: 19,
+    fontWeight: '900',
+    color: '#0F172A',
+    textAlign: 'right',
+    marginBottom: 6,
+  },
+
+  heroSubTitle: {
+    fontSize: 12,
+    color: '#475569',
+    textAlign: 'right',
+    marginBottom: 8,
+  },
+
+  statusRow: {
+    flexDirection: 'row-reverse',
+    alignItems: 'center',
+    gap: 7,
+    marginBottom: 8,
+  },
+
+  onlineDot: {
+    width: 9,
+    height: 9,
+    borderRadius: 5,
+    backgroundColor: '#22C55E',
+  },
+
+  statusText: {
+    fontSize: 12,
+    color: '#0F172A',
+    fontWeight: '700',
+    textAlign: 'right',
+  },
+
+  heroMeta: {
+    fontSize: 12,
+    color: '#0F766E',
+    textAlign: 'right',
+    fontWeight: '700',
+  },
+
+  heroVisual: {
+    width: 96,
+    height: 96,
+    borderRadius: 22,
+    backgroundColor: '#DDF7FF',
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderWidth: 1,
+    borderColor: '#BEEAF8',
+    position: 'relative',
+  },
+
+  riderBadge: {
+    position: 'absolute',
+    top: 12,
+    right: 12,
+    fontSize: 11,
+    fontWeight: '900',
+    color: '#0EA5E9',
+    letterSpacing: 1,
+  },
+
+  cardGrid: {
+    flexDirection: 'row-reverse',
+    flexWrap: 'wrap',
+    gap: 10,
+    marginBottom: 16,
+  },
+
+  metricCard: {
+    width: '48%',
+    backgroundColor: '#FFFFFF',
+    borderRadius: 18,
+    borderWidth: 1,
+    borderColor: '#E2EEF9',
+    paddingVertical: 14,
+    paddingHorizontal: 12,
+    alignItems: 'flex-end',
+    justifyContent: 'center',
+  },
+
+  metricIcon: {
+    width: 38,
+    height: 38,
+    borderRadius: 12,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 10,
+  },
+
+  metricWarning: {
+    backgroundColor: '#FFF7E5',
+  },
+
+  metricPrimary: {
+    backgroundColor: '#EAF9FF',
+  },
+
+  metricSuccess: {
+    backgroundColor: '#EAFBF2',
+  },
+
+  metricPurple: {
+    backgroundColor: '#F3E8FF',
+  },
+
+  metricNumber: {
+    fontSize: 24,
+    fontWeight: '900',
+    color: '#0F172A',
+    textAlign: 'right',
+  },
+
+  metricLabel: {
+    marginTop: 4,
+    fontSize: 12,
+    color: '#64748B',
+    textAlign: 'right',
+  },
+
+  topHeaderBar: {
+    flexDirection: 'row-reverse',
+    alignItems: 'center',
+    justifyContent: 'flex-end',
+    gap: 10,
+    paddingHorizontal: 18,
+    paddingTop: 18,
+    paddingBottom: 10,
+  },
+
+  notificationWrap: {
+    width: 38,
+    height: 38,
+    borderRadius: 14,
+    backgroundColor: '#fff',
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderWidth: 1,
+    borderColor: '#E1EDF7',
+    position: 'relative',
+  },
+
+  notificationDot: {
+    position: 'absolute',
+    right: 6,
+    top: 5,
+    width: 8,
+    height: 8,
+    borderRadius: 4,
+    backgroundColor: '#EF4444',
+    borderWidth: 2,
+    borderColor: '#fff',
+  },
+
+  userHeaderWrap: {
+    backgroundColor: '#fff',
+    borderWidth: 1,
+    borderColor: '#E1EDF7',
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    borderRadius: 12,
+    minWidth: 118,
+  },
+
+  userRole: {
+    fontSize: 11,
+    color: '#64748B',
+    textAlign: 'right',
+  },
+
+  userNameHeader: {
+    fontSize: 13,
+    fontWeight: '800',
+    color: '#0F172A',
+    textAlign: 'right',
+  },
+
+  profileMini: {
+    width: 38,
+    height: 38,
+    borderRadius: 19,
+    backgroundColor: '#fff',
+    borderWidth: 1,
+    borderColor: '#E1EDF7',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+
+  bottomNav: {
+    position: 'absolute',
+    bottom: 0,
+    left: 0,
+    right: 0,
+    height: 72,
+    backgroundColor: '#fff',
+    borderTopWidth: 1,
+    borderTopColor: '#E5EEF7',
+    flexDirection: 'row-reverse',
+    alignItems: 'center',
+    justifyContent: 'space-around',
+    paddingHorizontal: 10,
+  },
+
+  bottomNavItem: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 3,
+    flex: 1,
+  },
+
+  bottomNavText: {
+    fontSize: 11,
+    color: '#64748B',
+    fontWeight: '700',
+  },
+
+  bottomNavActive: {
+    color: COLORS.primary,
   },
 
   loadingContainer: {
     flex: 1,
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor:
-      COLORS.background,
+    backgroundColor: COLORS.background,
     padding: 30,
   },
 

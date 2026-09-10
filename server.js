@@ -3753,24 +3753,45 @@ app.get(
   roleMiddleware(ROLES.ADMIN, ROLES.SUB_ADMIN),
   async (req, res) => {
     try {
-      const [users, stores, orders, deliveries] = await Promise.all([
+      const roleCount = (name) => prisma.user.count({ where: { role: { name } } });
+      const monthStart = new Date();
+      monthStart.setDate(monthStart.getDate() - 30);
+      const [users, vendors, deliveries, orders, sales, commissions, recentOrders, recentUsers, recentActivities, orderHistory] = await Promise.all([
         prisma.user.count(),
-        prisma.store.count(),
+        roleCount(ROLES.VENDOR),
+        roleCount(ROLES.DELIVERY),
         prisma.order.count(),
-        prisma.user.count({
-          where: {
-            role: {
-              name: ROLES.DELIVERY,
-            },
-          },
-        }),
+        prisma.order.aggregate({ where: { status: ORDER_STATUS.DELIVERED }, _sum: { totalPrice: true } }),
+        prisma.paymentTransaction.aggregate({ where: { status: 'SUCCESS' }, _sum: { amount: true } }),
+        prisma.order.findMany({ take: 5, orderBy: { createdAt: 'desc' }, select: { id: true, status: true, totalPrice: true, createdAt: true, customer: { select: { name: true } }, store: { select: { name: true } } } }),
+        prisma.user.findMany({ take: 5, orderBy: { createdAt: 'desc' }, select: { id: true, name: true, phone: true, createdAt: true, role: { select: { name: true } } } }),
+        prisma.auditLog.findMany({ take: 6, orderBy: { createdAt: 'desc' }, select: { id: true, action: true, entity: true, createdAt: true, actor: { select: { name: true } } } }),
+        prisma.order.findMany({ where: { createdAt: { gte: monthStart } }, select: { createdAt: true, totalPrice: true } }),
       ]);
+
+      const monthly = Array.from({ length: 30 }, (_, index) => {
+        const day = new Date(monthStart);
+        day.setDate(monthStart.getDate() + index);
+        const nextDay = new Date(day);
+        nextDay.setDate(day.getDate() + 1);
+        const ordersForDay = orderHistory.filter((item) => item.createdAt >= day && item.createdAt < nextDay);
+        return { label: day.toISOString().slice(5, 10), orders: ordersForDay.length, sales: ordersForDay.reduce((sum, item) => sum + Number(item.totalPrice || 0), 0) };
+      });
 
       return successResponse(res, {
         users,
-        stores,
+        vendors,
+        stores: await prisma.store.count(),
         orders,
         deliveries,
+        sales: Number(sales._sum.totalPrice || 0),
+        profits: null,
+        commissions: null,
+        withdrawals: null,
+        monthly,
+        recentOrders: recentOrders.map((item) => ({ ...item, totalPrice: Number(item.totalPrice) })),
+        recentUsers,
+        recentActivities,
       });
     } catch (error) {
       return handlePrismaError(error, res);
@@ -4105,6 +4126,15 @@ const REJECTION_REASONS = [
   'OTHER',
 ];
 
+const REJECTION_REASON_LABELS = {
+  INVALID_INFORMATION: 'بيانات غير صحيحة',
+  POLICY_VIOLATION: 'مخالفة السياسات',
+  DUPLICATE: 'محتوى مكرر',
+  PRICING_ISSUE: 'مشكلة في السعر',
+  QUALITY_ISSUE: 'مشكلة في الجودة',
+  OTHER: 'سبب آخر',
+};
+
 app.get(
   '/api/admin/submissions',
   authMiddleware,
@@ -4159,12 +4189,33 @@ const updateSubmission = async (req, res, status) => {
 
   try {
     let item;
+    let vendorId;
     if (type === 'store' || type === 'stores') {
       item = await prisma.store.update({ where: { id }, data });
+      vendorId = item.vendorId;
     } else if (type === 'menu_item' || type === 'menuitem') {
       item = await prisma.menuItem.update({ where: { id }, data });
+      vendorId = (await prisma.menuItem.findUnique({ where: { id }, select: { store: { select: { vendorId: true } } } }))?.store.vendorId;
     } else {
       item = await prisma.offer.update({ where: { id }, data });
+      vendorId = (await prisma.offer.findUnique({ where: { id }, select: { store: { select: { vendorId: true } } } }))?.store.vendorId;
+    }
+
+    if (vendorId) {
+      const vendor = await prisma.user.findUnique({ where: { id: vendorId }, select: { notificationsEnabled: true } });
+      if (vendor?.notificationsEnabled !== false) {
+        const statusText = status === SUBMISSION_STATUS.APPROVED ? 'تم اعتماد ونشر' : 'تم رفض';
+        const reasonText = status === SUBMISSION_STATUS.REJECTED ? ` السبب: ${REJECTION_REASON_LABELS[rejectionReason] || rejectionReason}.` : '';
+        await prisma.notification.create({
+          data: {
+            userId: vendorId,
+            type: 'SYSTEM',
+            title: status === SUBMISSION_STATUS.APPROVED ? 'تم اعتماد طلبك' : 'تم رفض طلبك',
+            body: `${statusText} ${type === 'store' || type === 'stores' ? 'المتجر' : type === 'offer' || type === 'offers' ? 'العرض' : 'المنتج'} الخاص بك.${reasonText}`,
+            data: { submissionType: type, submissionId: id, approvalStatus: status, rejectionReason: rejectionReason || null },
+          },
+        });
+      }
     }
     return successResponse(res, item);
   } catch (error) {

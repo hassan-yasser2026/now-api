@@ -76,9 +76,9 @@ const CustomerProfile = ({ navigation }) => {
 
   const menuItems = [
     {
-      icon: 'wallet-outline',
-      label: 'طرق الدفع & رصيدي',
-      onPress: () => Alert.alert('طرق الدفع & رصيدي', 'سيتم إضافة هذه الميزة قريبًا'),
+      icon: 'person-outline',
+      label: 'إدارة الحساب',
+      onPress: () => navigation.navigate('AccountSettings'),
     },
     {
       icon: 'headset-outline',

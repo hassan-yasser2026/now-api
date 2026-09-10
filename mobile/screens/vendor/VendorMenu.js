@@ -32,6 +32,15 @@ const COLORS = {
   primaryLight: '#CFFAFE',
 };
 
+const REJECTION_REASON_LABELS = {
+  INVALID_INFORMATION: 'بيانات غير صحيحة',
+  POLICY_VIOLATION: 'مخالفة السياسات',
+  DUPLICATE: 'محتوى مكرر',
+  PRICING_ISSUE: 'مشكلة في السعر',
+  QUALITY_ISSUE: 'مشكلة في الجودة',
+  OTHER: 'سبب آخر',
+};
+
 const VendorMenu = ({ navigation }) => {
   const { user } = useAppStore();
 
@@ -538,7 +547,7 @@ const VendorMenu = ({ navigation }) => {
               {item?.approvalStatus && item.approvalStatus !== 'APPROVED' && (
                 <Text style={item.approvalStatus === 'REJECTED' ? styles.rejectedText : styles.pendingText}>
                   {item.approvalStatus === 'REJECTED' ? 'مرفوض من الإدارة' : 'في انتظار مراجعة الإدارة'}
-                  {item.rejectionReason ? ` (${item.rejectionReason})` : ''}
+                  {item.rejectionReason ? ` (${REJECTION_REASON_LABELS[item.rejectionReason] || item.rejectionReason})` : ''}
                 </Text>
               )}
             </View>

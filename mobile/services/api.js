@@ -29,6 +29,14 @@ const getLocalNetworkHost = () => {
 const getApiBaseUrl = () => {
   const configuredUrl = process.env.EXPO_PUBLIC_API_URL?.trim();
 
+  // Expo Web runs on 8081 locally while the API runs on 5000.
+  // Keep production builds on the configured Railway API.
+  if (Platform.OS === 'web' && typeof window !== 'undefined'
+    && ['localhost', '127.0.0.1'].includes(window.location.hostname)
+    && window.location.port === '8081') {
+    return 'http://localhost:5000/api';
+  }
+
   if (configuredUrl) {
     const isLocalUrl = /^https?:\/\/(localhost|127\.0\.0\.1)(?::\d+)?\b/i.test(configuredUrl);
     if (Platform.OS === 'web' && process.env.NODE_ENV === 'production' && isLocalUrl) {

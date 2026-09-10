@@ -47,3 +47,4 @@ app-example
 
 # i18n extraction output
 .ar-strings.json
+.vercel
