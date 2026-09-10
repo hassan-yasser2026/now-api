@@ -89,7 +89,7 @@ const getOrderCustomerName = (order) => {
     order?.customer?.name ||
     order?.user?.name ||
     order?.customerName ||
-    'عميل'
+    'Railway Customer'
   );
 };
 
