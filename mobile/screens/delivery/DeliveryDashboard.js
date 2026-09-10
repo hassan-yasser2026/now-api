@@ -24,6 +24,7 @@ import * as Location from 'expo-location';
 
 import { COLORS } from '../../constants/colors';
 import useAppStore from '../../store/appStore';
+import { authService } from '../../services/authService';
 import { orderService } from '../../services/orderService';
 import deliveryService from '../../services/deliveryService';
 
@@ -920,17 +921,24 @@ const DeliveryDashboard = ({ navigation }) => {
 
   const handleLogout = useCallback(() => {
     Alert.alert(
-      'تسجيل الخروج',
-      'هل أنت متأكد أنك تريد تسجيل الخروج؟',
+      'حذف الحساب',
+      'سيتم تعطيل حسابك وحذف بيانات الدخول. لا يمكن التراجع عن هذا الإجراء. هل تريد المتابعة؟',
       [
         {
           text: 'إلغاء',
           style: 'cancel',
         },
         {
-          text: 'تسجيل الخروج',
+          text: 'حذف الحساب',
           style: 'destructive',
-          onPress: () => logout(),
+          onPress: async () => {
+            const result = await authService.deleteAccount();
+            if (!result?.success) {
+              Alert.alert('تعذر حذف الحساب', result?.message || 'حدث خطأ أثناء حذف الحساب');
+              return;
+            }
+            await logout();
+          },
         },
       ]
     );
