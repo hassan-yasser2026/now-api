@@ -51,6 +51,7 @@ const AddMenuItem = ({ navigation, route }) => {
 
   const [loading, setLoading] = useState(false);
   const [focusedInput, setFocusedInput] = useState(null);
+  const [submitMessage, setSubmitMessage] = useState(null);
 
   const pickProductImage = useCallback(async () => {
     if (loading) return;
@@ -182,6 +183,7 @@ const AddMenuItem = ({ navigation, route }) => {
     const validationError = validateForm();
 
     if (validationError) {
+      setSubmitMessage({ type: 'error', text: validationError });
       Alert.alert('تنبيه', validationError);
       return;
     }
@@ -193,6 +195,7 @@ const AddMenuItem = ({ navigation, route }) => {
       if (user?.id) {
         const storeResult = await storeService.getVendorStore(user.id);
         if (!storeResult.success || !storeResult.store?.id) {
+          setSubmitMessage({ type: 'error', text: storeResult.message || 'لم يتم العثور على متجر مرتبط بهذا الحساب' });
           Alert.alert(
             'تعذر إضافة الصنف',
             storeResult.message || 'لم يتم العثور على متجر مرتبط بهذا الحساب'
@@ -207,6 +210,7 @@ const AddMenuItem = ({ navigation, route }) => {
       }
 
       if (!targetStoreId) {
+        setSubmitMessage({ type: 'error', text: 'لم يتم العثور على متجر مرتبط بهذا الحساب' });
         Alert.alert('تعذر إضافة الصنف', 'لم يتم العثور على متجر مرتبط بهذا الحساب');
         return;
       }
@@ -224,23 +228,19 @@ const AddMenuItem = ({ navigation, route }) => {
         : await storeService.addMenuItem(targetStoreId, itemData);
 
       if (result?.success) {
+        const successMessage = isEditMode
+          ? 'تم تحديث الصنف بنجاح'
+          : 'تم إرسال الصنف للمراجعة. سيظهر للعملاء بعد اعتماد الإدارة.';
+        setSubmitMessage({ type: 'success', text: successMessage });
         Alert.alert(
           'تم بنجاح 🎉',
-          isEditMode ? 'تم تحديث الصنف بنجاح' : 'تمت إضافة الصنف إلى المنيو بنجاح',
-          [
-            {
-              text: 'حسنًا',
-              onPress: () => navigation.goBack(),
-            },
-          ],
-          {
-            cancelable: false,
-          }
+          successMessage
         );
-
+        setTimeout(() => navigation.goBack(), 700);
         return;
       }
 
+      setSubmitMessage({ type: 'error', text: result?.message || 'حدث خطأ أثناء حفظ الصنف' });
       Alert.alert(
         isEditMode ? 'تعذر تحديث الصنف' : 'تعذر إضافة الصنف',
         result?.message || 'حدث خطأ أثناء حفظ الصنف'
@@ -251,11 +251,9 @@ const AddMenuItem = ({ navigation, route }) => {
         error?.response?.data || error?.message || error
       );
 
-      Alert.alert(
-        'خطأ',
-        error?.response?.data?.message ||
-          'تعذر الاتصال بالسيرفر، حاول مرة أخرى'
-      );
+      const errorMessage = error?.response?.data?.message || 'تعذر الاتصال بالسيرفر، حاول مرة أخرى';
+      setSubmitMessage({ type: 'error', text: errorMessage });
+      Alert.alert('خطأ', errorMessage);
     } finally {
       setLoading(false);
     }
@@ -658,15 +656,20 @@ const AddMenuItem = ({ navigation, route }) => {
 
               <View style={styles.infoContent}>
                 <Text style={styles.infoTitle}>
-                  الصنف سيكون متاحًا مباشرة
+                  الصنف سيرسل لمراجعة الإدارة
                 </Text>
 
                 <Text style={styles.infoText}>
-                  سيتم إنشاء الصنف بحالة "متاح"، ويمكنك
-                  تغيير حالته لاحقًا من إدارة المنيو.
+                  سيظهر الصنف للعملاء بعد اعتماد الإدارة، ويمكنك متابعة حالته من إدارة المنيو.
                 </Text>
               </View>
             </View>
+
+            {submitMessage && (
+              <View style={[styles.submitMessage, submitMessage.type === 'error' ? styles.submitMessageError : styles.submitMessageSuccess]}>
+                <Text style={styles.submitMessageText}>{submitMessage.text}</Text>
+              </View>
+            )}
 
             {/* زر الإضافة */}
 
@@ -922,6 +925,27 @@ const styles = StyleSheet.create({
     color: COLORS.textPrimary,
     paddingVertical: 14,
     lineHeight: 23,
+  },
+  submitMessage: {
+    marginTop: 14,
+    padding: 13,
+    borderRadius: 10,
+    borderWidth: 1,
+  },
+  submitMessageSuccess: {
+    backgroundColor: '#ECFDF5',
+    borderColor: '#A7F3D0',
+  },
+  submitMessageError: {
+    backgroundColor: '#FFF1F2',
+    borderColor: '#FECDD3',
+  },
+  submitMessageText: {
+    color: COLORS.textPrimary,
+    fontSize: 13,
+    fontWeight: '700',
+    lineHeight: 21,
+    textAlign: 'right',
   },
 
   descriptionCounter: {

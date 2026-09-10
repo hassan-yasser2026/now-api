@@ -40,6 +40,11 @@ const deliveryService = {
     return response.data;
   },
 
+  getRatings: async () => {
+    const response = await api.get('/delivery/ratings');
+    return response.data;
+  },
+
   getProfile: async () => {
     const response = await api.get('/delivery/profile');
     return response.data;

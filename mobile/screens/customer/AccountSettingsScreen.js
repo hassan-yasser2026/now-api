@@ -66,29 +66,34 @@ const AccountSettingsScreen = ({ navigation }) => {
     }
 
     setLoading(true);
-    const result = await authService.updateProfile({
-      name: name.trim(),
-      phone: phoneE164,
-      email: email.trim() || null,
-      profileImage,
-      ...(newPassword
-        ? { currentPassword, newPassword }
-        : {}),
-    });
-    setLoading(false);
+    try {
+      const result = await authService.updateProfile({
+        name: name.trim(),
+        phone: phoneE164 || phone,
+        email: email.trim() || null,
+        profileImage,
+        ...(newPassword
+          ? { currentPassword, newPassword }
+          : {}),
+      });
 
-    if (!result.success) {
-      Alert.alert('تعذر الحفظ', result.message);
-      return;
+      if (!result.success) {
+        Alert.alert('تعذر الحفظ', result.message);
+        return;
+      }
+
+      await updateUser(result.user);
+      Alert.alert(
+        'تم الحفظ',
+        'تم تحديث بيانات حسابك بنجاح',
+        [{ text: 'حسنًا', onPress: () => navigation.goBack() }],
+        { cancelable: false }
+      );
+    } catch (error) {
+      Alert.alert('تعذر الحفظ', 'حدث خطأ غير متوقع أثناء حفظ بيانات الحساب.');
+    } finally {
+      setLoading(false);
     }
-
-    await updateUser(result.user);
-    Alert.alert(
-      'تم الحفظ',
-      'تم تحديث بيانات حسابك بنجاح',
-      [{ text: 'حسنًا', onPress: () => navigation.goBack() }],
-      { cancelable: false }
-    );
   };
 
   return (

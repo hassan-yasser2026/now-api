@@ -17,7 +17,7 @@ const VendorNotifications = ({ navigation }) => {
   const [loading, setLoading] = useState(true);
 
   const load = useCallback(async () => {
-    const savedPreference = await AsyncStorage.getItem('vendorNotificationsEnabled');
+    const savedPreference = await AsyncStorage.getItem('notificationsEnabled');
     setEnabled(savedPreference !== 'false');
 
     try {
@@ -31,7 +31,7 @@ const VendorNotifications = ({ navigation }) => {
       const response = await api.get('/notifications/preferences');
       const serverEnabled = response.data?.data?.enabled !== false;
       setEnabled(serverEnabled);
-      await AsyncStorage.setItem('vendorNotificationsEnabled', String(serverEnabled));
+      await AsyncStorage.setItem('notificationsEnabled', String(serverEnabled));
     } catch (error) {
       console.warn('Vendor notification preferences are not available on the server yet:', error?.response?.status);
     } finally {
@@ -46,7 +46,7 @@ const VendorNotifications = ({ navigation }) => {
   const toggleNotifications = async (value) => {
     const previous = enabled;
     setEnabled(value);
-    await AsyncStorage.setItem('vendorNotificationsEnabled', String(value));
+    await AsyncStorage.setItem('notificationsEnabled', String(value));
     try {
       await api.patch('/notifications/preferences', { enabled: value });
     } catch (error) {

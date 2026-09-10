@@ -93,9 +93,14 @@ const DeliveryProfile = ({ navigation }) => {
             <Text style={styles.menuLabel}>طلباتي</Text>
             <Ionicons name="chevron-forward" size={20} color={COLORS.textSecondary} />
           </TouchableOpacity>
-          <TouchableOpacity style={styles.menuItem} onPress={() => Alert.alert('قريباً', 'سيتم إضافة هذه الميزة')}>
+          <TouchableOpacity style={styles.menuItem} onPress={() => navigation.navigate('DeliveryOrders')}>
             <Ionicons name="location-outline" size={24} color={COLORS.textPrimary} />
-            <Text style={styles.menuLabel}>المناطق المغطاة</Text>
+            <Text style={styles.menuLabel}>عرض الطلبات الحالية</Text>
+            <Ionicons name="chevron-forward" size={20} color={COLORS.textSecondary} />
+          </TouchableOpacity>
+          <TouchableOpacity style={styles.menuItem} onPress={() => navigation.navigate('AccountSettings')}>
+            <Ionicons name="settings-outline" size={24} color={COLORS.textPrimary} />
+            <Text style={styles.menuLabel}>إعدادات الحساب</Text>
             <Ionicons name="chevron-forward" size={20} color={COLORS.textSecondary} />
           </TouchableOpacity>
           <TouchableOpacity style={styles.menuItem} onPress={() => navigation.navigate('About')}>

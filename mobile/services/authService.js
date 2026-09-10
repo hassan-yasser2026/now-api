@@ -46,7 +46,9 @@ export const authService = {
     } catch (error) {
       return {
         success: false,
-        message: error.response?.data?.message || 'فشل تحديث بيانات الحساب',
+        message: error.response?.data?.message
+          || error.response?.data?.data?.message
+          || 'فشل تحديث بيانات الحساب',
       };
     }
   },

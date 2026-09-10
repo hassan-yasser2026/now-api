@@ -33,7 +33,7 @@ type EarningsItem = {
 };
 
 // ========== Component ==========
-const DeliveryEarnings: React.FC = () => {
+const DeliveryEarnings: React.FC = ({ navigation }: any) => {
   const [period, setPeriod] = useState<EarningsPeriod>('day');
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
@@ -109,7 +109,11 @@ const DeliveryEarnings: React.FC = () => {
     <SafeAreaView style={styles.container}>
       {/* Header */}
       <View style={styles.header}>
+        <TouchableOpacity onPress={() => navigation?.goBack?.()} style={styles.backBtn}>
+          <Ionicons name="arrow-back" size={24} color={COLORS.text} />
+        </TouchableOpacity>
         <Text style={styles.headerTitle}>أرباحي</Text>
+        <View style={styles.headerSpacer} />
       </View>
 
       {/* Period Selector */}
@@ -203,12 +207,31 @@ const styles = StyleSheet.create({
     paddingTop: 8,
   },
   header: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
     marginBottom: 16,
+  },
+  backBtn: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: COLORS.surface,
+    borderWidth: 1,
+    borderColor: COLORS.border,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   headerTitle: {
     fontSize: 24,
     fontWeight: '700',
     color: COLORS.text,
+    flex: 1,
+    textAlign: 'center',
+    marginHorizontal: 8,
+  },
+  headerSpacer: {
+    width: 40,
   },
   periodSelector: {
     flexDirection: 'row',
