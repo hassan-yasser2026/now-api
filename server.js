@@ -17,6 +17,7 @@ const {
   normalizePhone,
   phoneVariants,
 } = require('./server/utils/phone');
+const authRoutes = require('./server/routes/auth.routes');
 
 const app = express();
 const prisma = new PrismaClient();
@@ -183,6 +184,8 @@ const authRateLimiter = createRateLimiter({
   max: Number(process.env.AUTH_RATE_LIMIT_MAX) || 10,
   keyGenerator: (req) => `${req.ip || 'unknown'}:${String(req.body?.phone || '').trim()}`,
 });
+
+app.use('/api/auth', authRateLimiter, authRoutes);
 
 // ============================================================
 // Constants

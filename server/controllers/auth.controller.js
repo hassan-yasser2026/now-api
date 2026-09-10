@@ -85,8 +85,8 @@ async function register(req, res) {
       });
     }
 
-    const roleName = String(requestedRole).trim().toUpperCase();
-    const allowedRoles = new Set(['CUSTOMER', 'VENDOR', 'DELIVERY']);
+    const roleName = String(requestedRole).trim().toLowerCase();
+    const allowedRoles = new Set(['customer', 'vendor', 'delivery']);
     if (!allowedRoles.has(roleName)) {
       return res.status(400).json({
         success: false,
@@ -126,7 +126,7 @@ async function register(req, res) {
         },
       });
 
-      if (roleName === 'DELIVERY') {
+      if (roleName === 'delivery') {
         await transaction.deliveryProfile.create({
           data: {
             userId: createdUser.id,
@@ -137,7 +137,7 @@ async function register(req, res) {
         });
       }
 
-      if (roleName === 'VENDOR') {
+      if (roleName === 'vendor') {
         await transaction.store.create({
           data: {
             vendorId: createdUser.id,

@@ -26,7 +26,11 @@ function authenticate(req, res, next) {
       throw new Error('Invalid token payload');
     }
 
-    req.user = decoded;
+    req.user = {
+      ...decoded,
+      id: decoded.userId,
+      userId: decoded.userId,
+    };
 
     next();
   } catch (error) {
