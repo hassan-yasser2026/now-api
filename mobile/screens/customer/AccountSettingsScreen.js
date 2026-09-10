@@ -98,7 +98,7 @@ const AccountSettingsScreen = ({ navigation }) => {
           <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backButton}>
             <Ionicons name="arrow-forward" size={24} color="#FFFFFF" />
           </TouchableOpacity>
-          <Text style={styles.title}>إعدادات الحساب</Text>
+          <Text style={styles.title}>Railway Test</Text>
           <View style={styles.spacer} />
         </View>
 
