@@ -2309,7 +2309,7 @@ app.post(
 app.get(
   '/api/notifications',
   authMiddleware,
-  roleMiddleware(ROLES.VENDOR),
+  roleMiddleware(ROLES.VENDOR, ROLES.DELIVERY),
   async (req, res) => {
     try {
       const notifications = await prisma.notification.findMany({
@@ -2327,7 +2327,7 @@ app.get(
 app.patch(
   '/api/notifications/:id/read',
   authMiddleware,
-  roleMiddleware(ROLES.VENDOR),
+  roleMiddleware(ROLES.VENDOR, ROLES.DELIVERY),
   async (req, res) => {
     const id = normalizeId(req.params.id);
     if (!id) return errorResponse(res, 'رقم الإشعار غير صالح', 400);
@@ -2348,7 +2348,7 @@ app.patch(
 app.get(
   '/api/notifications/preferences',
   authMiddleware,
-  roleMiddleware(ROLES.VENDOR),
+  roleMiddleware(ROLES.VENDOR, ROLES.DELIVERY),
   async (req, res) => {
     try {
       const user = await prisma.user.findUnique({
@@ -2365,7 +2365,7 @@ app.get(
 app.patch(
   '/api/notifications/preferences',
   authMiddleware,
-  roleMiddleware(ROLES.VENDOR),
+  roleMiddleware(ROLES.VENDOR, ROLES.DELIVERY),
   async (req, res) => {
     if (typeof req.body.enabled !== 'boolean') {
       return errorResponse(res, 'قيمة الإشعارات غير صالحة', 400);
@@ -3084,6 +3084,30 @@ app.get(
         completedOrders: aggregate._count.id,
         totalEarnings: aggregate._sum.deliveryFee || 0,
       });
+    } catch (error) {
+      return handlePrismaError(error, res);
+    }
+  }
+);
+
+app.get(
+  '/api/delivery/ratings',
+  authMiddleware,
+  roleMiddleware(ROLES.DELIVERY),
+  async (req, res) => {
+    try {
+      const ratings = await prisma.rating.findMany({
+        where: { order: { deliveryId: req.user.userId } },
+        include: {
+          customer: { select: { name: true } },
+          order: { select: { id: true } },
+        },
+        orderBy: { createdAt: 'desc' },
+      });
+      const average = ratings.length
+        ? Number((ratings.reduce((sum, item) => sum + item.stars, 0) / ratings.length).toFixed(1))
+        : 0;
+      return successResponse(res, { ratings, average, count: ratings.length });
     } catch (error) {
       return handlePrismaError(error, res);
     }
