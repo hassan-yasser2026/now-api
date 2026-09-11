@@ -113,8 +113,13 @@ const PartnerRegistrationScreen = ({ navigation }) => {
         return;
       }
 
-      Alert.alert('تم بنجاح', 'تم إنشاء حسابك بنجاح');
-      if (role === 'vendor') navigation.navigate('PartnerLogin');
+      Alert.alert(
+        'تم استلام طلب التسجيل',
+        result.pendingApproval
+          ? 'حسابك في انتظار مراجعة الإدارة لمدة تصل إلى 48 ساعة. ستتمكن من الدخول بعد الموافقة.'
+          : 'تم إنشاء حسابك بنجاح'
+      );
+      navigation.navigate('PartnerLogin');
     } catch (error) {
       Alert.alert('خطأ', 'تعذر الاتصال بالخادم، حاول مرة أخرى');
     } finally {

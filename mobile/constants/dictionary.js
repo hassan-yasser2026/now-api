@@ -1040,6 +1040,11 @@ export const AR_EN = {
   'إحداثيات الموقع غير صالحة، اختر موقعًا آخر':
     'Invalid location coordinates, choose another location',
   'حدث خطأ أثناء إرسال التقييم': 'An error occurred while submitting the rating',
+  'تم استلام طلب التسجيل': 'Registration request received',
+  'حسابك في انتظار مراجعة الإدارة لمدة تصل إلى 48 ساعة.':
+    'Your account is awaiting admin review for up to 48 hours.',
+  'حسابك في انتظار مراجعة الإدارة لمدة تصل إلى 48 ساعة. ستتمكن من الدخول بعد الموافقة.':
+    'Your account is awaiting admin review for up to 48 hours. You can log in after approval.',
 };
 
 /**

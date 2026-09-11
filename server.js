@@ -692,6 +692,17 @@ app.post('/api/auth/login', authRateLimiter, async (req, res) => {
       );
     }
 
+    if (
+      [ROLES.VENDOR, ROLES.DELIVERY].includes(user.role.name) &&
+      user.approvalStatus === SUBMISSION_STATUS.PENDING_ADMIN_REVIEW
+    ) {
+      return errorResponse(
+        res,
+        'حسابك في انتظار مراجعة الإدارة. سيتم الرد خلال 48 ساعة.',
+        403
+      );
+    }
+
     if (!user.isActive) {
       return errorResponse(
         res,
@@ -859,6 +870,10 @@ app.post('/api/auth/register', authRateLimiter, async (req, res) => {
             password: hashedPassword,
             email: email || null,
             roleId: roleRecord.id,
+            isActive: role === ROLES.CUSTOMER,
+            approvalStatus: role === ROLES.CUSTOMER
+              ? SUBMISSION_STATUS.APPROVED
+              : SUBMISSION_STATUS.PENDING_ADMIN_REVIEW,
           },
         });
 
@@ -881,10 +896,23 @@ app.post('/api/auth/register', authRateLimiter, async (req, res) => {
       }
     );
 
-    const token = generateToken(
-      result.user.id,
-      role
-    );
+    if (role !== ROLES.CUSTOMER) {
+      return successResponse(res, {
+        pendingApproval: true,
+        user: {
+          id: result.user.id,
+          name: result.user.name,
+          phone: result.user.phone,
+          email: result.user.email,
+          role,
+          approvalStatus: SUBMISSION_STATUS.PENDING_ADMIN_REVIEW,
+        },
+      }, 201, {
+        message: 'تم استلام طلبك. حسابك في انتظار مراجعة الإدارة لمدة تصل إلى 48 ساعة.',
+      });
+    }
+
+    const token = generateToken(result.user.id, role);
 
     return successResponse(
       res,
@@ -3816,6 +3844,7 @@ app.get(
             phone: true,
             email: true,
             isActive: true,
+            approvalStatus: true,
 
             role: {
               select: {
@@ -3904,13 +3933,19 @@ const setAdminManagedUserActive = async (req, res, isActive) => {
   try {
     const user = await prisma.user.update({
       where: { id: userId },
-      data: { isActive },
+      data: {
+        isActive,
+        ...(isActive
+          ? { approvalStatus: SUBMISSION_STATUS.APPROVED, rejectionReason: null }
+          : {}),
+      },
       select: {
         id: true,
         name: true,
         phone: true,
         email: true,
         isActive: true,
+        approvalStatus: true,
         role: { select: { name: true } },
       },
     });
@@ -4257,6 +4292,7 @@ app.get(
           name: true,
           phone: true,
           isActive: true,
+          approvalStatus: true,
           deliveryProfile: true,
           _count: {
             select: { deliveries: true },

@@ -503,8 +503,13 @@ function renderDeliveries(payload, target) {
   <div class="table-wrap"><table><thead><tr><th>المندوب</th><th>الهاتف</th><th>الطلبات</th><th>حالة التوصيل</th><th>الحساب</th></tr></thead><tbody>
   ${rows.map((item) => `<tr><td><b>${escapeHtml(item.name)}</b></td><td>${escapeHtml(item.phone)}</td><td>${item._count?.deliveries || 0}</td>
   <td><span class="status ${item.deliveryProfile?.status === 'ONLINE' ? 'success' : 'muted-status'}">${escapeHtml(item.deliveryProfile?.status || 'OFFLINE')}</span></td>
-  <td><span class="status ${item.isActive ? 'success' : 'danger'}">${item.isActive ? 'نشط' : 'معطل'}</span></td></tr>`).join('')}</tbody></table></div></div>`;
+  <td><span class="status ${item.approvalStatus === 'PENDING_ADMIN_REVIEW' ? 'warning' : item.isActive ? 'success' : 'danger'}">${item.approvalStatus === 'PENDING_ADMIN_REVIEW' ? 'بانتظار المراجعة' : item.isActive ? 'نشط' : 'معطل'}</span>
+  ${item.approvalStatus === 'PENDING_ADMIN_REVIEW' || !item.isActive ? actionButton('موافقة وتفعيل', 'success-text', 'activate-delivery', item.id) : actionButton('تعطيل', 'danger-text', 'suspend-delivery', item.id)}</td></tr>`).join('')}</tbody></table></div></div>`;
   bindFilter(() => renderDeliveries(payload, document.querySelector('#section-content')));
+  bindActionButtons(loadSection, {
+    'activate-delivery': (id) => request(`/admin/users/${id}/activate`, { method: 'PATCH' }),
+    'suspend-delivery': (id) => request(`/admin/users/${id}/suspend`, { method: 'PATCH' }),
+  });
 }
 
 const submissionLabels = { store: 'متجر', menu_item: 'صنف', offer: 'عرض / خصم' };

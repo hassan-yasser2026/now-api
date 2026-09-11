@@ -44,6 +44,8 @@ model User {
   latitude            Decimal?             @db.Decimal(9, 6)
   longitude           Decimal?             @db.Decimal(9, 6)
   isActive            Boolean              @default(true)
+  approvalStatus      SubmissionStatus    @default(APPROVED)
+  rejectionReason     String?
   notificationsEnabled Boolean             @default(true)
   roleId              Int
   role                Role                 @relation(fields: [roleId], references: [id], onDelete: Restrict)
