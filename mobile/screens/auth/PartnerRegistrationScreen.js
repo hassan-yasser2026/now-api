@@ -37,6 +37,7 @@ const PARTNER_ROLES = {
 const PartnerRegistrationScreen = ({ navigation, route }) => {
   const role = route?.params?.role === 'delivery' ? 'delivery' : 'vendor';
   const [name, setName] = useState('');
+  const [phoneNational, setPhoneNational] = useState('');
   const [phoneE164, setPhoneE164] = useState('');
   const [phoneValid, setPhoneValid] = useState(false);
   const [country, setCountry] = useState(useAppStore.getState().country);
@@ -209,9 +210,10 @@ const PartnerRegistrationScreen = ({ navigation, route }) => {
             )}
 
             <PhoneInput
-              value={phoneE164}
+              value={phoneNational}
               countryCode={country}
-              onChange={({ e164, isValid, countryCode }) => {
+              onChange={({ national, e164, isValid, countryCode }) => {
+                setPhoneNational(national);
                 setPhoneE164(e164);
                 setPhoneValid(isValid);
                 setCountry(countryCode);
