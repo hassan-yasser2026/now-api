@@ -1,4 +1,4 @@
-const { PrismaClient } = require('@prisma/client');
+﻿const { PrismaClient } = require('@prisma/client');
 
 const prisma = new PrismaClient();
 
@@ -11,29 +11,14 @@ const {
   generateToken,
 } = require('../utils/jwt');
 
-// دالة لتنظيف وتوحيد شكل رقم الهاتف المصري
-function cleanPhoneNumber(phone) {
-  if (!phone) return '';
-  // لو الرقم جاي بـ +20 أو 0020 نشيلها ونحط مكانها 0
-  let cleaned = phone.trim();
-  if (cleaned.startsWith('+20')) {
-    cleaned = '0' + cleaned.slice(3);
-  } else if (cleaned.startsWith('0020')) {
-    cleaned = '0' + cleaned.slice(4);
-  }
-  return cleaned;
-}
-
-function validatePhone(phone) {
-  return /^01[0125][0-9]{8}$/.test(phone);
-}
+const {
+  isValidPhone,
+  normalizePhone,
+  phoneVariants,
+} = require('../utils/phone');
 
 function validatePassword(password) {
-  return (
-    typeof password === 'string' &&
-    password.length >= 6 &&
-    /\d/.test(password)
-  );
+  return typeof password === 'string' && password.length >= 6;
 }
 
 async function register(req, res) {
@@ -44,38 +29,58 @@ async function register(req, res) {
       password,
       email,
       profileImage,
+      idImage,
+      motorcycleImage,
+      motorcycleCardImage,
       latitude,
       longitude,
       role: requestedRole = 'customer',
       storeName,
     } = req.body;
 
-    // تنظيف الرقم لتوحيد الصيغة (حتى لو اتبعت بـ رمز دولة)
-    phone = cleanPhoneNumber(phone);
+    name = typeof name === 'string' ? name.trim() : '';
+    phone = normalizePhone(phone);
+    email = typeof email === 'string' ? email.trim() : '';
 
-    if (!name || !phone || !password) {
+    if (!name || name.length < 2) {
       return res.status(400).json({
         success: false,
-        message: 'الاسم ورقم الهاتف وكلمة المرور مطلوبة',
+        message: 'الاسم الكامل مطلوب (حرفين على الأقل)',
       });
     }
 
-    if (!validatePhone(phone)) {
+    if (!phone) {
       return res.status(400).json({
         success: false,
-        message: 'رقم الهاتف المصري غير صحيح',
+        message: 'رقم الهاتف مطلوب',
+      });
+    }
+
+    if (!isValidPhone(phone)) {
+      return res.status(400).json({
+        success: false,
+        message: 'رقم الهاتف غير صحيح',
+      });
+    }
+
+    if (!password) {
+      return res.status(400).json({
+        success: false,
+        message: 'كلمة المرور مطلوبة',
       });
     }
 
     if (!validatePassword(password)) {
       return res.status(400).json({
         success: false,
-        message: 'كلمة المرور يجب أن تكون 6 أحرف على الأقل وتحتوي على رقم',
+        message: 'كلمة المرور يجب أن تكون 6 أحرف على الأقل',
       });
     }
 
-    const existingUser = await prisma.user.findUnique({
-      where: { phone },
+    const existingUser = await prisma.user.findFirst({
+      where: {
+        phone: { in: phoneVariants(phone) },
+      },
     });
 
     if (existingUser) {
@@ -91,6 +96,13 @@ async function register(req, res) {
       return res.status(400).json({
         success: false,
         message: 'نوع الحساب غير صحيح',
+      });
+    }
+
+    if (roleName === 'vendor' && !storeName) {
+      return res.status(400).json({
+        success: false,
+        message: 'اسم المتجر مطلوب للبائع',
       });
     }
 
@@ -117,9 +129,14 @@ async function register(req, res) {
           password: hashedPassword,
           email: email || null,
           profileImage: profileImage || null,
+          idImage: idImage || null,
+          motorcycleImage: motorcycleImage || null,
+          motorcycleCardImage: motorcycleCardImage || null,
           latitude: Number.isFinite(Number(latitude)) ? Number(latitude) : null,
           longitude: Number.isFinite(Number(longitude)) ? Number(longitude) : null,
           roleId: accountRole.id,
+          isActive: roleName === 'customer',
+          approvalStatus: roleName === 'customer' ? 'APPROVED' : 'PENDING_ADMIN_REVIEW',
         },
         include: {
           role: true,
@@ -150,6 +167,23 @@ async function register(req, res) {
 
       return createdUser;
     });
+
+    if (roleName !== 'customer') {
+      return res.status(201).json({
+        success: true,
+        pendingApproval: true,
+        message: 'تم استلام طلبك. حسابك في انتظار مراجعة الإدارة لمدة تصل إلى 48 ساعة.',
+        user: {
+          id: user.id,
+          name: user.name,
+          phone: user.phone,
+          email: user.email,
+          profileImage: user.profileImage,
+          role: user.role.name.toLowerCase(),
+          approvalStatus: 'PENDING_ADMIN_REVIEW',
+        },
+      });
+    }
 
     const token = generateToken(user);
 
@@ -183,10 +217,10 @@ async function login(req, res) {
     let {
       phone,
       password,
+      role: requestedRole,
     } = req.body;
 
-    // تنظيف رقم الهاتف الوارد من التطبيق ليتم مطابقته مع الداتا بصيغة تبدأ بـ 01 مباشرة
-    phone = cleanPhoneNumber(phone);
+    phone = normalizePhone(phone);
 
     if (!phone || !password) {
       return res.status(400).json({
@@ -195,14 +229,34 @@ async function login(req, res) {
       });
     }
 
-    const user = await prisma.user.findUnique({
+    const targetPhoneVariants = phoneVariants(phone);
+
+    let user = await prisma.user.findFirst({
       where: {
-        phone,
+        phone: { in: targetPhoneVariants },
+        ...(requestedRole
+          ? {
+              role: {
+                name: String(requestedRole).trim().toLowerCase(),
+              },
+            }
+          : {}),
       },
       include: {
         role: true,
       },
     });
+
+    if (!user && requestedRole) {
+      user = await prisma.user.findFirst({
+        where: {
+          phone: { in: targetPhoneVariants },
+        },
+        include: {
+          role: true,
+        },
+      });
+    }
 
     if (!user) {
       return res.status(401).json({
@@ -214,7 +268,9 @@ async function login(req, res) {
     if (!user.isActive) {
       return res.status(403).json({
         success: false,
-        message: 'الحساب غير مفعل',
+        message: user.approvalStatus === 'PENDING_ADMIN_REVIEW'
+          ? 'حسابك في انتظار مراجعة الإدارة'
+          : 'الحساب غير مفعل',
       });
     }
 
@@ -308,20 +364,20 @@ async function updateProfile(req, res) {
       currentPassword,
       newPassword,
     } = req.body;
-    const cleanedPhone = phone ? cleanPhoneNumber(phone) : undefined;
+    const normalizedPhone = phone ? normalizePhone(phone) : undefined;
 
-    if (cleanedPhone && !validatePhone(cleanedPhone)) {
+    if (normalizedPhone && !isValidPhone(normalizedPhone)) {
       return res.status(400).json({
         success: false,
-        message: 'رقم الهاتف المصري غير صحيح',
+        message: 'رقم الهاتف غير صحيح',
       });
     }
 
     const duplicate = await prisma.user.findFirst({
       where: {
         OR: [
-          cleanedPhone ? { phone: cleanedPhone } : undefined,
-          email ? { email } : undefined,
+          normalizedPhone ? { phone: { in: phoneVariants(normalizedPhone) } } : undefined,
+          email ? { email: String(email).trim() } : undefined,
         ].filter(Boolean),
         NOT: { id: req.user.id },
       },
@@ -330,9 +386,7 @@ async function updateProfile(req, res) {
     if (duplicate) {
       return res.status(409).json({
         success: false,
-        message: duplicate.phone === cleanedPhone
-          ? 'رقم الهاتف مسجل بالفعل'
-          : 'البريد الإلكتروني مسجل بالفعل',
+        message: 'رقم الهاتف أو البريد الإلكتروني مسجل بالفعل',
       });
     }
 
@@ -341,7 +395,7 @@ async function updateProfile(req, res) {
       if (!currentPassword || !newPassword || !validatePassword(newPassword)) {
         return res.status(400).json({
           success: false,
-          message: 'أدخل كلمة المرور الحالية وكلمة مرور جديدة صحيحة',
+          message: 'أدخل كلمة المرور الحالية وكلمة مرور جديدة صحيحة (6 أحرف على الأقل)',
         });
       }
 
@@ -363,9 +417,9 @@ async function updateProfile(req, res) {
     const user = await prisma.user.update({
       where: { id: req.user.id },
       data: {
-        ...(name !== undefined ? { name: name.trim() } : {}),
-        ...(cleanedPhone !== undefined ? { phone: cleanedPhone } : {}),
-        ...(email !== undefined ? { email: email.trim() || null } : {}),
+        ...(name !== undefined ? { name: String(name).trim() } : {}),
+        ...(normalizedPhone !== undefined ? { phone: normalizedPhone } : {}),
+        ...(email !== undefined ? { email: String(email).trim() || null } : {}),
         ...(profileImage !== undefined ? { profileImage: profileImage || null } : {}),
         ...(passwordChangeRequested ? { password: await hashPassword(newPassword) } : {}),
       },
