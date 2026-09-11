@@ -352,15 +352,21 @@ const OrderTracking = ({ route, navigation }) => {
       return;
     }
     setRatingSubmitting(true);
-    const result = await orderService.rateOrder(order.id, ratingStars, ratingComment);
-    setRatingSubmitting(false);
-    if (!result.success) {
-      Alert.alert('تعذر إرسال التقييم', result.message);
-      return;
+    try {
+      const result = await orderService.rateOrder(order.id, ratingStars, ratingComment);
+      if (!result.success) {
+        Alert.alert('تعذر إرسال التقييم', result.message);
+        return;
+      }
+      setRatingModalVisible(false);
+      setOrder((current) => ({ ...current, rating: result.rating }));
+      Alert.alert('شكراً لك', 'تم حفظ تقييمك للمتجر');
+    } catch (error) {
+      console.error('OrderTracking rating error:', error);
+      Alert.alert('تعذر إرسال التقييم', error?.message || 'حدث خطأ أثناء إرسال التقييم');
+    } finally {
+      setRatingSubmitting(false);
     }
-    setRatingModalVisible(false);
-    setOrder((current) => ({ ...current, rating: result.rating }));
-    Alert.alert('شكراً لك', 'تم حفظ تقييمك للمتجر');
   };
 
   if (loading && !order) {

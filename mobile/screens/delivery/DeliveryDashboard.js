@@ -296,22 +296,29 @@ const DeliveryDashboard = ({ navigation }) => {
   ======================================================= */
 
   const ensureCurrentLocation = useCallback(async () => {
-    if (locationReady) return true;
-
-    const { status } = await Location.requestForegroundPermissionsAsync();
-    if (status !== 'granted') {
-      Alert.alert('الموقع مطلوب', 'يجب السماح بالموقع الحالي لاستقبال وإدارة الطلبات.');
-      return false;
+    if (!locationReady) {
+      const { status } = await Location.requestForegroundPermissionsAsync();
+      if (status !== 'granted') {
+        Alert.alert('الموقع مطلوب', 'يجب السماح بالموقع الحالي لاستقبال وإدارة الطلبات.');
+        return false;
+      }
+      setLocationReady(true);
     }
 
-    const position = await Location.getCurrentPositionAsync({
-      accuracy: Location.Accuracy.High,
-    });
-    await deliveryService.updateLocation({
-      latitude: position.coords.latitude,
-      longitude: position.coords.longitude,
-    });
-    setLocationReady(true);
+    // نحدّث الموقع الحالي في كل استدعاء حتى تبقى خريطة تتبع العميل محدثة
+    // أثناء تحرك المندوب، بدل الاكتفاء بإرسال الموقع مرة واحدة فقط.
+    try {
+      const position = await Location.getCurrentPositionAsync({
+        accuracy: Location.Accuracy.High,
+      });
+      await deliveryService.updateLocation({
+        latitude: position.coords.latitude,
+        longitude: position.coords.longitude,
+      });
+    } catch (error) {
+      console.error('LOCATION UPDATE ERROR:', error);
+    }
+
     return true;
   }, [locationReady]);
 

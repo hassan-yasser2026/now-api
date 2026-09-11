@@ -73,6 +73,15 @@ const LocationPickerModal = ({
       Alert.alert('تنبيه', 'اضغط على الخريطة لتحديد الموقع أولاً');
       return;
     }
+    if (
+      !Number.isFinite(current.lat) ||
+      !Number.isFinite(current.lng) ||
+      Math.abs(current.lat) > 90 ||
+      Math.abs(current.lng) > 180
+    ) {
+      Alert.alert('تنبيه', 'إحداثيات الموقع غير صالحة، اختر موقعًا آخر');
+      return;
+    }
 
     if (showSchedule) {
       const day = Number.parseInt(dateText, 10);

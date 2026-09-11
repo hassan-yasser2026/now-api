@@ -3043,21 +3043,20 @@ app.patch(
   authMiddleware,
   roleMiddleware(ROLES.DELIVERY),
   async (req, res) => {
-    const latitude = Number(req.body.latitude);
-    const longitude = Number(req.body.longitude);
+    const point = parseLatLng(req.body.latitude, req.body.longitude);
 
-    if (!Number.isFinite(latitude) || !Number.isFinite(longitude)) {
+    if (!point) {
       return errorResponse(res, 'إحداثيات الموقع غير صالحة', 422);
     }
 
     try {
       const profile = await prisma.deliveryProfile.upsert({
         where: { userId: req.user.userId },
-        update: { latitude, longitude },
+        update: { latitude: point.lat, longitude: point.lng },
         create: {
           userId: req.user.userId,
-          latitude,
-          longitude,
+          latitude: point.lat,
+          longitude: point.lng,
         },
       });
 

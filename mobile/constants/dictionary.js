@@ -1037,6 +1037,9 @@ export const AR_EN = {
   'لا يوجد موقع أو عنوان لهذا الطلب': 'This order has no location or address',
   'المتجر مغلق حاليًا': 'The store is currently closed',
   'إحداثيات الموقع غير صالحة': 'Invalid location coordinates',
+  'إحداثيات الموقع غير صالحة، اختر موقعًا آخر':
+    'Invalid location coordinates, choose another location',
+  'حدث خطأ أثناء إرسال التقييم': 'An error occurred while submitting the rating',
 };
 
 /**
