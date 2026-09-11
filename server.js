@@ -2302,6 +2302,8 @@ app.post(
               item.quantity,
           0
         );
+      const platformCommission =
+        Math.round(totalPrice * 0.05 * 100) / 100;
       const orderTotal = totalPrice + deliveryFee;
 
       const order =
@@ -2335,6 +2337,8 @@ app.post(
 
                 subtotal:
                   totalPrice,
+
+                platformCommission,
 
                 items: {
                   create:
@@ -3844,7 +3848,7 @@ app.get(
         roleCount(ROLES.DELIVERY),
         prisma.order.count(),
         prisma.order.aggregate({ where: { status: ORDER_STATUS.DELIVERED }, _sum: { totalPrice: true } }),
-        prisma.paymentTransaction.aggregate({ where: { status: 'SUCCESS' }, _sum: { amount: true } }),
+        prisma.order.aggregate({ where: { status: ORDER_STATUS.DELIVERED }, _sum: { platformCommission: true } }),
         prisma.order.findMany({ take: 5, orderBy: { createdAt: 'desc' }, select: { id: true, status: true, totalPrice: true, createdAt: true, customer: { select: { name: true } }, store: { select: { name: true } } } }),
         prisma.user.findMany({ take: 5, orderBy: { createdAt: 'desc' }, select: { id: true, name: true, phone: true, createdAt: true, role: { select: { name: true } } } }),
         prisma.auditLog.findMany({ take: 6, orderBy: { createdAt: 'desc' }, select: { id: true, action: true, entity: true, createdAt: true, actor: { select: { name: true } } } }),
@@ -3868,7 +3872,7 @@ app.get(
         deliveries,
         sales: Number(sales._sum.totalPrice || 0),
         profits: null,
-        commissions: null,
+        commissions: Number(commissions._sum.platformCommission || 0),
         withdrawals: null,
         monthly,
         recentOrders: recentOrders.map((item) => ({ ...item, totalPrice: Number(item.totalPrice) })),
@@ -4377,12 +4381,16 @@ app.get(
       startOfMonth.setDate(1);
       startOfMonth.setHours(0, 0, 0, 0);
 
-      const [totalOrders, revenue, newUsers, activeStores, storeGroups, itemGroups] =
+      const [totalOrders, revenue, commissions, newUsers, activeStores, storeGroups, itemGroups] =
         await Promise.all([
           prisma.order.count(),
           prisma.order.aggregate({
             where: { status: ORDER_STATUS.DELIVERED },
             _sum: { totalPrice: true },
+          }),
+          prisma.order.aggregate({
+            where: { status: ORDER_STATUS.DELIVERED },
+            _sum: { platformCommission: true },
           }),
           prisma.user.count({
             where: { createdAt: { gte: startOfMonth } },
@@ -4421,6 +4429,7 @@ app.get(
       return successResponse(res, {
         totalOrders,
         revenue: revenue._sum.totalPrice || 0,
+        commissions: commissions._sum.platformCommission || 0,
         newUsers,
         activeStores,
         topStores: storeGroups.map((item) => ({
