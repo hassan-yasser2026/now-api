@@ -104,9 +104,15 @@ const OrderConfirmation = ({ route, navigation }) => {
     }, 0);
   }, [storeItems, getSafePrice, getSafeQuantity]);
 
-  const finalTotal = useMemo(() => {
-    return totalPrice + DELIVERY_FEE;
-  }, [totalPrice]);
+  const platformCommission = useMemo(
+    () => Math.round(totalPrice * 0.05 * 100) / 100,
+    [totalPrice]
+  );
+
+  const finalTotal = useMemo(
+    () => totalPrice + DELIVERY_FEE + platformCommission,
+    [totalPrice, platformCommission]
+  );
 
   /*
    * ==========================================
@@ -842,6 +848,16 @@ const OrderConfirmation = ({ route, navigation }) => {
 
               <Text style={styles.summaryValue}>
                 {formatPrice(DELIVERY_FEE)} ج.م
+              </Text>
+            </View>
+
+            <View style={styles.summaryRow}>
+              <Text style={styles.summaryLabel}>
+                عمولة التطبيق (5%)
+              </Text>
+
+              <Text style={styles.summaryValue}>
+                {formatPrice(platformCommission)} ج.م
               </Text>
             </View>
 

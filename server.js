@@ -2304,7 +2304,8 @@ app.post(
         );
       const platformCommission =
         Math.round(totalPrice * 0.05 * 100) / 100;
-      const orderTotal = totalPrice + deliveryFee;
+      const orderTotal =
+        totalPrice + deliveryFee + platformCommission;
 
       const order =
         await prisma.$transaction(
