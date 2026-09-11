@@ -48,6 +48,7 @@ const PartnerRegistrationScreen = ({ navigation, route }) => {
   const [profileImage, setProfileImage] = useState(null);
   const [idImage, setIdImage] = useState(null);
   const [motorcycleImage, setMotorcycleImage] = useState(null);
+  const [motorcycleCardImage, setMotorcycleCardImage] = useState(null);
   const [location, setLocation] = useState(null);
   const [locationLabel, setLocationLabel] = useState('');
   const [locationLoading, setLocationLoading] = useState(false);
@@ -102,11 +103,16 @@ const PartnerRegistrationScreen = ({ navigation, route }) => {
       Alert.alert('تنبيه', 'اسم المتجر مطلوب للبائع');
       return;
     }
-    if (!profileImage || !idImage || (role === 'delivery' && !motorcycleImage) || !locationLabel.trim()) {
+    if (
+      !profileImage
+      || !idImage
+      || (role === 'delivery' && (!motorcycleImage || !motorcycleCardImage))
+      || !locationLabel.trim()
+    ) {
       Alert.alert(
         'تنبيه',
         role === 'delivery'
-          ? 'الصورة الشخصية والبطاقة وصورة المتوسكل والعنوان أو الموقع مطلوبة لإكمال التسجيل'
+          ? 'الصورة الشخصية والبطاقة وصورة المتوسكل وبطاقة المتوسكل والعنوان أو الموقع مطلوبة لإكمال التسجيل'
           : 'الصورة الشخصية والبطاقة والعنوان أو الموقع مطلوبة لإكمال التسجيل'
       );
       return;
@@ -126,6 +132,7 @@ const PartnerRegistrationScreen = ({ navigation, route }) => {
         profileImage,
         idImage,
         motorcycleImage: role === 'delivery' ? motorcycleImage : undefined,
+        motorcycleCardImage: role === 'delivery' ? motorcycleCardImage : undefined,
         latitude: location?.latitude,
         longitude: location?.longitude,
         password,
@@ -283,20 +290,39 @@ const PartnerRegistrationScreen = ({ navigation, route }) => {
             </TouchableOpacity>
 
             {role === 'delivery' && (
-              <TouchableOpacity
-                style={styles.inputRow}
-                onPress={() => chooseImage(setMotorcycleImage, 'صورة المتوسكل')}
-                activeOpacity={0.7}
-              >
-                <Ionicons
-                  name={motorcycleImage ? 'checkmark-circle-outline' : 'bicycle-outline'}
-                  size={22}
-                  color={selectedRole.color}
-                />
-                <Text style={[styles.actionText, motorcycleImage && { color: selectedRole.color }]}>
-                  {motorcycleImage ? 'تم اختيار صورة المتوسكل' : 'صورة المتوسكل (إجباري)'}
-                </Text>
-              </TouchableOpacity>
+              <>
+                <TouchableOpacity
+                  style={styles.inputRow}
+                  onPress={() => chooseImage(setMotorcycleImage, 'صورة المتوسكل')}
+                  activeOpacity={0.7}
+                >
+                  <Ionicons
+                    name={motorcycleImage ? 'checkmark-circle-outline' : 'bicycle-outline'}
+                    size={22}
+                    color={selectedRole.color}
+                  />
+                  <Text style={[styles.actionText, motorcycleImage && { color: selectedRole.color }]}>
+                    {motorcycleImage ? 'تم اختيار صورة المتوسكل' : 'صورة المتوسكل (إجباري)'}
+                  </Text>
+                </TouchableOpacity>
+
+                <TouchableOpacity
+                  style={styles.inputRow}
+                  onPress={() => chooseImage(setMotorcycleCardImage, 'بطاقة المتوسكل')}
+                  activeOpacity={0.7}
+                >
+                  <Ionicons
+                    name={motorcycleCardImage ? 'checkmark-circle-outline' : 'document-text-outline'}
+                    size={22}
+                    color={selectedRole.color}
+                  />
+                  <Text style={[styles.actionText, motorcycleCardImage && { color: selectedRole.color }]}>
+                    {motorcycleCardImage
+                      ? 'تم اختيار صورة بطاقة المتوسكل'
+                      : 'صورة بطاقة المتوسكل (إجباري)'}
+                  </Text>
+                </TouchableOpacity>
+              </>
             )}
 
             <View style={styles.inputRow}>

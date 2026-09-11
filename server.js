@@ -767,6 +767,7 @@ app.post('/api/auth/register', authRateLimiter, async (req, res) => {
   const profileImage = normalizeString(req.body.profileImage);
   const idImage = normalizeString(req.body.idImage);
   const motorcycleImage = normalizeString(req.body.motorcycleImage);
+  const motorcycleCardImage = normalizeString(req.body.motorcycleCardImage);
 
   if (!name || name.length < 2) {
     return errorResponse(
@@ -838,10 +839,10 @@ app.post('/api/auth/register', authRateLimiter, async (req, res) => {
     );
   }
 
-  if (role === ROLES.DELIVERY && !motorcycleImage) {
+  if (role === ROLES.DELIVERY && (!motorcycleImage || !motorcycleCardImage)) {
     return errorResponse(
       res,
-      'صورة المتوسكل مطلوبة للمندوب',
+      'صورة المتوسكل وصورة بطاقة المتوسكل مطلوبتان للمندوب',
       400
     );
   }
@@ -892,6 +893,7 @@ app.post('/api/auth/register', authRateLimiter, async (req, res) => {
             profileImage: profileImage || null,
             idImage: idImage || null,
             motorcycleImage: motorcycleImage || null,
+            motorcycleCardImage: motorcycleCardImage || null,
             latitude: parseCoordinate(req.body.latitude, 90),
             longitude: parseCoordinate(req.body.longitude, 180),
             isActive: role === ROLES.CUSTOMER,

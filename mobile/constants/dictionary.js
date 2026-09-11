@@ -357,10 +357,15 @@ export const AR_EN = {
   'البريد الإلكتروني (إجباري)': 'Email (required)',
   'الصورة الشخصية (إجباري)': 'Personal photo (required)',
   'صورة المتوسكل (إجباري)': 'Motorcycle photo (required)',
+  'صورة بطاقة المتوسكل (إجباري)': 'Motorcycle registration card (required)',
+  'بطاقة المتوسكل': 'Motorcycle registration card',
+  'تم اختيار صورة بطاقة المتوسكل': 'Motorcycle registration card selected',
   'تم اختيار الصورة الشخصية': 'Personal photo selected',
   'تم اختيار صورة المتوسكل': 'Motorcycle photo selected',
   'الصورة الشخصية والبطاقة وصورة المتوسكل والعنوان أو الموقع مطلوبة لإكمال التسجيل':
     'Personal photo, ID card, motorcycle photo, and address or location are required to complete registration',
+  'الصورة الشخصية والبطاقة وصورة المتوسكل وبطاقة المتوسكل والعنوان أو الموقع مطلوبة لإكمال التسجيل':
+    'Personal photo, ID card, motorcycle photo, motorcycle registration card, and address or location are required to complete registration',
   'الصورة الشخصية والبطاقة والعنوان أو الموقع مطلوبة لإكمال التسجيل':
     'Personal photo, ID card, and address or location are required to complete registration',
   'اضغط لاختيار صورة البطاقة': 'Tap to choose an ID card image',
