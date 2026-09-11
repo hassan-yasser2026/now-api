@@ -359,7 +359,7 @@ export const AR_EN = {
   'التوصيل الآن (اختياري تحديد موعد)': 'Delivery now (choosing a time is optional)',
   'سيتم تنفيذ الطلب فورًا أو يمكنك تحديد موعد': 'The order will be placed now, or you can choose a time',
   'الطلب الآن بدون تحديد موعد': 'Place the order now without scheduling',
-  'عمولة التطبيق (5%)': 'App commission (5%)',
+  'رسوم الخدمة': 'Service fee',
   'الدفع عند الاستلام': 'Cash on delivery',
   'ادفع للمندوب عند وصول الطلب': 'Pay the driver when your order arrives',
   'الدفع الإلكتروني غير متاح حاليًا': 'Online payment is currently unavailable',

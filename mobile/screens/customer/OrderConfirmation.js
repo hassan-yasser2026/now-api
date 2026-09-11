@@ -853,7 +853,7 @@ const OrderConfirmation = ({ route, navigation }) => {
 
             <View style={styles.summaryRow}>
               <Text style={styles.summaryLabel}>
-                عمولة التطبيق (5%)
+                رسوم الخدمة
               </Text>
 
               <Text style={styles.summaryValue}>
