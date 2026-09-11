@@ -42,6 +42,7 @@ const OrderConfirmation = ({ route, navigation }) => {
   const [address, setAddress] = useState('');
   const [deliveryPoint, setDeliveryPoint] = useState(deliveryLocation || null);
   const [mapPickerVisible, setMapPickerVisible] = useState(false);
+  const [paymentMethod, setPaymentMethod] = useState('CASH_ON_DELIVERY');
   const [loading, setLoading] = useState(false);
 
   /*
@@ -273,6 +274,7 @@ const OrderConfirmation = ({ route, navigation }) => {
        * الموعد اختياري.
        */
       scheduledAt: scheduledDate || null,
+      paymentMethod,
 
       /*
        * لا نعتمد على totalPrice في السيرفر.
@@ -737,6 +739,56 @@ const OrderConfirmation = ({ route, navigation }) => {
           </View>
 
           {/* ==================================
+              طريقة الدفع
+          ================================== */}
+          <View style={styles.section}>
+            <View style={styles.sectionHeader}>
+              <Text style={styles.sectionTitle}>طريقة الدفع</Text>
+              <View style={styles.sectionIcon}>
+                <Ionicons
+                  name="card-outline"
+                  size={19}
+                  color={COLORS.primary}
+                />
+              </View>
+            </View>
+
+            <TouchableOpacity
+              style={[
+                styles.paymentOption,
+                paymentMethod === 'CASH_ON_DELIVERY' && styles.paymentOptionSelected,
+              ]}
+              onPress={() => setPaymentMethod('CASH_ON_DELIVERY')}
+              disabled={loading}
+              activeOpacity={0.8}
+            >
+              <Ionicons
+                name={
+                  paymentMethod === 'CASH_ON_DELIVERY'
+                    ? 'radio-button-on'
+                    : 'radio-button-off'
+                }
+                size={23}
+                color={COLORS.primary}
+              />
+              <View style={styles.paymentInfo}>
+                <Text style={styles.paymentTitle}>الدفع عند الاستلام</Text>
+                <Text style={styles.paymentSubtitle}>
+                  ادفع للمندوب عند وصول الطلب
+                </Text>
+              </View>
+              <Ionicons name="cash-outline" size={24} color={COLORS.success} />
+            </TouchableOpacity>
+
+            <View style={styles.paymentOptionDisabled}>
+              <Ionicons name="lock-closed-outline" size={20} color={COLORS.textLight} />
+              <Text style={styles.paymentDisabledText}>
+                الدفع الإلكتروني غير متاح حاليًا
+              </Text>
+            </View>
+          </View>
+
+          {/* ==================================
               ملخص الطلب
           ================================== */}
           <View style={styles.summary}>
@@ -1126,6 +1178,29 @@ const styles = StyleSheet.create({
     padding: 16,
     marginBottom: 13,
   },
+  paymentOption: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    padding: 14,
+    borderWidth: 1,
+    borderColor: COLORS.border,
+    borderRadius: 14,
+    backgroundColor: COLORS.surface || '#FFFFFF',
+  },
+  paymentOptionSelected: {
+    borderColor: COLORS.primary,
+    backgroundColor: '#EAF8FA',
+  },
+  paymentInfo: { flex: 1, marginHorizontal: 10 },
+  paymentTitle: { fontSize: 15, fontWeight: '800', color: COLORS.textPrimary },
+  paymentSubtitle: { marginTop: 4, fontSize: 12, color: COLORS.textSecondary },
+  paymentOptionDisabled: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginTop: 10,
+    paddingHorizontal: 4,
+  },
+  paymentDisabledText: { marginHorizontal: 8, fontSize: 12, color: COLORS.textLight },
 
   summaryHeader: {
     flexDirection: 'row-reverse',

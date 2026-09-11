@@ -2108,6 +2108,8 @@ app.post(
 
     const scheduledAt =
       req.body.scheduledAt;
+    const paymentMethod = normalizeString(req.body.paymentMethod).toUpperCase();
+    const deliveryFee = 25;
 
     // إحداثيات التوصيل اختيارية — تأتي من اختيار العميل على الخريطة.
     const deliveryPoint = parseLatLng(
@@ -2143,6 +2145,14 @@ app.post(
       return errorResponse(
         res,
         'عدد الأصناف كبير جدًا',
+        400
+      );
+    }
+
+    if (paymentMethod !== 'CASH_ON_DELIVERY') {
+      return errorResponse(
+        res,
+        'طريقة الدفع غير متاحة حاليًا',
         400
       );
     }
@@ -2283,6 +2293,7 @@ app.post(
               item.quantity,
           0
         );
+      const orderTotal = totalPrice + deliveryFee;
 
       const order =
         await prisma.$transaction(
@@ -2304,7 +2315,8 @@ app.post(
                   deliveryPoint?.lng ??
                   null,
 
-                totalPrice,
+                deliveryFee,
+                totalPrice: orderTotal,
 
                 scheduledAt:
                   parsedScheduledAt,
@@ -2315,6 +2327,13 @@ app.post(
                 items: {
                   create:
                     preparedItems,
+                },
+                paymentTransactions: {
+                  create: {
+                    amount: orderTotal,
+                    method: paymentMethod,
+                    status: 'PENDING',
+                  },
                 },
               },
 
