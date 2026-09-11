@@ -214,6 +214,7 @@ const OrderConfirmation = ({ route, navigation }) => {
     storeId,
     storeItems,
     address,
+    deliveryPoint,
     totalPrice,
     getSafePrice,
     getSafeQuantity,
@@ -718,13 +719,13 @@ const OrderConfirmation = ({ route, navigation }) => {
                 >
                   {formattedScheduledDate
                     ? formattedScheduledDate
-                    : 'اختر موعد التوصيل (اختياري)'}
+                    : 'التوصيل الآن (اختياري تحديد موعد)'}
                 </Text>
 
                 <Text style={styles.scheduleSubtitle}>
                   {formattedScheduledDate
                     ? 'موعد التوصيل المحدد'
-                    : 'يمكنك اختيار الموعد المناسب لك'}
+                    : 'سيتم تنفيذ الطلب فورًا أو يمكنك تحديد موعد'}
                 </Text>
               </View>
 

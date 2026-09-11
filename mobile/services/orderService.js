@@ -43,12 +43,12 @@ export const orderService = {
         return { success: false, message: 'السلة فارغة' };
       if (!address?.trim())
         return { success: false, message: 'عنوان التوصيل مطلوب' };
-      if (!scheduledAt)
-        return { success: false, message: 'يجب تحديد يوم ووقت التوصيل' };
-
-      const scheduledDate = new Date(scheduledAt);
-      if (Number.isNaN(scheduledDate.getTime()))
-        return { success: false, message: 'موعد التوصيل غير صحيح' };
+      let scheduledDate = null;
+      if (scheduledAt) {
+        scheduledDate = new Date(scheduledAt);
+        if (Number.isNaN(scheduledDate.getTime()))
+          return { success: false, message: 'موعد التوصيل غير صحيح' };
+      }
 
       const hasPoint =
         Number.isFinite(Number(latitude)) &&
@@ -62,7 +62,9 @@ export const orderService = {
         ...(hasPoint
           ? { latitude: Number(latitude), longitude: Number(longitude) }
           : {}),
-        scheduledAt: scheduledDate.toISOString(),
+        ...(scheduledDate
+          ? { scheduledAt: scheduledDate.toISOString() }
+          : {}),
         paymentMethod,
         items: items.map((item) => ({
           menuItemId: item.menuItemId || item.id,

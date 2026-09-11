@@ -41,6 +41,11 @@ const DeliverySchedule = ({ navigation }) => {
     navigation.goBack();
   };
 
+  const selectNow = async () => {
+    await setScheduledDate(null);
+    navigation.goBack();
+  };
+
   return (
     <View style={styles.container}>
       <View style={styles.header}>
@@ -73,6 +78,14 @@ const DeliverySchedule = ({ navigation }) => {
         <Ionicons name="checkmark" size={20} color={COLORS.white} />
         <Text style={styles.confirmText}>تأكيد الموعد</Text>
       </TouchableOpacity>
+      <TouchableOpacity
+        style={styles.nowButton}
+        onPress={selectNow}
+        accessibilityRole="button"
+      >
+        <Ionicons name="flash-outline" size={20} color={COLORS.primary} />
+        <Text style={styles.nowText}>الطلب الآن بدون تحديد موعد</Text>
+      </TouchableOpacity>
     </View>
   );
 };
@@ -86,6 +99,8 @@ const styles = StyleSheet.create({
   input: { flex: 1, backgroundColor: COLORS.surface, borderColor: COLORS.border, borderWidth: 1, borderRadius: 12, padding: 14, color: COLORS.text, fontSize: 16 },
   confirmButton: { marginTop: 18, backgroundColor: COLORS.primary, borderRadius: 12, padding: 15, flexDirection: 'row', justifyContent: 'center', alignItems: 'center', gap: 8 },
   confirmText: { color: COLORS.white, fontSize: 16, fontWeight: '700' },
+  nowButton: { marginTop: 12, borderColor: COLORS.primary, borderWidth: 1, borderRadius: 12, padding: 14, flexDirection: 'row', justifyContent: 'center', alignItems: 'center', gap: 8 },
+  nowText: { color: COLORS.primary, fontSize: 16, fontWeight: '700' },
   spacer: { width: 24 },
 });
 

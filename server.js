@@ -2333,6 +2333,9 @@ app.post(
                 status:
                   ORDER_STATUS.PENDING,
 
+                subtotal:
+                  totalPrice,
+
                 items: {
                   create:
                     preparedItems,
