@@ -44,23 +44,26 @@ const PartnerRegistrationScreen = ({ navigation, route }) => {
   const [storeName, setStoreName] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
+  const [profileImage, setProfileImage] = useState(null);
   const [idImage, setIdImage] = useState(null);
+  const [motorcycleImage, setMotorcycleImage] = useState(null);
   const [location, setLocation] = useState(null);
   const [locationLabel, setLocationLabel] = useState('');
   const [locationLoading, setLocationLoading] = useState(false);
   const [loading, setLoading] = useState(false);
   const selectedRole = PARTNER_ROLES[role];
 
-  const chooseIdImage = async () => {
+  const chooseImage = async (setImage, label) => {
     const permission = await ImagePicker.requestMediaLibraryPermissionsAsync();
     if (!permission.granted) {
-      Alert.alert('الصلاحية مطلوبة', 'اسمح للتطبيق بالوصول إلى الصور لاختيار صورة البطاقة');
+      Alert.alert('الصلاحية مطلوبة', `اسمح للتطبيق بالوصول إلى الصور لاختيار ${label}`);
       return;
     }
     const result = await ImagePicker.launchImageLibraryAsync({
+      mediaTypes: ['images'],
       quality: 0.8,
     });
-    if (!result.canceled) setIdImage(result.assets[0].uri);
+    if (!result.canceled && result.assets?.[0]?.uri) setImage(result.assets[0].uri);
   };
 
   const chooseLocation = async () => {
@@ -98,8 +101,13 @@ const PartnerRegistrationScreen = ({ navigation, route }) => {
       Alert.alert('تنبيه', 'اسم المتجر مطلوب للبائع');
       return;
     }
-    if (!idImage || !locationLabel.trim()) {
-      Alert.alert('تنبيه', 'صورة البطاقة والعنوان أو الموقع مطلوبان لإكمال التسجيل');
+    if (!profileImage || !idImage || (role === 'delivery' && !motorcycleImage) || !locationLabel.trim()) {
+      Alert.alert(
+        'تنبيه',
+        role === 'delivery'
+          ? 'الصورة الشخصية والبطاقة وصورة المتوسكل والعنوان أو الموقع مطلوبة لإكمال التسجيل'
+          : 'الصورة الشخصية والبطاقة والعنوان أو الموقع مطلوبة لإكمال التسجيل'
+      );
       return;
     }
 
@@ -114,7 +122,9 @@ const PartnerRegistrationScreen = ({ navigation, route }) => {
         country,
         email: email.trim() || undefined,
         storeName: role === 'vendor' ? storeName.trim() : undefined,
-        profileImage: idImage,
+        profileImage,
+        idImage,
+        motorcycleImage: role === 'delivery' ? motorcycleImage : undefined,
         latitude: location?.latitude,
         longitude: location?.longitude,
         password,
@@ -240,16 +250,52 @@ const PartnerRegistrationScreen = ({ navigation, route }) => {
               />
             </View>
 
-            <TouchableOpacity style={styles.inputRow} onPress={chooseIdImage} activeOpacity={0.7}>
+            <TouchableOpacity
+              style={styles.inputRow}
+              onPress={() => chooseImage(setProfileImage, 'الصورة الشخصية')}
+              activeOpacity={0.7}
+            >
+              <Ionicons
+                name={profileImage ? 'checkmark-circle-outline' : 'person-circle-outline'}
+                size={22}
+                color={selectedRole.color}
+              />
+              <Text style={[styles.actionText, profileImage && { color: selectedRole.color }]}>
+                {profileImage ? 'تم اختيار الصورة الشخصية' : 'الصورة الشخصية (إجباري)'}
+              </Text>
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              style={styles.inputRow}
+              onPress={() => chooseImage(setIdImage, 'صورة البطاقة')}
+              activeOpacity={0.7}
+            >
               <Ionicons
                 name={idImage ? 'checkmark-circle-outline' : 'camera-outline'}
                 size={22}
                 color={selectedRole.color}
               />
               <Text style={[styles.actionText, idImage && { color: selectedRole.color }]}>
-                {idImage ? 'تم اختيار صورة البطاقة' : 'صورة البطاقة'}
+                {idImage ? 'تم اختيار صورة البطاقة' : 'صورة البطاقة (إجباري)'}
               </Text>
             </TouchableOpacity>
+
+            {role === 'delivery' && (
+              <TouchableOpacity
+                style={styles.inputRow}
+                onPress={() => chooseImage(setMotorcycleImage, 'صورة المتوسكل')}
+                activeOpacity={0.7}
+              >
+                <Ionicons
+                  name={motorcycleImage ? 'checkmark-circle-outline' : 'bicycle-outline'}
+                  size={22}
+                  color={selectedRole.color}
+                />
+                <Text style={[styles.actionText, motorcycleImage && { color: selectedRole.color }]}>
+                  {motorcycleImage ? 'تم اختيار صورة المتوسكل' : 'صورة المتوسكل (إجباري)'}
+                </Text>
+              </TouchableOpacity>
+            )}
 
             <View style={styles.inputRow}>
               <Ionicons

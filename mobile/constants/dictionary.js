@@ -348,6 +348,16 @@ export const AR_EN = {
   'اسمح للتطبيق بالوصول إلى الصور لاختيار صورة البطاقة.':
     'Allow the app to access your photos to choose an ID card image.',
   'صورة البطاقة': 'ID card image',
+  'صورة البطاقة (إجباري)': 'ID card image (required)',
+  'صورة المتوسكل': 'Motorcycle photo',
+  'الصورة الشخصية (إجباري)': 'Personal photo (required)',
+  'صورة المتوسكل (إجباري)': 'Motorcycle photo (required)',
+  'تم اختيار الصورة الشخصية': 'Personal photo selected',
+  'تم اختيار صورة المتوسكل': 'Motorcycle photo selected',
+  'الصورة الشخصية والبطاقة وصورة المتوسكل والعنوان أو الموقع مطلوبة لإكمال التسجيل':
+    'Personal photo, ID card, motorcycle photo, and address or location are required to complete registration',
+  'الصورة الشخصية والبطاقة والعنوان أو الموقع مطلوبة لإكمال التسجيل':
+    'Personal photo, ID card, and address or location are required to complete registration',
   'اضغط لاختيار صورة البطاقة': 'Tap to choose an ID card image',
   'تعذر الاتصال بالخادم. تأكد من تشغيل API وعنوانه الصحيح':
     'Unable to connect to the server. Check that the API is running and the address is correct',

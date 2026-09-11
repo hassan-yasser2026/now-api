@@ -764,6 +764,9 @@ app.post('/api/auth/register', authRateLimiter, async (req, res) => {
   const email = normalizeString(req.body.email);
   const role = normalizeString(req.body.role).toLowerCase();
   const storeName = normalizeString(req.body.storeName);
+  const profileImage = normalizeString(req.body.profileImage);
+  const idImage = normalizeString(req.body.idImage);
+  const motorcycleImage = normalizeString(req.body.motorcycleImage);
 
   if (!name || name.length < 2) {
     return errorResponse(
@@ -827,6 +830,22 @@ app.post('/api/auth/register', authRateLimiter, async (req, res) => {
     );
   }
 
+  if (role !== ROLES.CUSTOMER && (!profileImage || !idImage)) {
+    return errorResponse(
+      res,
+      'الصورة الشخصية وصورة البطاقة مطلوبتان للشريك',
+      400
+    );
+  }
+
+  if (role === ROLES.DELIVERY && !motorcycleImage) {
+    return errorResponse(
+      res,
+      'صورة المتوسكل مطلوبة للمندوب',
+      400
+    );
+  }
+
   try {
     const existingUser = await prisma.user.findFirst({
       where: {
@@ -870,7 +889,9 @@ app.post('/api/auth/register', authRateLimiter, async (req, res) => {
             password: hashedPassword,
             email: email || null,
             roleId: roleRecord.id,
-            profileImage: normalizeString(req.body.profileImage) || null,
+            profileImage: profileImage || null,
+            idImage: idImage || null,
+            motorcycleImage: motorcycleImage || null,
             latitude: parseCoordinate(req.body.latitude, 90),
             longitude: parseCoordinate(req.body.longitude, 180),
             isActive: role === ROLES.CUSTOMER,

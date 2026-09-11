@@ -41,6 +41,8 @@ model User {
   name                String
   email               String?              @unique
   profileImage        String?
+  idImage             String?
+  motorcycleImage     String?
   latitude            Decimal?             @db.Decimal(9, 6)
   longitude           Decimal?             @db.Decimal(9, 6)
   isActive            Boolean              @default(true)

@@ -110,6 +110,15 @@ async function register(role, data, { autoLogin = true } = {}) {
     const payload = response.data?.data ?? response.data;
     const { user, token } = payload || {};
 
+    if (payload?.pendingApproval) {
+      return {
+        success: true,
+        pendingApproval: true,
+        user,
+        message: payload.message || 'حسابك في انتظار مراجعة الإدارة لمدة تصل إلى 48 ساعة.',
+      };
+    }
+
     if (!user || !token) {
       return {
         success: false,
