@@ -3,9 +3,9 @@ import useAppStore from '../store/appStore';
 
 export const authService = {
   // تسجيل الدخول
-  login: async (phone, password) => {
+  login: async (phone, password, role) => {
     try {
-      const response = await api.post('/auth/login', { phone, password });
+      const response = await api.post('/auth/login', { phone, password, ...(role ? { role } : {}) });
       const payload = response.data?.data ?? response.data;
       const { user, token } = payload || {};
 

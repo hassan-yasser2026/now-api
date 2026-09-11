@@ -870,6 +870,9 @@ app.post('/api/auth/register', authRateLimiter, async (req, res) => {
             password: hashedPassword,
             email: email || null,
             roleId: roleRecord.id,
+            profileImage: normalizeString(req.body.profileImage) || null,
+            latitude: parseCoordinate(req.body.latitude, 90),
+            longitude: parseCoordinate(req.body.longitude, 180),
             isActive: role === ROLES.CUSTOMER,
             approvalStatus: role === ROLES.CUSTOMER
               ? SUBMISSION_STATUS.APPROVED

@@ -4,6 +4,7 @@ import {
   Alert,
   Animated,
   KeyboardAvoidingView,
+  Linking,
   Platform,
   ScrollView,
   StyleSheet,
@@ -24,6 +25,7 @@ import { toE164 } from '../../utils/validation';
 
 const LoginScreen = ({ navigation, route }) => {
   const isPartnerLogin = route?.name === 'PartnerLogin';
+  const partnerRole = route?.params?.role;
   const storeCountry = useAppStore((state) => state.country);
 
   const [phone, setPhone] = useState('');
@@ -93,9 +95,9 @@ const LoginScreen = ({ navigation, route }) => {
       // store local numbers without the country prefix.
       const loginPhone =
         country === 'EG' && !phone.startsWith('0') ? `0${phone}` : phone;
-      let result = await authService.login(loginPhone, password);
+      let result = await authService.login(loginPhone, password, partnerRole);
       if (!result?.success && phoneE164 && phoneE164 !== loginPhone) {
-        result = await authService.login(phoneE164, password);
+        result = await authService.login(phoneE164, password, partnerRole);
       }
 
       if (!result?.success) {
@@ -162,7 +164,10 @@ const LoginScreen = ({ navigation, route }) => {
   // ==========================================
 
   const handleRegister = () => {
-    navigation.navigate(isPartnerLogin ? 'PartnerRegistration' : 'Register');
+    navigation.navigate(
+      isPartnerLogin ? 'PartnerRegistration' : 'Register',
+      isPartnerLogin && partnerRole ? { role: partnerRole } : undefined
+    );
   };
 
   // ==========================================
@@ -317,6 +322,15 @@ const LoginScreen = ({ navigation, route }) => {
             </TouchableOpacity>
           </View>
 
+          {isPartnerLogin && (
+            <TouchableOpacity
+              style={styles.supportLink}
+              onPress={() => Linking.openURL('tel:+201067254988')}
+            >
+              <Text style={styles.supportText}>مشكلة في الدخول؟ الدعم: 01067254988</Text>
+            </TouchableOpacity>
+          )}
+
           {/* ====================================
               LOGIN BUTTON
           ==================================== */}
@@ -368,7 +382,7 @@ const LoginScreen = ({ navigation, route }) => {
               activeOpacity={0.7}
             >
               <Text style={styles.registerLink}>
-                {isPartnerLogin ? 'انضم كشريك' : 'إنشاء حساب'}
+                  {isPartnerLogin ? 'تسجيل شريك جديد' : 'إنشاء حساب'}
               </Text>
             </TouchableOpacity>
           </View>
@@ -648,6 +662,17 @@ const styles = StyleSheet.create({
     color: COLORS.primary,
     fontSize: 15,
     fontWeight: '800',
+  },
+
+  supportLink: {
+    alignSelf: 'center',
+    marginTop: 8,
+  },
+
+  supportText: {
+    color: COLORS.primary,
+    fontSize: 13,
+    fontWeight: '700',
   },
 
   // ========================================

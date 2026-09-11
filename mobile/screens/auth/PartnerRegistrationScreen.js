@@ -34,13 +34,14 @@ const PARTNER_ROLES = {
   },
 };
 
-const PartnerRegistrationScreen = ({ navigation }) => {
-  const [role, setRole] = useState('vendor');
+const PartnerRegistrationScreen = ({ navigation, route }) => {
+  const role = route?.params?.role === 'delivery' ? 'delivery' : 'vendor';
   const [name, setName] = useState('');
   const [phoneE164, setPhoneE164] = useState('');
   const [phoneValid, setPhoneValid] = useState(false);
   const [country, setCountry] = useState(useAppStore.getState().country);
   const [email, setEmail] = useState('');
+  const [storeName, setStoreName] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [idImage, setIdImage] = useState(null);
@@ -89,8 +90,16 @@ const PartnerRegistrationScreen = ({ navigation }) => {
   };
 
   const handleSubmit = async () => {
-    if (!name.trim() || !phoneValid || password.length < 6) {
-      Alert.alert('تنبيه', 'أدخل الاسم ورقم الهاتف الصحيح وكلمة مرور من 6 أحرف على الأقل');
+    if (!name.trim() || !phoneValid || password.length < 8 || !email.trim()) {
+      Alert.alert('تنبيه', 'كل البيانات الأساسية مطلوبة: الاسم والهاتف والبريد وكلمة مرور من 8 أحرف على الأقل');
+      return;
+    }
+    if (role === 'vendor' && !storeName.trim()) {
+      Alert.alert('تنبيه', 'اسم المتجر مطلوب للبائع');
+      return;
+    }
+    if (!idImage || !locationLabel.trim()) {
+      Alert.alert('تنبيه', 'صورة البطاقة والعنوان أو الموقع مطلوبان لإكمال التسجيل');
       return;
     }
 
@@ -104,6 +113,10 @@ const PartnerRegistrationScreen = ({ navigation }) => {
         phone: phoneE164,
         country,
         email: email.trim() || undefined,
+        storeName: role === 'vendor' ? storeName.trim() : undefined,
+        profileImage: idImage,
+        latitude: location?.latitude,
+        longitude: location?.longitude,
         password,
         role,
       });
@@ -153,34 +166,6 @@ const PartnerRegistrationScreen = ({ navigation }) => {
         <Text style={styles.title}>انضم كشريك</Text>
         <Text style={styles.subtitle}>اختار نوع الحساب الذي تريد التسجيل به</Text>
 
-        <View style={styles.switcher}>
-          {Object.entries(PARTNER_ROLES).map(([key, item]) => {
-            const active = key === role;
-
-            return (
-              <TouchableOpacity
-                key={key}
-                accessibilityRole="button"
-                accessibilityState={{ selected: active }}
-                onPress={() => setRole(key)}
-                style={[
-                  styles.roleTab,
-                  active && { backgroundColor: item.color },
-                ]}
-              >
-                <Ionicons
-                  name={item.icon}
-                  size={24}
-                  color={active ? COLORS.white : item.color}
-                />
-                <Text style={[styles.roleTabText, active && styles.activeTabText]}>
-                  {item.title}
-                </Text>
-              </TouchableOpacity>
-            );
-          })}
-        </View>
-
         <View style={styles.roleCard}>
           <View style={[styles.roleIcon, { backgroundColor: `${selectedRole.color}18` }]}>
             <Ionicons name={selectedRole.icon} size={42} color={selectedRole.color} />
@@ -199,6 +184,19 @@ const PartnerRegistrationScreen = ({ navigation }) => {
                 onChangeText={setName}
               />
             </View>
+
+            {role === 'vendor' && (
+              <View style={styles.inputRow}>
+                <Ionicons name="storefront-outline" size={20} color={selectedRole.color} />
+                <TextInput
+                  style={styles.input}
+                  placeholder="اسم المتجر (إجباري)"
+                  placeholderTextColor={COLORS.textLight}
+                  value={storeName}
+                  onChangeText={setStoreName}
+                />
+              </View>
+            )}
 
             <PhoneInput
               value={phoneE164}
@@ -298,7 +296,7 @@ const PartnerRegistrationScreen = ({ navigation }) => {
 
         <TouchableOpacity
           style={styles.loginLink}
-          onPress={() => navigation.navigate('PartnerLogin')}
+          onPress={() => navigation.navigate('PartnerLogin', { role })}
           activeOpacity={0.7}
         >
           <Text style={styles.loginPrompt}>لديك حساب شريك بالفعل؟</Text>

@@ -1045,6 +1045,21 @@ export const AR_EN = {
     'Your account is awaiting admin review for up to 48 hours.',
   'حسابك في انتظار مراجعة الإدارة لمدة تصل إلى 48 ساعة. ستتمكن من الدخول بعد الموافقة.':
     'Your account is awaiting admin review for up to 48 hours. You can log in after approval.',
+  'اختار القسم الخاص بحسابك': 'Choose the section for your account',
+  'إدارة طلبات التوصيل والرحلات': 'Manage delivery orders and trips',
+  'إدارة متجرك ومنتجاتك': 'Manage your store and products',
+  'اسم المتجر (إجباري)': 'Store name (required)',
+  'اسم المتجر مطلوب للبائع': 'Store name is required for vendors',
+  'تسجيل جديد': 'New registration',
+  'تسجيل دخول بائع': 'Vendor login',
+  'تسجيل دخول مندوب': 'Delivery driver login',
+  'تسجيل شريك جديد': 'Register as a new partner',
+  'صورة البطاقة والعنوان أو الموقع مطلوبان لإكمال التسجيل':
+    'ID image and address or location are required to complete registration',
+  'كل البيانات الأساسية مطلوبة: الاسم والهاتف والبريد وكلمة مرور من 8 أحرف على الأقل':
+    'All basic information is required: name, phone, email, and a password of at least 8 characters',
+  'مشكلة في التسجيل؟ الدعم: 01067254988': 'Registration problem? Support: 01067254988',
+  'مشكلة في الدخول؟ الدعم: 01067254988': 'Login problem? Support: 01067254988',
 };
 
 /**

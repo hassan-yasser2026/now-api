@@ -248,7 +248,7 @@ const CustomerHome = ({ navigation }) => {
     }
 
     if (route === 'partner') {
-      navigation.navigate('PartnerRegistration');
+      navigation.navigate('PartnerEntry');
       return;
     }
 
