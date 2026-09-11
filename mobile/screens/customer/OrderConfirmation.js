@@ -788,12 +788,24 @@ const OrderConfirmation = ({ route, navigation }) => {
               <Ionicons name="cash-outline" size={24} color={COLORS.success} />
             </TouchableOpacity>
 
-            <View style={styles.paymentOptionDisabled}>
-              <Ionicons name="lock-closed-outline" size={20} color={COLORS.textLight} />
-              <Text style={styles.paymentDisabledText}>
-                الدفع الإلكتروني غير متاح حاليًا
-              </Text>
-            </View>
+            <TouchableOpacity
+              style={[styles.paymentOption, styles.paymentOptionUnavailable]}
+              disabled
+              activeOpacity={1}
+            >
+              <Ionicons
+                name="radio-button-off"
+                size={23}
+                color={COLORS.textLight}
+              />
+              <View style={styles.paymentInfo}>
+                <Text style={styles.paymentDisabledTitle}>الدفع بالفيزا</Text>
+                <Text style={styles.paymentDisabledText}>
+                  متاح قريبًا بعد تفعيل بوابة الدفع
+                </Text>
+              </View>
+              <Ionicons name="card-outline" size={24} color={COLORS.textLight} />
+            </TouchableOpacity>
           </View>
 
           {/* ==================================
@@ -1200,16 +1212,15 @@ const styles = StyleSheet.create({
     borderColor: COLORS.primary,
     backgroundColor: '#EAF8FA',
   },
+  paymentOptionUnavailable: {
+    marginTop: 10,
+    opacity: 0.65,
+  },
   paymentInfo: { flex: 1, marginHorizontal: 10 },
   paymentTitle: { fontSize: 15, fontWeight: '800', color: COLORS.textPrimary },
   paymentSubtitle: { marginTop: 4, fontSize: 12, color: COLORS.textSecondary },
-  paymentOptionDisabled: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginTop: 10,
-    paddingHorizontal: 4,
-  },
-  paymentDisabledText: { marginHorizontal: 8, fontSize: 12, color: COLORS.textLight },
+  paymentDisabledTitle: { fontSize: 15, fontWeight: '800', color: COLORS.textSecondary },
+  paymentDisabledText: { marginTop: 4, fontSize: 12, color: COLORS.textLight },
 
   summaryHeader: {
     flexDirection: 'row-reverse',
