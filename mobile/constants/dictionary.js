@@ -354,6 +354,7 @@ export const AR_EN = {
   'الدفع عند الاستلام': 'Cash on delivery',
   'ادفع للمندوب عند وصول الطلب': 'Pay the driver when your order arrives',
   'الدفع الإلكتروني غير متاح حاليًا': 'Online payment is currently unavailable',
+  'البريد الإلكتروني (إجباري)': 'Email (required)',
   'الصورة الشخصية (إجباري)': 'Personal photo (required)',
   'صورة المتوسكل (إجباري)': 'Motorcycle photo (required)',
   'تم اختيار الصورة الشخصية': 'Personal photo selected',

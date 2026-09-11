@@ -243,7 +243,7 @@ const PartnerRegistrationScreen = ({ navigation, route }) => {
               <Ionicons name="mail-outline" size={20} color={selectedRole.color} />
               <TextInput
                 style={styles.input}
-                placeholder="البريد الإلكتروني (اختياري)"
+                placeholder="البريد الإلكتروني (إجباري)"
                 placeholderTextColor={COLORS.textLight}
                 keyboardType="email-address"
                 autoCapitalize="none"
