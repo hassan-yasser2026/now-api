@@ -2289,7 +2289,6 @@ app.post(
 
         preparedItems.push({
           menuItemId,
-          name: menuItem.name,
           priceAtOrder: price,
           quantity,
         });
