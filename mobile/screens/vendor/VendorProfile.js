@@ -10,7 +10,13 @@ const VendorProfile = ({ navigation }) => {
   const handleLogout = () => {
     Alert.alert('تسجيل الخروج', 'هل أنت متأكد؟', [
       { text: 'إلغاء', style: 'cancel' },
-      { text: 'تسجيل الخروج', style: 'destructive', onPress: logout },
+      {
+        text: 'تسجيل الخروج',
+        style: 'destructive',
+        onPress: async () => {
+          await logout();
+        },
+      },
     ]);
   };
 

@@ -18,6 +18,18 @@ while ((match = keyPattern.exec(src))) {
   keys.add(match[1].replace(/\\'/g, "'").replace(/\\n/g, '\n'));
 }
 
+const fallbackMatch = src.match(/const\s+MISSING_ARABIC_FALLBACKS\s*=\s*(\[[\s\S]*?\]);/);
+if (fallbackMatch) {
+  try {
+    const fallbackEntries = JSON.parse(fallbackMatch[1]);
+    for (const value of fallbackEntries) {
+      keys.add(value);
+    }
+  } catch (error) {
+    console.warn('Unable to parse fallback dictionary entries.', error.message);
+  }
+}
+
 const strings = JSON.parse(
   fs.readFileSync(path.join(ROOT, '.ar-strings.json'), 'utf8')
 );

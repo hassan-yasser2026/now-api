@@ -83,7 +83,7 @@ const StoreMenu = ({ route, navigation }) => {
 
   const handleCheckout = useCallback(() => {
     if (isGuest) {
-      navigation.navigate('Register', { role: 'customer' });
+      navigation.navigate('Login');
       return;
     }
 

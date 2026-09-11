@@ -183,9 +183,11 @@ const useAppStore = create((set, get) => ({
 
   logout: async () => {
     try {
-      await AsyncStorage.removeItem('token');
-      await AsyncStorage.removeItem('user');
-      await AsyncStorage.removeItem('cart');
+      await Promise.all([
+        AsyncStorage.removeItem('token'),
+        AsyncStorage.removeItem('user'),
+        AsyncStorage.removeItem('cart'),
+      ]);
 
       set({
         user: null,
@@ -196,6 +198,7 @@ const useAppStore = create((set, get) => ({
         cart: [],
         deliveryLocation: null,
         scheduledDate: null,
+        isLoading: false,
       });
 
       return true;

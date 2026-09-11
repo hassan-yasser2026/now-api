@@ -234,7 +234,7 @@ const CustomerHome = ({ navigation }) => {
 
   const handleCartStorePress = useCallback((storeId) => {
     if (isGuest) {
-      navigation.navigate('Register', { role: 'customer' });
+      navigation.navigate('Login');
       return;
     }
 
@@ -455,7 +455,7 @@ const CustomerHome = ({ navigation }) => {
           </View>
           <TouchableOpacity
             style={styles.guestBannerBtn}
-            onPress={() => navigation.navigate('Register', { role: 'customer' })}
+            onPress={() => navigation.navigate('Login')}
             activeOpacity={0.8}
           >
             <Text style={styles.guestBannerBtnText}>دخول</Text>

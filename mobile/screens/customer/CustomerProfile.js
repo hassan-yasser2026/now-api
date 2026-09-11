@@ -33,7 +33,9 @@ const CustomerProfile = ({ navigation }) => {
         {
           text: 'تسجيل الخروج',
           style: 'destructive',
-          onPress: () => logout(),
+          onPress: async () => {
+            await logout();
+          },
         },
       ],
       { cancelable: true }

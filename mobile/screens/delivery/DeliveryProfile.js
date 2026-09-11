@@ -38,7 +38,13 @@ const DeliveryProfile = ({ navigation }) => {
   const handleLogout = () => {
     Alert.alert('تسجيل الخروج', 'هل أنت متأكد من تسجيل الخروج؟', [
       { text: 'إلغاء', style: 'cancel' },
-      { text: 'تسجيل الخروج', style: 'destructive', onPress: () => logout() },
+      {
+        text: 'تسجيل الخروج',
+        style: 'destructive',
+        onPress: async () => {
+          await logout();
+        },
+      },
     ]);
   };
 

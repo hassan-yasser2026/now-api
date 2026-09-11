@@ -39,6 +39,7 @@ export default function App() {
   );
 
   const language = useAppStore((state) => state.language);
+  const authMode = useAppStore((state) => (state.isAuthenticated ? `auth-${state.role}` : 'guest'));
 
   const isDark =
     themePreference === 'dark' ||
@@ -96,7 +97,7 @@ export default function App() {
           Remounting on language change re-renders every screen through the
           translation layer, so a switch applies to all panels at once.
         */}
-        <NavigationContainer key={language} theme={theme}>
+        <NavigationContainer key={`nav-${language}-${authMode}`} theme={theme}>
           <StatusBar
             style={isDark ? 'light' : 'dark'}
           />
