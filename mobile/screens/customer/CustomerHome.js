@@ -441,6 +441,7 @@ const CustomerHome = ({ navigation }) => {
         <LocationPickerModal
           visible={locationPickerVisible}
           initial={deliveryLocation}
+          showSchedule={false}
           onConfirm={setDeliveryLocation}
           onClose={() => setLocationPickerVisible(false)}
         />
