@@ -887,6 +887,7 @@ const OrderConfirmation = ({ route, navigation }) => {
         visible={mapPickerVisible}
         title="تحديد موقع التوصيل"
         initial={deliveryPoint}
+        showSchedule={false}
         onConfirm={setDeliveryPoint}
         onClose={() => setMapPickerVisible(false)}
       />
