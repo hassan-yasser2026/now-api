@@ -2135,6 +2135,14 @@ app.post(
       );
     }
 
+    if (!deliveryPoint) {
+      return errorResponse(
+        res,
+        'موقع التوصيل مطلوب',
+        400
+      );
+    }
+
     if (items.length === 0) {
       return errorResponse(
         res,

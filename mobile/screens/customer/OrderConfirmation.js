@@ -196,6 +196,14 @@ const OrderConfirmation = ({ route, navigation }) => {
       return 'عنوان التوصيل طويل جدًا';
     }
 
+    if (
+      !deliveryPoint
+      || !Number.isFinite(Number(deliveryPoint.lat))
+      || !Number.isFinite(Number(deliveryPoint.lng))
+    ) {
+      return 'تحديد موقع التوصيل على الخريطة مطلوب';
+    }
+
     if (!Number.isFinite(totalPrice) || totalPrice <= 0) {
       return 'إجمالي الطلب غير صالح';
     }
@@ -640,8 +648,8 @@ const OrderConfirmation = ({ route, navigation }) => {
               />
               <Text style={styles.mapPickText}>
                 {deliveryPoint
-                  ? 'تعديل الموقع على الخريطة'
-                  : 'تحديد الموقع على الخريطة'}
+                  ? 'تعديل الموقع على الخريطة (إجباري)'
+                  : 'تحديد الموقع على الخريطة (إجباري)'}
               </Text>
               {deliveryPoint && (
                 <Ionicons
@@ -674,7 +682,7 @@ const OrderConfirmation = ({ route, navigation }) => {
           <View style={styles.section}>
             <View style={styles.sectionHeader}>
               <Text style={styles.sectionTitle}>
-                وقت التوصيل
+                وقت التوصيل (اختياري)
               </Text>
 
               <View style={styles.sectionIcon}>
@@ -710,7 +718,7 @@ const OrderConfirmation = ({ route, navigation }) => {
                 >
                   {formattedScheduledDate
                     ? formattedScheduledDate
-                    : 'اختر موعد التوصيل'}
+                    : 'اختر موعد التوصيل (اختياري)'}
                 </Text>
 
                 <Text style={styles.scheduleSubtitle}>
