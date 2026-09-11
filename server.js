@@ -4474,6 +4474,35 @@ app.patch(
   roleMiddleware(ROLES.ADMIN),
   async (req, res) => {
     const userId = normalizeId(req.params.id);
+    const statusOnly =
+      typeof req.body?.isActive === 'boolean' &&
+      req.body.name === undefined &&
+      req.body.phone === undefined &&
+      req.body.email === undefined &&
+      req.body.password === undefined &&
+      req.body.permissions === undefined;
+
+    if (statusOnly) {
+      try {
+        const result = await prisma.user.updateMany({
+          where: { id: userId, role: { name: ROLES.SUB_ADMIN } },
+          data: { isActive: req.body.isActive },
+        });
+
+        if (result.count === 0) {
+          return errorResponse(res, 'المشرف الفرعي غير موجود', 404);
+        }
+
+        return successResponse(res, null, 200, {
+          message: req.body.isActive
+            ? 'تم تفعيل المشرف الفرعي'
+            : 'تم تعطيل المشرف الفرعي',
+        });
+      } catch (error) {
+        return handlePrismaError(error, res);
+      }
+    }
+
     const name = normalizeString(req.body.name);
     const phone = normalizePhone(req.body.phone);
     const email = normalizeString(req.body.email) || null;
