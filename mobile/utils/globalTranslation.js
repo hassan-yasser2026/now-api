@@ -1,4 +1,4 @@
-import { Alert, Button, Text, TextInput } from 'react-native';
+import { Alert, Button, Platform, Text, TextInput } from 'react-native';
 
 import useAppStore from '../store/appStore';
 import {
@@ -48,6 +48,50 @@ const patchJsxRuntime = (runtime) => {
   runtime.__nowTranslationPatched = true;
 };
 
+/**
+ * react-native-web ships `Alert.alert` as a no-op (it never shows anything
+ * and never fires a button's `onPress`). Every confirm flow in the app
+ * (logout, delete account, etc.) is wired through `Alert.alert`, so on web
+ * those buttons silently did nothing. This reimplements the same
+ * title/message/buttons contract on top of `window.confirm` / `window.alert`
+ * so button callbacks still run when the app is opened in a browser.
+ */
+const showWebAlert = (title, message, buttons) => {
+  if (typeof window === 'undefined') return;
+
+  const list = Array.isArray(buttons) && buttons.length > 0 ? buttons : [{ text: 'OK' }];
+  const text = [title, message].filter(Boolean).join('\n\n');
+
+  if (list.length === 1) {
+    window.alert(text);
+    list[0]?.onPress?.();
+    return;
+  }
+
+  const cancelButton = list.find((button) => button.style === 'cancel');
+  const actionButtons = list.filter((button) => button !== cancelButton);
+
+  const tryNext = (index) => {
+    if (index >= actionButtons.length) {
+      cancelButton?.onPress?.();
+      return;
+    }
+
+    const button = actionButtons[index];
+    const prompt = actionButtons.length > 1 ? `${text}\n\n${button.text}؟` : text;
+
+    if (window.confirm(prompt)) {
+      button.onPress?.();
+    } else if (index + 1 < actionButtons.length) {
+      tryNext(index + 1);
+    } else {
+      cancelButton?.onPress?.();
+    }
+  };
+
+  tryNext(0);
+};
+
 const patchAlert = () => {
   if (Alert.__nowTranslationPatched) return;
 
@@ -55,6 +99,11 @@ const patchAlert = () => {
 
   Alert.alert = function patchedAlert(title, message, buttons, options) {
     const translated = translateAlertArgs(title, message, buttons);
+
+    if (Platform.OS === 'web') {
+      showWebAlert(translated.title, translated.message, translated.buttons);
+      return;
+    }
 
     return originalAlert.call(
       this,
