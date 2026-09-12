@@ -230,22 +230,17 @@ const RegisterScreen = ({ navigation, route }) => {
         return;
       }
 
-      Alert.alert(
-        result.pendingApproval ? 'تم استلام طلب التسجيل' : '🎉 تم بنجاح',
-        result.pendingApproval
-          ? 'حسابك في انتظار مراجعة الإدارة لمدة تصل إلى 48 ساعة. ستتمكن من الدخول بعد الموافقة.'
-          : 'تم إنشاء حسابك بنجاح',
-        [
-          {
-            text: 'حسناً',
-          },
-        ],
-        {
-          cancelable: false,
-        }
-      );
       if (role === 'customer' && result.phoneVerificationRequired) {
         navigation.navigate('VerifyPhone', { phone: phoneE164 });
+      } else {
+        Alert.alert(
+          result.pendingApproval ? 'تم استلام طلب التسجيل' : 'تم بنجاح',
+          result.pendingApproval
+            ? 'حسابك في انتظار مراجعة الإدارة لمدة تصل إلى 48 ساعة. ستتمكن من الدخول بعد الموافقة.'
+            : 'تم إنشاء حسابك بنجاح',
+          [{ text: 'حسنًا' }],
+          { cancelable: false }
+        );
       }
     } catch (error) {
       console.log(

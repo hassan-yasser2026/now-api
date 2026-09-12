@@ -1103,6 +1103,7 @@ app.post('/api/auth/register', authRateLimiter, async (req, res) => {
       password,
       12
     );
+    const isCustomer = role === ROLES.CUSTOMER;
 
     const result = await prisma.$transaction(
       async (tx) => {
@@ -1119,8 +1120,10 @@ app.post('/api/auth/register', authRateLimiter, async (req, res) => {
             motorcycleCardImage: motorcycleCardImage || null,
             latitude: parseCoordinate(req.body.latitude, 90),
             longitude: parseCoordinate(req.body.longitude, 180),
-            isActive: false,
-            approvalStatus: SUBMISSION_STATUS.PENDING_ADMIN_REVIEW,
+            isActive: isCustomer,
+            approvalStatus: isCustomer
+              ? SUBMISSION_STATUS.APPROVED
+              : SUBMISSION_STATUS.PENDING_ADMIN_REVIEW,
             phoneVerified: false,
           },
         });
@@ -1173,7 +1176,7 @@ app.post('/api/auth/register', authRateLimiter, async (req, res) => {
       return successResponse(
         res,
         {
-          pendingApproval: true,
+          pendingApproval: false,
           phoneVerificationRequired: true,
           otpDeliveryConfigured: delivered,
           user: {

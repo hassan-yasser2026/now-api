@@ -19,7 +19,7 @@ const VerifyPhoneScreen = ({ navigation, route }) => {
       Alert.alert('تعذر التأكيد', result.message);
       return;
     }
-    Alert.alert('تم التأكيد', 'تم تأكيد رقم الهاتف. سيصبح الحساب متاحًا بعد مراجعة الإدارة.', [
+    Alert.alert('تم التأكيد', 'تم تأكيد البريد الإلكتروني. يمكنك الآن تسجيل الدخول بحسابك.', [
       { text: 'حسنًا', onPress: () => navigation.navigate('Login', { phone }) },
     ]);
   };
