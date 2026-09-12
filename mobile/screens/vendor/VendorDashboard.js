@@ -8,6 +8,7 @@ import {
   StyleSheet,
   Text,
   TouchableOpacity,
+  useWindowDimensions,
   View,
 } from 'react-native';
 import useAppStore from '../../store/appStore';
@@ -54,6 +55,8 @@ const MENU_ITEMS = [
 
 const VendorDashboard = ({ navigation }) => {
   const { user, logout, language, setLanguage } = useAppStore();
+  const { width } = useWindowDimensions();
+  const isCompact = width < 720;
   const [storeId, setStoreId] = useState(user?.store?.id || null);
   const [storeOpen, setStoreOpen] = useState(user?.store?.isOpen !== false);
   const [statusModalVisible, setStatusModalVisible] = useState(false);
@@ -171,15 +174,19 @@ const VendorDashboard = ({ navigation }) => {
         </View>
       </View>
 
-      <View style={styles.body}>
+      <View style={[styles.body, isCompact && styles.bodyCompact]}>
         <ScrollView
-          style={styles.sidebar}
-          contentContainerStyle={styles.sidebarContent}
+          horizontal={isCompact}
+          style={[styles.sidebar, isCompact && styles.sidebarCompact]}
+          contentContainerStyle={[
+            styles.sidebarContent,
+            isCompact && styles.sidebarContentCompact,
+          ]}
           showsVerticalScrollIndicator={false}
         >
-          <Text style={styles.sidebarTitle}>لوحة تحكم</Text>
+          {!isCompact && <Text style={styles.sidebarTitle}>لوحة تحكم</Text>}
 
-          <View style={styles.profileCard}>
+          {!isCompact && <View style={styles.profileCard}>
             <View style={styles.avatar}>
               {user?.profileImage ? (
                 <Image source={{ uri: user.profileImage }} style={styles.avatarImage} />
@@ -193,28 +200,31 @@ const VendorDashboard = ({ navigation }) => {
               <Text style={styles.profilePhone}>{user?.phone || '01111111111'}</Text>
             </View>
           </View>
+          }
 
           {MENU_ITEMS.map((item) => (
             <TouchableOpacity
               key={item.label}
-              style={styles.sidebarItem}
+              style={[styles.sidebarItem, isCompact && styles.sidebarItemCompact]}
               onPress={() => handleMenuPress(item)}
             >
               <Text style={styles.sidebarIcon}>
                 {item.statusAction ? (storeOpen ? '🟢' : '🔴') : item.icon}
               </Text>
-              <Text style={styles.sidebarLabel}>
-                {item.statusAction && !storeOpen ? 'حالة المتجر (مغلق)' : item.label}
-              </Text>
+              {!isCompact && (
+                <Text style={styles.sidebarLabel}>
+                  {item.statusAction && !storeOpen ? 'حالة المتجر (مغلق)' : item.label}
+                </Text>
+              )}
             </TouchableOpacity>
           ))}
 
-          <TouchableOpacity style={styles.logoutItem} onPress={handleLogout}>
-            <Text style={styles.logoutText}>تسجيل الخروج</Text>
+          <TouchableOpacity style={[styles.logoutItem, isCompact && styles.logoutItemCompact]} onPress={handleLogout}>
+            {!isCompact && <Text style={styles.logoutText}>تسجيل الخروج</Text>}
           </TouchableOpacity>
         </ScrollView>
 
-        <View style={styles.content}>
+        <View style={[styles.content, isCompact && styles.contentCompact]}>
           <ScrollView contentContainerStyle={styles.dashboardContent} showsVerticalScrollIndicator={false}>
             <View style={styles.dashboardHeader}>
               <View>
@@ -374,10 +384,16 @@ const styles = StyleSheet.create({
     flex: 1,
     flexDirection: 'row',
   },
+  bodyCompact: {
+    flexDirection: 'column',
+  },
   content: {
     flex: 1,
     minWidth: 0,
     backgroundColor: '#f3f9fc',
+  },
+  contentCompact: {
+    width: '100%',
   },
   dashboardContent: {
     padding: 24,
@@ -395,8 +411,21 @@ const styles = StyleSheet.create({
     borderRightWidth: 1,
     borderRightColor: '#0799bc',
   },
+  sidebarCompact: {
+    width: '100%',
+    height: 64,
+    flexGrow: 0,
+    flexBasis: 64,
+    borderRightWidth: 0,
+    borderBottomWidth: 1,
+  },
   sidebarContent: {
     paddingBottom: 0,
+  },
+  sidebarContentCompact: {
+    alignItems: 'center',
+    flexDirection: 'row-reverse',
+    paddingHorizontal: 6,
   },
   sidebarTitle: {
     paddingVertical: 18,
@@ -458,6 +487,12 @@ const styles = StyleSheet.create({
     flexDirection: 'row-reverse',
     alignItems: 'center',
   },
+  sidebarItemCompact: {
+    minHeight: 48,
+    minWidth: 48,
+    paddingHorizontal: 12,
+    justifyContent: 'center',
+  },
   sidebarIcon: {
     width: 35,
     fontSize: 19,
@@ -478,6 +513,14 @@ const styles = StyleSheet.create({
     borderTopColor: 'rgba(255,255,255,.14)',
     alignItems: 'center',
     justifyContent: 'center',
+  },
+  logoutItemCompact: {
+    minHeight: 48,
+    minWidth: 48,
+    marginTop: 0,
+    borderTopWidth: 0,
+    borderRightWidth: 1,
+    borderRightColor: 'rgba(255,255,255,.14)',
   },
   logoutText: {
     color: '#FFFFFF',

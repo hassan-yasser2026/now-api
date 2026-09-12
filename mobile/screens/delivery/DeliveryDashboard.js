@@ -17,6 +17,7 @@ import {
   Text,
   TextInput,
   TouchableOpacity,
+  useWindowDimensions,
   View,
 } from 'react-native';
 
@@ -262,6 +263,8 @@ const formatDate = (value) => {
 
 const DeliveryDashboard = ({ navigation }) => {
   const { user, logout } = useAppStore();
+  const { width } = useWindowDimensions();
+  const isCompact = width < 720;
 
   const [orders, setOrders] = useState([]);
   const [filter, setFilter] = useState('all');
@@ -1792,11 +1795,11 @@ const DeliveryDashboard = ({ navigation }) => {
   ======================================================= */
 
   return (
-    <View style={styles.shell}>
-      <View style={styles.sidebar}>
+    <View style={[styles.shell, isCompact && styles.shellCompact]}>
+      <View style={[styles.sidebar, isCompact && styles.sidebarCompact]}>
         <Text style={styles.logo}>NOW</Text>
 
-        <View style={styles.sidebarList}>
+        <View style={[styles.sidebarList, isCompact && styles.sidebarListCompact]}>
           {[
             { label: 'الرئيسية', icon: 'home-outline', active: true },
             { label: 'الطلبات', icon: 'clipboard-outline', active: false },
@@ -1810,23 +1813,29 @@ const DeliveryDashboard = ({ navigation }) => {
           ].map((item) => (
             <TouchableOpacity
               key={item.label}
-              style={[styles.sidebarItem, item.active && styles.sidebarItemActive]}
+              style={[
+                styles.sidebarItem,
+                isCompact && styles.sidebarListCompactItem,
+                item.active && styles.sidebarItemActive,
+              ]}
               activeOpacity={0.9}
               onPress={() => handleSidebarAction(item)}
             >
               <Ionicons name={item.icon} size={18} color={item.active ? '#fff' : '#0EA5E9'} />
-              <Text style={[styles.sidebarText, item.active && styles.sidebarTextActive]}>{item.label}</Text>
+              {!isCompact && (
+                <Text style={[styles.sidebarText, item.active && styles.sidebarTextActive]}>{item.label}</Text>
+              )}
             </TouchableOpacity>
           ))}
         </View>
 
-        <TouchableOpacity style={styles.logoutBox} onPress={handleLogout} activeOpacity={0.9}>
+        <TouchableOpacity style={[styles.logoutBox, isCompact && styles.logoutBoxCompact]} onPress={handleLogout} activeOpacity={0.9}>
           <Ionicons name="log-out-outline" size={18} color="#fff" />
           <Text style={styles.logoutText}>تسجيل الخروج</Text>
         </TouchableOpacity>
       </View>
 
-      <View style={styles.mainPanel}>
+      <View style={[styles.mainPanel, isCompact && styles.mainPanelCompact]}>
         <FlatList
           data={filteredOrders}
           renderItem={renderOrder}
@@ -1884,6 +1893,9 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     backgroundColor: '#EAF7FF',
   },
+  shellCompact: {
+    flexDirection: 'column',
+  },
 
   sidebar: {
     width: 210,
@@ -1894,6 +1906,37 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     borderRightWidth: 1,
     borderRightColor: '#E5EEF7',
+  },
+  sidebarCompact: {
+    width: '100%',
+    height: 76,
+    paddingHorizontal: 10,
+    paddingTop: 8,
+    paddingBottom: 8,
+    flexDirection: 'row-reverse',
+    justifyContent: 'space-between',
+    borderRightWidth: 0,
+    borderBottomWidth: 1,
+  },
+  sidebarListCompact: {
+    flex: 1,
+    width: undefined,
+    marginTop: 0,
+    marginHorizontal: 8,
+    flexDirection: 'row-reverse',
+    alignItems: 'center',
+    overflow: 'hidden',
+  },
+  logoutBoxCompact: {
+    width: 44,
+    height: 44,
+    marginTop: 0,
+    paddingHorizontal: 0,
+    paddingVertical: 0,
+    borderRadius: 12,
+  },
+  mainPanelCompact: {
+    width: '100%',
   },
 
   logo: {
@@ -1921,6 +1964,12 @@ const styles = StyleSheet.create({
     backgroundColor: '#F1F8FF',
     borderWidth: 1,
     borderColor: '#E7F4FF',
+  },
+  sidebarListCompactItem: {
+    minWidth: 48,
+    paddingHorizontal: 10,
+    paddingVertical: 10,
+    justifyContent: 'center',
   },
 
   sidebarItemActive: {

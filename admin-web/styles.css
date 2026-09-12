@@ -1008,3 +1008,102 @@ th {
     font-size: 16px;
   }
 }
+
+/* Touch-first layout refinements */
+@media (max-width: 650px) {
+  body {
+    overflow-x: hidden;
+  }
+
+  .sidebar {
+    position: sticky;
+    top: 0;
+    z-index: 10;
+    max-height: none;
+  }
+
+  .nav {
+    scrollbar-width: none;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .nav::-webkit-scrollbar {
+    display: none;
+  }
+
+  .nav-group {
+    flex: 0 0 auto;
+  }
+
+  .nav-group-title {
+    display: none;
+  }
+
+  .nav-group-items {
+    display: flex;
+    gap: 6px;
+  }
+
+  .nav-group-items button,
+  .logout {
+    min-height: 44px;
+  }
+
+  .top-actions {
+    flex-wrap: wrap;
+  }
+
+  .date-chip,
+  .refresh {
+    min-height: 42px;
+    display: inline-flex;
+    align-items: center;
+  }
+
+  .panel-title,
+  .dashboard-toolbar {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .panel-title > *,
+  .dashboard-toolbar > * {
+    max-width: 100%;
+  }
+
+  .submission-actions {
+    min-width: 290px;
+    flex-wrap: wrap;
+  }
+
+  .reject-reason {
+    flex: 1 1 180px;
+    min-height: 42px;
+  }
+
+  .success-fill,
+  .danger-fill {
+    min-height: 42px;
+    padding: 10px 14px;
+  }
+
+  .table-wrap {
+    margin-inline: -4px;
+    padding-bottom: 4px;
+    -webkit-overflow-scrolling: touch;
+  }
+}
+
+@media (min-width: 651px) and (max-width: 1100px) {
+  .sidebar {
+    width: 220px;
+  }
+
+  .main {
+    padding-inline: 20px;
+  }
+
+  .stats {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
