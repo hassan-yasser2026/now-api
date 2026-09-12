@@ -20,6 +20,7 @@
       "bundleIdentifier": "com.now.delivery",
       "buildNumber": "1.0.0",
       "infoPlist": {
+        "ITSAppUsesNonExemptEncryption": false,
         "NSLocationWhenInUseUsageDescription": "يستخدم NOW موقعك لتحديد عنوان الاستلام أو التوصيل وتحسين تجربة الطلب."
       }
     },
