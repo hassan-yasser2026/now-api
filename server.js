@@ -450,6 +450,7 @@ const authMiddleware = async (req, res, next) => {
       where: { id: decoded.userId },
       select: {
         isActive: true,
+        approvalStatus: true,
         role: { select: { name: true } },
       },
     });
@@ -459,6 +460,16 @@ const authMiddleware = async (req, res, next) => {
         res,
         'الحساب غير نشط أو تغيرت صلاحياته',
         401
+      );
+    }
+
+    if (user.approvalStatus !== SUBMISSION_STATUS.APPROVED) {
+      return errorResponse(
+        res,
+        user.approvalStatus === SUBMISSION_STATUS.REJECTED
+          ? 'تم رفض الحساب من الإدارة'
+          : 'حسابك في انتظار مراجعة الإدارة',
+        403
       );
     }
 
@@ -702,13 +713,20 @@ app.post('/api/auth/login', authRateLimiter, async (req, res) => {
       );
     }
 
-    if (
-      [ROLES.VENDOR, ROLES.DELIVERY].includes(user.role.name) &&
-      user.approvalStatus === SUBMISSION_STATUS.PENDING_ADMIN_REVIEW
-    ) {
+    if (user.approvalStatus === SUBMISSION_STATUS.PENDING_ADMIN_REVIEW) {
       return errorResponse(
         res,
         'حسابك في انتظار مراجعة الإدارة. سيتم الرد خلال 48 ساعة.',
+        403
+      );
+    }
+
+    if (user.approvalStatus === SUBMISSION_STATUS.REJECTED) {
+      return errorResponse(
+        res,
+        user.rejectionReason
+          ? `تم رفض الحساب من الإدارة. السبب: ${user.rejectionReason}`
+          : 'تم رفض الحساب من الإدارة',
         403
       );
     }
@@ -749,6 +767,8 @@ app.post('/api/auth/login', authRateLimiter, async (req, res) => {
           phone: user.phone,
           email: user.email,
           role: user.role.name,
+          approvalStatus: user.approvalStatus,
+          rejectionReason: user.rejectionReason,
           storeId: user.store?.id || null,
           store: user.store,
           deliveryProfile: user.deliveryProfile,
@@ -913,8 +933,10 @@ app.post('/api/auth/register', authRateLimiter, async (req, res) => {
             motorcycleCardImage: motorcycleCardImage || null,
             latitude: parseCoordinate(req.body.latitude, 90),
             longitude: parseCoordinate(req.body.longitude, 180),
-            isActive: true,
-            approvalStatus: SUBMISSION_STATUS.APPROVED,
+            isActive: role === ROLES.DELIVERY,
+            approvalStatus: role === ROLES.DELIVERY
+              ? SUBMISSION_STATUS.APPROVED
+              : SUBMISSION_STATUS.PENDING_ADMIN_REVIEW,
           },
         });
 
@@ -927,7 +949,7 @@ app.post('/api/auth/register', authRateLimiter, async (req, res) => {
               vendorId: user.id,
               isOpen: true,
               isActive: true,
-              approvalStatus: SUBMISSION_STATUS.APPROVED,
+              approvalStatus: SUBMISSION_STATUS.PENDING_ADMIN_REVIEW,
             },
           });
         }
@@ -938,6 +960,26 @@ app.post('/api/auth/register', authRateLimiter, async (req, res) => {
         };
       }
     );
+
+    if (result.user.approvalStatus !== SUBMISSION_STATUS.APPROVED) {
+      return successResponse(
+        res,
+        {
+          pendingApproval: true,
+          user: {
+            id: result.user.id,
+            name: result.user.name,
+            phone: result.user.phone,
+            email: result.user.email,
+            role,
+            approvalStatus: result.user.approvalStatus,
+            storeId: result.store?.id || null,
+            store: result.store,
+          },
+        },
+        201
+      );
+    }
 
     const token = generateToken(result.user.id, role);
 
@@ -951,6 +993,7 @@ app.post('/api/auth/register', authRateLimiter, async (req, res) => {
           phone: result.user.phone,
           email: result.user.email,
           role,
+          approvalStatus: result.user.approvalStatus,
           storeId: result.store?.id || null,
           store: result.store,
         },
@@ -1001,6 +1044,8 @@ app.get(
           phone: user.phone,
           email: user.email,
           role: user.role.name,
+          approvalStatus: user.approvalStatus,
+          rejectionReason: user.rejectionReason,
           storeId: user.store?.id || null,
           store: user.store,
           deliveryProfile: user.deliveryProfile,
@@ -4212,24 +4257,6 @@ app.get(
 // ADMIN VENDOR SUBMISSIONS
 // ============================================================
 
-const REJECTION_REASONS = [
-  'INVALID_INFORMATION',
-  'POLICY_VIOLATION',
-  'DUPLICATE',
-  'PRICING_ISSUE',
-  'QUALITY_ISSUE',
-  'OTHER',
-];
-
-const REJECTION_REASON_LABELS = {
-  INVALID_INFORMATION: 'بيانات غير صحيحة',
-  POLICY_VIOLATION: 'مخالفة السياسات',
-  DUPLICATE: 'محتوى مكرر',
-  PRICING_ISSUE: 'مشكلة في السعر',
-  QUALITY_ISSUE: 'مشكلة في الجودة',
-  OTHER: 'سبب آخر',
-};
-
 app.get(
   '/api/admin/submissions',
   authMiddleware,
@@ -4273,8 +4300,8 @@ const updateSubmission = async (req, res, status) => {
   }
 
   const rejectionReason = normalizeString(req.body.rejectionReason || req.body.reason);
-  if (status === SUBMISSION_STATUS.REJECTED && !REJECTION_REASONS.includes(rejectionReason)) {
-    return errorResponse(res, 'سبب الرفض غير صالح', 422, { allowedReasons: REJECTION_REASONS });
+  if (status === SUBMISSION_STATUS.REJECTED && (!rejectionReason || rejectionReason.length > 500)) {
+    return errorResponse(res, 'اكتب سبب رفض واضحًا بحد أقصى 500 حرف', 422);
   }
 
   const data = {
@@ -4300,7 +4327,7 @@ const updateSubmission = async (req, res, status) => {
       const vendor = await prisma.user.findUnique({ where: { id: vendorId }, select: { notificationsEnabled: true } });
       if (vendor?.notificationsEnabled !== false) {
         const statusText = status === SUBMISSION_STATUS.APPROVED ? 'تم اعتماد ونشر' : 'تم رفض';
-        const reasonText = status === SUBMISSION_STATUS.REJECTED ? ` السبب: ${REJECTION_REASON_LABELS[rejectionReason] || rejectionReason}.` : '';
+        const reasonText = status === SUBMISSION_STATUS.REJECTED ? ` السبب: ${rejectionReason}.` : '';
         await prisma.notification.create({
           data: {
             userId: vendorId,

@@ -521,10 +521,10 @@ function renderSubmissions(payload, target) {
   ${rows.length ? `<div class="table-wrap"><table><thead><tr><th>النوع</th><th>العنوان</th><th>البائع</th><th>التاريخ</th><th>الإجراء</th></tr></thead><tbody>${rows.map((item) => `<tr>
   <td><span class="tag">${submissionLabels[item.submissionType] || escapeHtml(item.submissionType)}</span></td><td><b>${escapeHtml(item.title || item.name || item.store?.name || 'بدون عنوان')}</b></td>
   <td>${escapeHtml(item.vendor?.name || item.store?.vendor?.name || 'غير معروف')}</td><td>${formatDate(item.createdAt)}</td><td class="submission-actions">
-  ${actionButton('اعتماد', 'success-fill', 'approve', `${item.submissionType}:${item.id}`)}<select class="reject-reason" data-reason="${item.submissionType}:${item.id}"><option value="">سبب الرفض</option><option value="INVALID_INFORMATION">بيانات غير صحيحة</option><option value="POLICY_VIOLATION">مخالفة السياسات</option><option value="DUPLICATE">مكرر</option><option value="QUALITY_ISSUE">مشكلة الجودة</option><option value="OTHER">سبب آخر</option></select>${actionButton('رفض', 'danger-fill', 'reject', `${item.submissionType}:${item.id}`)}</td></tr>`).join('')}</tbody></table></div>` : '<p class="muted empty">لا توجد طلبات معلقة حاليًا.</p>'}</div>`;
+  ${actionButton('اعتماد', 'success-fill', 'approve', `${item.submissionType}:${item.id}`)}<input class="reject-reason" data-reason="${item.submissionType}:${item.id}" maxlength="500" placeholder="اكتب سبب الرفض" aria-label="سبب رفض الطلب" />${actionButton('رفض', 'danger-fill', 'reject', `${item.submissionType}:${item.id}`)}</td></tr>`).join('')}</tbody></table></div>` : '<p class="muted empty">لا توجد طلبات معلقة حاليًا.</p>'}</div>`;
   bindActionButtons(loadSection, {
     approve: (key) => { const [type, id] = key.split(':'); return request(`/admin/submissions/${type}/${id}/approve`, { method: 'PATCH' }); },
-    reject: (key) => { const [type, id] = key.split(':'); const reason = document.querySelector(`[data-reason="${key}"]`).value; if (!reason) throw new Error('اختر سبب الرفض أولًا'); return request(`/admin/submissions/${type}/${id}/reject`, { method: 'PATCH', body: JSON.stringify({ rejectionReason: reason }) }); },
+    reject: (key) => { const [type, id] = key.split(':'); const reason = document.querySelector(`[data-reason="${key}"]`).value.trim(); if (!reason) throw new Error('اكتب سبب الرفض أولًا'); return request(`/admin/submissions/${type}/${id}/reject`, { method: 'PATCH', body: JSON.stringify({ rejectionReason: reason }) }); },
   });
 }
 
