@@ -633,6 +633,19 @@ const handlePrismaError = (error, res) => {
     stack: error?.stack,
   });
 
+  if (
+    error?.code === 'SMTP_NOT_CONFIGURED'
+    || error?.code === 'EAUTH'
+    || error?.code === 'ECONNECTION'
+    || error?.code === 'ETIMEDOUT'
+  ) {
+    return errorResponse(
+      res,
+      'تعذر إرسال رمز التحقق بالبريد. راجع إعدادات SMTP في السيرفر.',
+      503
+    );
+  }
+
   if (error?.code === 'P2002') {
     return errorResponse(
       res,
@@ -679,6 +692,12 @@ app.get('/api/health', async (req, res) => {
         status: 'online',
         environment: NODE_ENV,
         database: 'connected',
+        smtpConfigured: Boolean(
+          process.env.SMTP_HOST
+          && process.env.SMTP_PORT
+          && process.env.SMTP_USER
+          && process.env.SMTP_PASSWORD
+        ),
         timestamp: new Date().toISOString(),
       }
     );
@@ -918,14 +937,25 @@ app.post('/api/auth/resend-phone-otp', otpRateLimiter, async (req, res) => {
     if (!user) return errorResponse(res, 'المستخدم غير موجود', 404);
     if (user.phoneVerified) return successResponse(res, { phoneVerified: true });
     const code = createOtp();
-    await prisma.otpVerification.create({
+    const verification = await prisma.otpVerification.create({
       data: {
         userId: user.id,
         codeHash: await bcrypt.hash(code, 10),
         expiresAt: new Date(Date.now() + 10 * 60 * 1000),
       },
     });
-    const delivered = await sendOtpEmail(user.email, code);
+    let delivered;
+    try {
+      delivered = await sendOtpEmail(user.email, code);
+    } catch (error) {
+      console.error('OTP EMAIL ERROR:', {
+        code: error?.code,
+        message: error?.message,
+        responseCode: error?.responseCode,
+      });
+      await prisma.otpVerification.delete({ where: { id: verification.id } });
+      throw error;
+    }
     return successResponse(res, { otpDeliveryConfigured: delivered });
   } catch (error) {
     return handlePrismaError(error, res);
@@ -1122,7 +1152,21 @@ app.post('/api/auth/register', authRateLimiter, async (req, res) => {
           expiresAt: new Date(Date.now() + 10 * 60 * 1000),
         },
       });
-      const delivered = await sendOtpEmail(email, code);
+      let delivered;
+      try {
+        delivered = await sendOtpEmail(email, code);
+      } catch (error) {
+        console.error('REGISTER OTP EMAIL ERROR:', {
+          code: error?.code,
+          message: error?.message,
+          responseCode: error?.responseCode,
+        });
+        await prisma.otpVerification.deleteMany({
+          where: { userId: result.user.id },
+        });
+        await prisma.user.delete({ where: { id: result.user.id } });
+        throw error;
+      }
       return successResponse(
         res,
         {
