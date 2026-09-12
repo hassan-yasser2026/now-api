@@ -624,6 +624,11 @@ const adminPermissionMiddleware = (permissionName) => {
   };
 };
 
+const canViewUserContacts = (req) => req.user?.role === ROLES.ADMIN;
+const privateContactFields = (req, user) => canViewUserContacts(req)
+  ? { phone: user.phone, email: user.email }
+  : { phone: null, email: null };
+
 // ============================================================
 // Prisma Error Helper
 // ============================================================
@@ -764,6 +769,10 @@ app.get('/api', (req, res) => {
 // ------------------------------------------------------------
 
 app.post('/api/auth/login', authRateLimiter, async (req, res) => {
+  if (String(req.body.phone || '').includes('@')) {
+    return errorResponse(res, 'تسجيل الدخول متاح برقم الهاتف فقط', 400);
+  }
+
   const phone = normalizePhone(req.body.phone);
   const password = req.body.password;
   const requestedRole = normalizeString(req.body.role).toLowerCase();
@@ -868,7 +877,6 @@ app.post('/api/auth/login', authRateLimiter, async (req, res) => {
           id: user.id,
           name: user.name,
           phone: user.phone,
-          email: user.email,
           role: user.role.name,
           approvalStatus: user.approvalStatus,
           rejectionReason: user.rejectionReason,
@@ -1183,7 +1191,6 @@ app.post('/api/auth/register', authRateLimiter, async (req, res) => {
             id: result.user.id,
             name: result.user.name,
             phone: result.user.phone,
-            email: result.user.email,
             role,
             approvalStatus: result.user.approvalStatus,
           },
@@ -1201,7 +1208,6 @@ app.post('/api/auth/register', authRateLimiter, async (req, res) => {
             id: result.user.id,
             name: result.user.name,
             phone: result.user.phone,
-            email: result.user.email,
             role,
             approvalStatus: result.user.approvalStatus,
             storeId: result.store?.id || null,
@@ -1222,7 +1228,6 @@ app.post('/api/auth/register', authRateLimiter, async (req, res) => {
           id: result.user.id,
           name: result.user.name,
           phone: result.user.phone,
-          email: result.user.email,
           role,
           approvalStatus: result.user.approvalStatus,
           storeId: result.store?.id || null,
@@ -1274,7 +1279,6 @@ app.get(
           id: user.id,
           name: user.name,
           phone: user.phone,
-          email: user.email,
           role: user.role.name,
           approvalStatus: user.approvalStatus,
           rejectionReason: user.rejectionReason,
@@ -1406,7 +1410,6 @@ app.patch(
           id: user.id,
           name: user.name,
           phone: user.phone,
-          email: user.email,
           profileImage: user.profileImage,
           latitude: user.latitude,
           longitude: user.longitude,
@@ -1511,7 +1514,15 @@ app.get(
         include: { offers: true },
       });
       if (!store) return errorResponse(res, 'المتجر غير موجود', 404);
-      return successResponse(res, store);
+      return successResponse(res, {
+        ...store,
+        vendor: store.vendor
+          ? {
+              ...store.vendor,
+              ...(canViewUserContacts(req) ? {} : { phone: null }),
+            }
+          : store.vendor,
+      });
     } catch (error) {
       return handlePrismaError(error, res);
     }
@@ -4250,7 +4261,10 @@ app.get(
 
       return successResponse(
         res,
-        users
+        users.map((user) => ({
+          ...user,
+          ...privateContactFields(req, user),
+        }))
       );
     } catch (error) {
       return handlePrismaError(
@@ -4300,7 +4314,10 @@ app.patch(
         },
       });
 
-      return successResponse(res, user);
+      return successResponse(res, {
+        ...user,
+        ...privateContactFields(req, user),
+      });
     } catch (error) {
       return handlePrismaError(error, res);
     }
@@ -4414,7 +4431,15 @@ app.get(
 
       return successResponse(
         res,
-        stores
+        stores.map((store) => ({
+          ...store,
+          vendor: store.vendor
+            ? {
+                ...store.vendor,
+                ...(canViewUserContacts(req) ? {} : { phone: null }),
+              }
+            : store.vendor,
+        }))
       );
     } catch (error) {
       return handlePrismaError(
@@ -4460,7 +4485,15 @@ app.patch(
         data,
       });
 
-      return successResponse(res, store);
+      return successResponse(res, {
+        ...store,
+        vendor: store.vendor
+          ? {
+              ...store.vendor,
+              ...(canViewUserContacts(req) ? {} : { phone: null }),
+            }
+          : store.vendor,
+      });
     } catch (error) {
       return handlePrismaError(error, res);
     }
@@ -4491,7 +4524,15 @@ const setAdminManagedStoreActive = async (req, res, isActive) => {
       },
     });
 
-    return successResponse(res, store);
+    return successResponse(res, {
+      ...store,
+      vendor: store.vendor
+        ? {
+            ...store.vendor,
+            ...(canViewUserContacts(req) ? {} : { phone: null }),
+          }
+        : store.vendor,
+    });
   } catch (error) {
     return handlePrismaError(error, res);
   }
@@ -4543,7 +4584,24 @@ app.get(
         orderBy: { createdAt: 'desc' },
       });
 
-      return successResponse(res, orders);
+      return successResponse(
+        res,
+        orders.map((order) => ({
+          ...order,
+          customer: order.customer
+            ? {
+                ...order.customer,
+                ...(canViewUserContacts(req) ? {} : { phone: null }),
+              }
+            : order.customer,
+          delivery: order.delivery
+            ? {
+                ...order.delivery,
+                ...(canViewUserContacts(req) ? {} : { phone: null }),
+              }
+            : order.delivery,
+        }))
+      );
     } catch (error) {
       return handlePrismaError(error, res);
     }
@@ -4578,11 +4636,28 @@ app.get(
         }),
       ]);
 
-      return successResponse(res, [
+      const submissions = [
         ...stores.map((item) => ({ ...item, submissionType: 'store' })),
         ...menuItems.map((item) => ({ ...item, submissionType: 'menu_item' })),
         ...offers.map((item) => ({ ...item, submissionType: 'offer' })),
-      ]);
+      ];
+      return successResponse(
+        res,
+        canViewUserContacts(req)
+          ? submissions
+          : submissions.map((item) => ({
+              ...item,
+              vendor: item.vendor ? { ...item.vendor, phone: null } : item.vendor,
+              store: item.store
+                ? {
+                    ...item.store,
+                    vendor: item.store.vendor
+                      ? { ...item.store.vendor, phone: null }
+                      : item.store.vendor,
+                  }
+                : item.store,
+            }))
+      );
     } catch (error) {
       return handlePrismaError(error, res);
     }
@@ -4686,7 +4761,13 @@ app.get(
         orderBy: { id: 'desc' },
       });
 
-      return successResponse(res, deliveries);
+      return successResponse(
+        res,
+        deliveries.map((user) => ({
+          ...user,
+          ...privateContactFields(req, user),
+        }))
+      );
     } catch (error) {
       return handlePrismaError(error, res);
     }
