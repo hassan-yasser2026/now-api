@@ -541,7 +541,12 @@ const adminPermissionMiddleware = (permissionName) => {
 // ============================================================
 
 const handlePrismaError = (error, res) => {
-  console.error('PRISMA ERROR:', error);
+  console.error('PRISMA ERROR:', {
+    code: error?.code,
+    meta: error?.meta,
+    message: error?.message,
+    stack: error?.stack,
+  });
 
   if (error?.code === 'P2002') {
     return errorResponse(
@@ -556,6 +561,14 @@ const handlePrismaError = (error, res) => {
       res,
       'العنصر المطلوب غير موجود',
       404
+    );
+  }
+
+  if (NODE_ENV !== 'production' && error?.code === 'P2022') {
+    return errorResponse(
+      res,
+      `مخطط قاعدة البيانات غير متزامن: ${error.meta?.column || error.message}`,
+      500
     );
   }
 
@@ -845,16 +858,23 @@ app.post('/api/auth/register', authRateLimiter, async (req, res) => {
   }
 
   try {
-    const existingUser = await prisma.user.findFirst({
-      where: {
-        phone: { in: phoneVariants(phone) },
-      },
+    const existingPhone = await prisma.user.findFirst({
+      where: { phone: { in: phoneVariants(phone) } },
+      select: { id: true },
     });
+    const existingEmail = email
+      ? await prisma.user.findUnique({
+          where: { email },
+          select: { id: true },
+        })
+      : null;
 
-    if (existingUser) {
+    if (existingPhone || existingEmail) {
       return errorResponse(
         res,
-        'رقم الهاتف موجود بالفعل',
+        existingPhone
+          ? 'رقم الهاتف موجود بالفعل'
+          : 'البريد الإلكتروني موجود بالفعل',
         409
       );
     }
@@ -893,10 +913,8 @@ app.post('/api/auth/register', authRateLimiter, async (req, res) => {
             motorcycleCardImage: motorcycleCardImage || null,
             latitude: parseCoordinate(req.body.latitude, 90),
             longitude: parseCoordinate(req.body.longitude, 180),
-            isActive: role === ROLES.CUSTOMER,
-            approvalStatus: role === ROLES.CUSTOMER
-              ? SUBMISSION_STATUS.APPROVED
-              : SUBMISSION_STATUS.PENDING_ADMIN_REVIEW,
+            isActive: true,
+            approvalStatus: SUBMISSION_STATUS.APPROVED,
           },
         });
 
@@ -908,6 +926,18 @@ app.post('/api/auth/register', authRateLimiter, async (req, res) => {
               name: storeName,
               vendorId: user.id,
               isOpen: true,
+              isActive: true,
+              approvalStatus: SUBMISSION_STATUS.APPROVED,
+            },
+          });
+        }
+
+        if (role === ROLES.DELIVERY) {
+          await tx.deliveryProfile.create({
+            data: {
+              userId: user.id,
+              latitude: parseCoordinate(req.body.latitude, 90),
+              longitude: parseCoordinate(req.body.longitude, 180),
             },
           });
         }
@@ -918,22 +948,6 @@ app.post('/api/auth/register', authRateLimiter, async (req, res) => {
         };
       }
     );
-
-    if (role !== ROLES.CUSTOMER) {
-      return successResponse(res, {
-        pendingApproval: true,
-        user: {
-          id: result.user.id,
-          name: result.user.name,
-          phone: result.user.phone,
-          email: result.user.email,
-          role,
-          approvalStatus: SUBMISSION_STATUS.PENDING_ADMIN_REVIEW,
-        },
-      }, 201, {
-        message: 'تم استلام طلبك. حسابك في انتظار مراجعة الإدارة لمدة تصل إلى 48 ساعة.',
-      });
-    }
 
     const token = generateToken(result.user.id, role);
 

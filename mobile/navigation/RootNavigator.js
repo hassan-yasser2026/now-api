@@ -7,6 +7,10 @@ import VendorNavigator from './VendorNavigator';
 import DeliveryNavigator from './DeliveryNavigator';
 import Loading from '../components/Loading';
 
+const ADMIN_WEB_URL =
+  process.env.EXPO_PUBLIC_ADMIN_URL ||
+  'https://now-api-production-ca56.up.railway.app/admin';
+
 const RootNavigator = () => {
   const { isAuthenticated, role, restoreSession, logout } = useAppStore();
   const [loading, setLoading] = useState(true);
@@ -58,7 +62,7 @@ const AdminWebNotice = ({ onLogout }) => (
     </Text>
     <TouchableOpacity
       style={styles.noticeButton}
-      onPress={() => Linking.openURL('file:///C:/Users/www/Desktop/NOW/admin-web/index.html')}
+      onPress={() => Linking.openURL(ADMIN_WEB_URL)}
     >
       <Text style={styles.noticeButtonText}>فتح موقع الإدارة</Text>
     </TouchableOpacity>

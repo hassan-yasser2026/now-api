@@ -90,7 +90,7 @@ export const authService = {
 
   // تسجيل مندوب جديد
   registerDelivery: async (data) => {
-    return register('delivery', data);
+    return register('delivery', data, { autoLogin: false });
   },
 
   // تسجيل الخروج
@@ -143,9 +143,20 @@ async function register(role, data, { autoLogin = true } = {}) {
     }
     return { success: false, message: 'فشل حفظ بيانات الدخول' };
   } catch (error) {
+    console.error('REGISTER API ERROR:', {
+      role,
+      status: error.response?.status,
+      data: error.response?.data,
+      message: error.message,
+      code: error.code,
+    });
+
     return {
       success: false,
-      message: error.response?.data?.message || error.response?.data?.data?.message || 'فشل إنشاء الحساب',
+      message: error.response?.data?.message
+        || error.response?.data?.data?.message
+        || error.message
+        || 'فشل إنشاء الحساب',
     };
   }
 }

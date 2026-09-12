@@ -676,12 +676,12 @@ const RegisterScreen = ({ navigation, route }) => {
             </Text>
 
             <TouchableOpacity
-              onPress={() => navigation.navigate('Login')}
+              onPress={() => navigation.navigate(role === 'customer' ? 'Login' : 'PartnerLogin', role === 'customer' ? undefined : { role })}
               disabled={loading}
               activeOpacity={0.7}
             >
               <Text style={styles.loginLink}>
-                تسجيل دخول الشريك
+                {role === 'customer' ? 'تسجيل الدخول' : 'تسجيل دخول الشريك'}
               </Text>
             </TouchableOpacity>
           </View>
@@ -709,18 +709,10 @@ const RegisterScreen = ({ navigation, route }) => {
                 routeNames.includes('GuestHome')
               ) {
                 navigation.navigate('GuestHome');
-              } else if (
-                item.key === 'home' &&
-                routeNames.includes('CustomerTabs')
-              ) {
-                navigation.navigate('CustomerTabs');
-              } else if (
-                item.key === 'orders' &&
-                routeNames.includes('Orders')
-              ) {
-                navigation.navigate('Orders');
               } else if (item.key === 'account') {
-                navigation.navigate('Register');
+                navigation.navigate('Login');
+              } else if (item.key === 'orders') {
+                navigation.navigate('Login');
               }
             }}
           >
