@@ -150,6 +150,16 @@ async function register(role, data, { autoLogin = true } = {}) {
       };
     }
 
+    if (payload?.phoneVerificationRequired) {
+      return {
+        success: true,
+        phoneVerificationRequired: true,
+        pendingApproval: false,
+        user,
+        message: payload.message || 'أدخل رمز التحقق المرسل إلى بريدك الإلكتروني.',
+      };
+    }
+
     if (!user || !token) {
       return {
         success: false,
