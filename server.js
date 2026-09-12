@@ -1467,7 +1467,6 @@ app.get('/api/stores', async (req, res) => {
         vendor: {
           select: {
             name: true,
-            phone: true,
           },
         },
         offers: {
@@ -1559,7 +1558,6 @@ app.get(
           vendor: {
             select: {
               name: true,
-              phone: true,
             },
           },
           menuItems: {
