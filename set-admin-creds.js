@@ -1,87 +1,62 @@
+require('dotenv').config();
+
 const { PrismaClient } = require('@prisma/client');
 const bcrypt = require('bcryptjs');
 
 const prisma = new PrismaClient();
-const ADMIN_PHONE = '01111980616';
-const ADMIN_PASSWORD = 'OsamaGad000@@';
+const adminPhone = String(process.env.ADMIN_PHONE || '').trim();
+const adminPassword = String(process.env.ADMIN_PASSWORD || '');
+const adminEmail = String(process.env.ADMIN_EMAIL || '').trim() || null;
+
+if (!adminPhone || !adminPassword) {
+  throw new Error('ADMIN_PHONE and ADMIN_PASSWORD environment variables are required');
+}
 
 async function main() {
-  const roles = await prisma.$queryRawUnsafe(`SELECT id, name FROM roles ORDER BY id`);
-  const adminRole = roles.find((role) => role.name === 'admin');
-  const customerRole = roles.find((role) => role.name === 'customer');
+  const [adminRole, customerRole] = await Promise.all([
+    prisma.role.findUnique({ where: { name: 'admin' }, select: { id: true } }),
+    prisma.role.findUnique({ where: { name: 'customer' }, select: { id: true } }),
+  ]);
 
   if (!adminRole || !customerRole) {
-    throw new Error('Roles admin/customer not found');
+    throw new Error('The admin and customer roles must exist before running this script');
   }
 
-  const existingAdmin = await prisma.$queryRawUnsafe(`
-    SELECT id, phone, email FROM users
-    WHERE "roleId" IN (SELECT id FROM roles WHERE name IN ('admin', 'sub_admin'))
-    ORDER BY id ASC
-    LIMIT 1
-  `);
+  await prisma.user.updateMany({
+    where: { role: { name: { in: ['admin', 'sub_admin'] } } },
+    data: { isActive: false, roleId: customerRole.id },
+  });
 
-  if (existingAdmin.length > 0) {
-    const targetId = existingAdmin[0].id;
-    const hashed = await bcrypt.hash(ADMIN_PASSWORD, 12);
+  const password = await bcrypt.hash(adminPassword, 12);
+  const user = await prisma.user.upsert({
+    where: { phone: adminPhone },
+    update: {
+      name: 'المدير العام',
+      email: adminEmail,
+      password,
+      roleId: adminRole.id,
+      isActive: true,
+      approvalStatus: 'APPROVED',
+      rejectionReason: null,
+    },
+    create: {
+      phone: adminPhone,
+      name: 'المدير العام',
+      email: adminEmail,
+      password,
+      roleId: adminRole.id,
+      isActive: true,
+      approvalStatus: 'APPROVED',
+    },
+    select: { id: true, phone: true, name: true, email: true, isActive: true, roleId: true },
+  });
 
-    await prisma.$queryRawUnsafe(`
-      UPDATE users
-      SET phone = '${ADMIN_PHONE}',
-          password = '${hashed}',
-          name = 'المدير العام',
-          email = 'admin_${ADMIN_PHONE}@now.local',
-          "isActive" = true,
-          "roleId" = ${adminRole.id},
-          "updatedAt" = NOW()
-      WHERE id = ${targetId}
-    `);
-
-    await prisma.$queryRawUnsafe(`
-      UPDATE users
-      SET "isActive" = false
-      WHERE id != ${targetId}
-        AND "roleId" IN (SELECT id FROM roles WHERE name IN ('admin', 'sub_admin'))
-    `);
-
-    const row = await prisma.$queryRawUnsafe(
-      `SELECT id, phone, name, email, "isActive", "roleId" FROM users WHERE id = ${targetId} LIMIT 1`
-    );
-
-    console.log(JSON.stringify({
-      status: 'ok',
-      phone: ADMIN_PHONE,
-      password: ADMIN_PASSWORD,
-      role: 'admin',
-      user: row[0],
-    }, null, 2));
-    return;
-  }
-
-  const hashed = await bcrypt.hash(ADMIN_PASSWORD, 12);
-  await prisma.$queryRawUnsafe(`
-    INSERT INTO users (phone, password, name, email, "isActive", "roleId", "createdAt", "updatedAt")
-    VALUES ('${ADMIN_PHONE}', '${hashed}', 'المدير العام', 'admin_${ADMIN_PHONE}@now.local', true, ${adminRole.id}, NOW(), NOW())
-  `);
-
-  const row = await prisma.$queryRawUnsafe(
-    `SELECT id, phone, name, email, "isActive", "roleId" FROM users WHERE phone = '${ADMIN_PHONE}' LIMIT 1`
-  );
-
-  console.log(JSON.stringify({
-    status: 'ok',
-    phone: ADMIN_PHONE,
-    password: ADMIN_PASSWORD,
-    role: 'admin',
-    user: row[0],
-  }, null, 2));
+  console.log(JSON.stringify({ status: 'ok', user }, null, 2));
 }
 
 main()
   .catch((error) => {
-    console.error('ERROR:', error);
-    process.exit(1);
+    console.error('ERROR:', error.message);
+    process.exitCode = 1;
   })
-  .finally(async () => {
-    await prisma.$disconnect();
-  });
+  .finally(() => prisma.$disconnect());

@@ -1,57 +1,74 @@
+require('dotenv').config();
+
 const { PrismaClient } = require('@prisma/client');
 const bcrypt = require('bcryptjs');
 
 const prisma = new PrismaClient();
-const ADMIN_PHONE = '01012345678';
-const ADMIN_PASSWORD = 'Admin123';
+const adminPhone = String(process.env.ADMIN_PHONE || '').trim();
+const adminPassword = String(process.env.ADMIN_PASSWORD || '');
+const adminEmail = String(process.env.ADMIN_EMAIL || '').trim() || null;
+
+if (!adminPhone || !adminPassword) {
+  throw new Error('ADMIN_PHONE and ADMIN_PASSWORD environment variables are required');
+}
 
 async function main() {
-  const roles = await prisma.$queryRawUnsafe(`SELECT id, name FROM roles ORDER BY id`);
-  const adminRole = roles.find((role) => role.name === 'admin');
-  const customerRole = roles.find((role) => role.name === 'customer');
+  const [adminRole, existingAdmin] = await Promise.all([
+    prisma.role.findUnique({ where: { name: 'admin' }, select: { id: true } }),
+    prisma.user.findFirst({
+      where: { role: { name: { in: ['admin', 'sub_admin'] } } },
+      orderBy: { id: 'asc' },
+      select: { id: true },
+    }),
+  ]);
 
-  if (!adminRole || !customerRole) {
-    throw new Error('الأدوار admin/customer غير موجودة في قاعدة البيانات');
+  if (!adminRole) {
+    throw new Error('The admin role must exist before running this script');
   }
 
-  await prisma.$queryRawUnsafe(
-    `UPDATE users SET "isActive" = false, "roleId" = ${customerRole.id} WHERE "roleId" IN (SELECT id FROM roles WHERE name IN ('admin', 'sub_admin'))`
-  );
+  const password = await bcrypt.hash(adminPassword, 12);
+  const user = existingAdmin
+    ? await prisma.user.update({
+        where: { id: existingAdmin.id },
+        data: {
+          phone: adminPhone,
+          password,
+          name: 'المدير العام',
+          email: adminEmail,
+          isActive: true,
+          roleId: adminRole.id,
+          approvalStatus: 'APPROVED',
+          rejectionReason: null,
+        },
+        select: { id: true, phone: true, name: true, email: true, isActive: true, roleId: true },
+      })
+    : await prisma.user.create({
+        data: {
+          phone: adminPhone,
+          password,
+          name: 'المدير العام',
+          email: adminEmail,
+          isActive: true,
+          roleId: adminRole.id,
+          approvalStatus: 'APPROVED',
+        },
+        select: { id: true, phone: true, name: true, email: true, isActive: true, roleId: true },
+      });
 
-  const hashed = await bcrypt.hash(ADMIN_PASSWORD, 12);
+  await prisma.user.updateMany({
+    where: {
+      id: { not: user.id },
+      role: { name: { in: ['admin', 'sub_admin'] } },
+    },
+    data: { isActive: false },
+  });
 
-  const existing = await prisma.$queryRawUnsafe(
-    `SELECT id FROM users WHERE phone = '${ADMIN_PHONE}' LIMIT 1`
-  );
-
-  if (existing.length > 0) {
-    await prisma.$queryRawUnsafe(
-      `UPDATE users SET name = 'المدير العام', email = 'admin@now.local', password = '${hashed}', "roleId" = ${adminRole.id}, "isActive" = true, "updatedAt" = NOW() WHERE phone = '${ADMIN_PHONE}'`
-    );
-  } else {
-    await prisma.$queryRawUnsafe(
-      `INSERT INTO users (phone, password, name, email, "isActive", "roleId", "createdAt", "updatedAt") VALUES ('${ADMIN_PHONE}', '${hashed}', 'المدير العام', 'admin@now.local', true, ${adminRole.id}, NOW(), NOW())`
-    );
-  }
-
-  const result = await prisma.$queryRawUnsafe(
-    `SELECT id, phone, name, email, "isActive", "roleId" FROM users WHERE phone = '${ADMIN_PHONE}' LIMIT 1`
-  );
-
-  console.log(JSON.stringify({
-    status: 'ok',
-    phone: ADMIN_PHONE,
-    password: ADMIN_PASSWORD,
-    role: 'admin',
-    user: result[0],
-  }, null, 2));
+  console.log(JSON.stringify({ status: 'ok', user }, null, 2));
 }
 
 main()
   .catch((error) => {
-    console.error('ERROR:', error);
-    process.exit(1);
+    console.error('ERROR:', error.message);
+    process.exitCode = 1;
   })
-  .finally(async () => {
-    await prisma.$disconnect();
-  });
+  .finally(() => prisma.$disconnect());

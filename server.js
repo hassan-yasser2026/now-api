@@ -725,10 +725,9 @@ app.post('/api/auth/login', authRateLimiter, async (req, res) => {
       );
     }
 
-    const requiresAdminApproval = [ROLES.CUSTOMER, ROLES.VENDOR].includes(user.role.name);
     if (
       user.approvalStatus === SUBMISSION_STATUS.PENDING_ADMIN_REVIEW ||
-      (requiresAdminApproval && !user.isActive)
+      !user.isActive
     ) {
       return errorResponse(
         res,
@@ -949,10 +948,8 @@ app.post('/api/auth/register', authRateLimiter, async (req, res) => {
             motorcycleCardImage: motorcycleCardImage || null,
             latitude: parseCoordinate(req.body.latitude, 90),
             longitude: parseCoordinate(req.body.longitude, 180),
-            isActive: role === ROLES.DELIVERY,
-            approvalStatus: role === ROLES.DELIVERY
-              ? SUBMISSION_STATUS.APPROVED
-              : SUBMISSION_STATUS.PENDING_ADMIN_REVIEW,
+            isActive: false,
+            approvalStatus: SUBMISSION_STATUS.PENDING_ADMIN_REVIEW,
           },
         });
 
@@ -2850,16 +2847,7 @@ app.get(
       const orders =
         await prisma.order.findMany({
           where: {
-            OR: [
-              {
-                deliveryId,
-              },
-              {
-                status:
-                  ORDER_STATUS.PENDING,
-                deliveryId: null,
-              },
-            ],
+            deliveryId,
           },
 
           include:
