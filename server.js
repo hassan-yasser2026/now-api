@@ -932,22 +932,37 @@ app.post('/api/auth/register', authRateLimiter, async (req, res) => {
           });
         }
 
-        if (role === ROLES.DELIVERY) {
-          await tx.deliveryProfile.create({
-            data: {
-              userId: user.id,
-              latitude: parseCoordinate(req.body.latitude, 90),
-              longitude: parseCoordinate(req.body.longitude, 180),
-            },
-          });
-        }
-
         return {
           user,
           store,
         };
       }
     );
+
+    if (role === ROLES.DELIVERY) {
+      try {
+        await prisma.deliveryProfile.upsert({
+          where: { userId: result.user.id },
+          create: {
+            userId: result.user.id,
+            latitude: parseCoordinate(req.body.latitude, 90),
+            longitude: parseCoordinate(req.body.longitude, 180),
+          },
+          update: {
+            latitude: parseCoordinate(req.body.latitude, 90),
+            longitude: parseCoordinate(req.body.longitude, 180),
+          },
+        });
+      } catch (profileError) {
+        console.error('DELIVERY PROFILE CREATE ERROR:', {
+          code: profileError?.code,
+          meta: profileError?.meta,
+          message: profileError?.message,
+          stack: profileError?.stack,
+          userId: result.user.id,
+        });
+      }
+    }
 
     const token = generateToken(result.user.id, role);
 
