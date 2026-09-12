@@ -3883,7 +3883,7 @@ app.get(
 app.get(
   '/api/admin/dashboard',
   authMiddleware,
-  roleMiddleware(ROLES.ADMIN, ROLES.SUB_ADMIN),
+  roleMiddleware(ROLES.ADMIN),
   async (req, res) => {
     try {
       const roleCount = (name) => prisma.user.count({ where: { role: { name } } });
