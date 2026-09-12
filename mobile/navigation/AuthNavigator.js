@@ -10,6 +10,7 @@ import StoreMenu from '../screens/customer/StoreMenu';
 import SearchScreen from '../screens/customer/SearchScreen';
 import SettingsScreen from '../screens/customer/SettingsScreen';
 import DeliverySchedule from '../screens/customer/DeliverySchedule';
+import VerifyPhoneScreen from '../screens/auth/VerifyPhoneScreen';
 
 const Stack = createNativeStackNavigator();
 
@@ -23,6 +24,7 @@ const AuthNavigator = () => {
       <Stack.Screen name="PartnerLogin" component={LoginScreen} />
       <Stack.Screen name="PartnerEntry" component={PartnerEntryScreen} />
       <Stack.Screen name="Register" component={RegisterScreen} />
+      <Stack.Screen name="VerifyPhone" component={VerifyPhoneScreen} />
       <Stack.Screen name="PartnerRegistration" component={PartnerRegistrationScreen} />
       <Stack.Screen name="About" component={AboutScreen} />
       <Stack.Screen name="GuestHome" component={CustomerHome} />

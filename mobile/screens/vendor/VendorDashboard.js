@@ -43,7 +43,7 @@ const MENU_ITEMS = [
   { label: 'الطلبات', icon: '📦', route: 'VendorOrders' },
   { label: 'الخدمات / المنتجات', icon: '🛍️', route: 'VendorMenu' },
   { label: 'العروض والخصومات', icon: '🏷️', route: 'VendorOffers' },
-  { label: 'المحفظة والأرباح', icon: '💰', route: 'VendorEarnings' },
+  { label: 'المحفظة والأرباح', icon: '💰', route: 'VendorWallet' },
   { label: 'التقييمات', icon: '⭐', route: 'VendorRatings' },
   { label: 'الدعم', icon: '💬', supportPhone: '01067254988' },
   { label: 'الإشعارات', icon: '🔔', route: 'VendorNotifications' },

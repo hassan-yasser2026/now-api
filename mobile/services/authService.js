@@ -2,6 +2,30 @@ import api from './api';
 import useAppStore from '../store/appStore';
 
 export const authService = {
+  verifyPhone: async (phone, code) => {
+    try {
+      const response = await api.post('/auth/verify-phone', { phone, code });
+      return { success: true, ...(response.data?.data ?? response.data) };
+    } catch (error) {
+      return {
+        success: false,
+        message: error.response?.data?.message || 'رمز التحقق غير صحيح',
+      };
+    }
+  },
+
+  resendPhoneOtp: async (phone) => {
+    try {
+      const response = await api.post('/auth/resend-phone-otp', { phone });
+      return { success: true, ...(response.data?.data ?? response.data) };
+    } catch (error) {
+      return {
+        success: false,
+        message: error.response?.data?.message || 'تعذر إرسال رمز التحقق',
+      };
+    }
+  },
+
   // تسجيل الدخول
   login: async (phone, password, role) => {
     try {

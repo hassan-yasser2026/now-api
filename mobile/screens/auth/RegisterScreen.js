@@ -244,6 +244,9 @@ const RegisterScreen = ({ navigation, route }) => {
           cancelable: false,
         }
       );
+      if (role === 'customer' && result.phoneVerificationRequired) {
+        navigation.navigate('VerifyPhone', { phone: phoneE164 });
+      }
     } catch (error) {
       console.log(
         'REGISTER SCREEN ERROR:',

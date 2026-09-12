@@ -12,6 +12,7 @@ import DeliveryProfile from '../screens/delivery/DeliveryProfile';
 import VendorNotifications from '../screens/vendor/VendorNotifications';
 import AccountSettingsScreen from '../screens/customer/AccountSettingsScreen';
 import AboutScreen from '../screens/auth/AboutScreen';
+import WalletScreen from '../screens/wallet/WalletScreen';
 
 const Stack = createNativeStackNavigator();
 
@@ -25,6 +26,7 @@ const DeliveryNavigator = () => {
       <Stack.Screen name="DeliveryOrders" component={DeliveryOrders} />
       <Stack.Screen name="DeliveryOrderDetails" component={DeliveryOrderDetails} />
       <Stack.Screen name="DeliveryEarnings" component={DeliveryEarnings} />
+      <Stack.Screen name="DeliveryWallet" component={WalletScreen} />
       <Stack.Screen name="DeliveryRatings" component={DeliveryRatings} />
       <Stack.Screen name="DeliveryMore" component={DeliveryMore} />
       <Stack.Screen name="DeliveryProfile" component={DeliveryProfile} />

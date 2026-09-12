@@ -325,6 +325,34 @@ const DeliveryDashboard = ({ navigation }) => {
     return true;
   }, [locationReady]);
 
+  useEffect(() => {
+    let subscription;
+    let cancelled = false;
+    const watchLocation = async () => {
+      const { status } = await Location.requestForegroundPermissionsAsync();
+      if (status !== 'granted' || cancelled) return;
+      setLocationReady(true);
+      subscription = await Location.watchPositionAsync(
+        {
+          accuracy: Location.Accuracy.Balanced,
+          distanceInterval: 100,
+          timeInterval: 30000,
+        },
+        ({ coords }) => {
+          deliveryService.updateLocation({
+            latitude: coords.latitude,
+            longitude: coords.longitude,
+          }).catch((error) => console.warn('BACKGROUND LOCATION UPDATE ERROR:', error?.message));
+        }
+      );
+    };
+    watchLocation().catch((error) => console.warn('LOCATION WATCH ERROR:', error?.message));
+    return () => {
+      cancelled = true;
+      subscription?.remove();
+    };
+  }, []);
+
   const fetchOrders = useCallback(
     async ({ silent = false } = {}) => {
       if (!silent && mountedRef.current) {

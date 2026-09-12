@@ -7,6 +7,13 @@ const cors = require('cors');
 const { PrismaClient } = require('@prisma/client');
 const jwt = require('jsonwebtoken');
 const bcrypt = require('bcryptjs');
+const crypto = require('crypto');
+let nodemailer = null;
+try {
+  nodemailer = require('nodemailer');
+} catch {
+  console.warn('Nodemailer is not installed; OTP email delivery is disabled.');
+}
 const {
   createRateLimiter,
   setSecurityHeaders,
@@ -183,6 +190,66 @@ const authRateLimiter = createRateLimiter({
   max: Number(process.env.AUTH_RATE_LIMIT_MAX) || 10,
   keyGenerator: (req) => `${req.ip || 'unknown'}:${String(req.body?.phone || '').trim()}`,
 });
+
+const otpRateLimiter = createRateLimiter({
+  windowMs: 15 * 60 * 1000,
+  max: 5,
+  keyGenerator: (req) => `${req.ip || 'unknown'}:${normalizePhone(req.body?.phone || '')}`,
+});
+
+const createOtp = () => String(crypto.randomInt(100000, 1000000));
+
+const sendOtpEmail = async (email, code) => {
+  const required = ['SMTP_HOST', 'SMTP_PORT', 'SMTP_USER', 'SMTP_PASSWORD'];
+  if (!nodemailer || required.some((key) => !process.env[key])) {
+    console.warn('OTP email not sent: SMTP environment variables are incomplete.');
+    if (NODE_ENV !== 'production') console.info(`Development OTP for ${email}: ${code}`);
+    return false;
+  }
+
+  const transporter = nodemailer.createTransport({
+    host: process.env.SMTP_HOST,
+    port: Number(process.env.SMTP_PORT),
+    secure: process.env.SMTP_SECURE === 'true',
+    auth: { user: process.env.SMTP_USER, pass: process.env.SMTP_PASSWORD },
+  });
+
+  await transporter.sendMail({
+    from: process.env.SMTP_FROM || process.env.SMTP_USER,
+    to: email,
+    subject: 'NOW phone verification code',
+    text: `Your NOW verification code is ${code}. It expires in 10 minutes.`,
+  });
+  return true;
+};
+
+const creditWallet = async (tx, userId, amount, type, orderId, description) => {
+  const value = Number(amount);
+  if (!Number.isFinite(value) || value <= 0) return;
+  const wallet = await tx.wallet.upsert({
+    where: { userId },
+    update: {},
+    create: { userId },
+  });
+  try {
+    await tx.walletTransaction.create({
+      data: {
+        walletId: wallet.id,
+        orderId,
+        amount: value,
+        type,
+        description,
+      },
+    });
+  } catch (error) {
+    if (error?.code !== 'P2002') throw error;
+    return;
+  }
+  await tx.wallet.update({
+    where: { id: wallet.id },
+    data: { balance: { increment: value } },
+  });
+};
 
 // ============================================================
 // Constants
@@ -746,6 +813,10 @@ app.post('/api/auth/login', authRateLimiter, async (req, res) => {
       );
     }
 
+    if (user.role.name === ROLES.CUSTOMER && !user.phoneVerified) {
+      return errorResponse(res, 'يجب تأكيد رقم الهاتف أولاً', 403);
+    }
+
     if (!user.isActive) {
       return errorResponse(
         res,
@@ -793,6 +864,74 @@ app.post('/api/auth/login', authRateLimiter, async (req, res) => {
         },
       }
     );
+  } catch (error) {
+    return handlePrismaError(error, res);
+  }
+});
+
+app.post('/api/auth/verify-phone', otpRateLimiter, async (req, res) => {
+  const phone = normalizePhone(req.body.phone);
+  const code = String(req.body.code || '').trim();
+  if (!phone || !/^\d{6}$/.test(code)) {
+    return errorResponse(res, 'رقم الهاتف ورمز التحقق غير صالحين', 400);
+  }
+
+  try {
+    const user = await prisma.user.findFirst({
+      where: { phone: { in: phoneVariants(phone) }, role: { name: ROLES.CUSTOMER } },
+      select: { id: true, phoneVerified: true },
+    });
+    if (!user) return errorResponse(res, 'المستخدم غير موجود', 404);
+    if (user.phoneVerified) return successResponse(res, { phoneVerified: true });
+
+    const verification = await prisma.otpVerification.findFirst({
+      where: { userId: user.id, consumedAt: null, expiresAt: { gt: new Date() } },
+      orderBy: { createdAt: 'desc' },
+    });
+    if (!verification || verification.attempts >= 5) {
+      return errorResponse(res, 'رمز التحقق منتهي أو غير متاح', 422);
+    }
+    const valid = await bcrypt.compare(code, verification.codeHash);
+    if (!valid) {
+      await prisma.otpVerification.update({
+        where: { id: verification.id },
+        data: { attempts: { increment: 1 } },
+      });
+      return errorResponse(res, 'رمز التحقق غير صحيح', 422);
+    }
+
+    await prisma.$transaction([
+      prisma.user.update({ where: { id: user.id }, data: { phoneVerified: true } }),
+      prisma.otpVerification.update({ where: { id: verification.id }, data: { consumedAt: new Date() } }),
+    ]);
+    return successResponse(res, { phoneVerified: true }, 200, {
+      message: 'تم تأكيد رقم الهاتف بنجاح',
+    });
+  } catch (error) {
+    return handlePrismaError(error, res);
+  }
+});
+
+app.post('/api/auth/resend-phone-otp', otpRateLimiter, async (req, res) => {
+  const phone = normalizePhone(req.body.phone);
+  if (!phone) return errorResponse(res, 'رقم الهاتف مطلوب', 400);
+  try {
+    const user = await prisma.user.findFirst({
+      where: { phone: { in: phoneVariants(phone) }, role: { name: ROLES.CUSTOMER } },
+      select: { id: true, email: true, phoneVerified: true },
+    });
+    if (!user) return errorResponse(res, 'المستخدم غير موجود', 404);
+    if (user.phoneVerified) return successResponse(res, { phoneVerified: true });
+    const code = createOtp();
+    await prisma.otpVerification.create({
+      data: {
+        userId: user.id,
+        codeHash: await bcrypt.hash(code, 10),
+        expiresAt: new Date(Date.now() + 10 * 60 * 1000),
+      },
+    });
+    const delivered = await sendOtpEmail(user.email, code);
+    return successResponse(res, { otpDeliveryConfigured: delivered });
   } catch (error) {
     return handlePrismaError(error, res);
   }
@@ -852,6 +991,10 @@ app.post('/api/auth/register', authRateLimiter, async (req, res) => {
       'البريد الإلكتروني غير صالح',
       400
     );
+  }
+
+  if (role === ROLES.CUSTOMER && !email) {
+    return errorResponse(res, 'البريد الإلكتروني مطلوب لتأكيد رقم الهاتف', 400);
   }
 
   const allowedRegistrationRoles = [
@@ -950,6 +1093,7 @@ app.post('/api/auth/register', authRateLimiter, async (req, res) => {
             longitude: parseCoordinate(req.body.longitude, 180),
             isActive: false,
             approvalStatus: SUBMISSION_STATUS.PENDING_ADMIN_REVIEW,
+            phoneVerified: false,
           },
         });
 
@@ -973,6 +1117,35 @@ app.post('/api/auth/register', authRateLimiter, async (req, res) => {
         };
       }
     );
+
+    if (role === ROLES.CUSTOMER) {
+      const code = createOtp();
+      await prisma.otpVerification.create({
+        data: {
+          userId: result.user.id,
+          codeHash: await bcrypt.hash(code, 10),
+          expiresAt: new Date(Date.now() + 10 * 60 * 1000),
+        },
+      });
+      const delivered = await sendOtpEmail(email, code);
+      return successResponse(
+        res,
+        {
+          pendingApproval: true,
+          phoneVerificationRequired: true,
+          otpDeliveryConfigured: delivered,
+          user: {
+            id: result.user.id,
+            name: result.user.name,
+            phone: result.user.phone,
+            email: result.user.email,
+            role,
+            approvalStatus: result.user.approvalStatus,
+          },
+        },
+        201
+      );
+    }
 
     if (result.user.approvalStatus !== SUBMISSION_STATUS.APPROVED) {
       return successResponse(
@@ -1047,6 +1220,7 @@ app.get(
           'المستخدم غير موجود',
           404
         );
+
       }
 
       return successResponse(
@@ -1073,6 +1247,23 @@ app.get(
   }
 );
 
+app.get('/api/wallet', authMiddleware, async (req, res) => {
+  try {
+    const wallet = await prisma.wallet.findUnique({
+      where: { userId: req.user.userId },
+      include: { transactions: { orderBy: { createdAt: 'desc' }, take: 100 } },
+    });
+    return successResponse(res, {
+      balance: Number(wallet?.balance || 0),
+      transactions: (wallet?.transactions || []).map((item) => ({
+        ...item,
+        amount: Number(item.amount),
+      })),
+    });
+  } catch (error) {
+    return handlePrismaError(error, res);
+  }
+});
 app.patch(
   '/api/auth/profile',
   authMiddleware,
@@ -3764,6 +3955,48 @@ app.put(
           include:
             orderInclude,
         });
+
+      if (requestedStatus === ORDER_STATUS.DELIVERED) {
+        const commission = Number(order.platformCommission || 0);
+        const vendorAmount = Math.max(0, Number(order.subtotal || 0) - commission);
+        await prisma.$transaction(async (tx) => {
+          await creditWallet(
+            tx,
+            order.store.vendorId,
+            vendorAmount,
+            'ORDER_SALE',
+            order.id,
+            `أرباح الطلب #${order.id} بعد خصم العمولة`
+          );
+          if (order.deliveryId) {
+            await creditWallet(
+              tx,
+              order.deliveryId,
+              order.deliveryFee,
+              'DELIVERY_FEE',
+              order.id,
+              `رسوم توصيل الطلب #${order.id}`
+            );
+          }
+        });
+      }
+
+      const notificationUserIds = [
+        order.customerId,
+        order.store.vendorId,
+        order.deliveryId,
+      ].filter((id, index, values) => id && values.indexOf(id) === index && id !== req.user.userId);
+      if (notificationUserIds.length) {
+        await prisma.notification.createMany({
+          data: notificationUserIds.map((userId) => ({
+            userId,
+            type: 'ORDER_STATUS',
+            title: 'تحديث حالة الطلب',
+            body: `تم تحديث حالة الطلب #${order.id} إلى ${requestedStatus}`,
+            data: { orderId: order.id, status: requestedStatus },
+          })),
+        });
+      }
 
       return successResponse(
         res,
