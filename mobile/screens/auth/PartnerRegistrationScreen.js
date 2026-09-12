@@ -152,7 +152,12 @@ const PartnerRegistrationScreen = ({ navigation, route }) => {
       );
       navigation.navigate('PartnerLogin');
     } catch (error) {
-      Alert.alert('خطأ', 'تعذر الاتصال بالخادم، حاول مرة أخرى');
+      Alert.alert(
+        'خطأ',
+        error?.response?.data?.message
+          || error?.message
+          || 'تعذر الاتصال بالخادم، حاول مرة أخرى'
+      );
     } finally {
       setLoading(false);
     }

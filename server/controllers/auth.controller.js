@@ -247,17 +247,6 @@ async function login(req, res) {
       },
     });
 
-    if (!user && requestedRole) {
-      user = await prisma.user.findFirst({
-        where: {
-          phone: { in: targetPhoneVariants },
-        },
-        include: {
-          role: true,
-        },
-      });
-    }
-
     if (!user) {
       return res.status(401).json({
         success: false,

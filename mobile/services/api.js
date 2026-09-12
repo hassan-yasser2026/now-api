@@ -51,6 +51,14 @@ const getApiBaseUrl = () => {
   }
 
   if (Platform.OS === 'web' && !configuredUrl) {
+    const hostname = typeof window !== 'undefined'
+      ? window.location.hostname
+      : '';
+
+    if (hostname && !['localhost', '127.0.0.1'].includes(hostname)) {
+      return '/api';
+    }
+
     return PRODUCTION_API_URL;
   }
 

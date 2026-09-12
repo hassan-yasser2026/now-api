@@ -90,7 +90,12 @@ const AccountSettingsScreen = ({ navigation }) => {
         { cancelable: false }
       );
     } catch (error) {
-      Alert.alert('تعذر الحفظ', 'حدث خطأ غير متوقع أثناء حفظ بيانات الحساب.');
+      Alert.alert(
+        'تعذر الحفظ',
+        error?.response?.data?.message
+          || error?.message
+          || 'حدث خطأ غير متوقع أثناء حفظ بيانات الحساب.'
+      );
     } finally {
       setLoading(false);
     }
@@ -103,7 +108,7 @@ const AccountSettingsScreen = ({ navigation }) => {
           <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backButton}>
             <Ionicons name="arrow-forward" size={24} color="#FFFFFF" />
           </TouchableOpacity>
-          <Text style={styles.title}>Railway Test</Text>
+          <Text style={styles.title}>إعدادات الحساب</Text>
           <View style={styles.spacer} />
         </View>
 

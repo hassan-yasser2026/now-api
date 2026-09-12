@@ -252,7 +252,9 @@ const RegisterScreen = ({ navigation, route }) => {
 
       Alert.alert(
         'خطأ',
-        'حدث خطأ غير متوقع، حاول مرة أخرى'
+        error?.response?.data?.message
+          || error?.message
+          || 'حدث خطأ غير متوقع، حاول مرة أخرى'
       );
     } finally {
       setLoading(false);

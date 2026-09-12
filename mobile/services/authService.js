@@ -53,10 +53,14 @@ export const authService = {
         ? { success: true, user: payload.user }
         : { success: false, message: 'استجابة الخادم غير صحيحة' };
     } catch (error) {
+      console.error('UPDATE PROFILE ERROR:', error);
       return {
         success: false,
         message: error.response?.data?.message
           || error.response?.data?.data?.message
+          || (!error.response
+            ? 'تعذر الاتصال بالخادم. تأكد من اتصال الإنترنت وعنوان API'
+            : null)
           || 'فشل تحديث بيانات الحساب',
       };
     }
@@ -107,15 +111,18 @@ async function register(role, data, { autoLogin = true } = {}) {
       ...data,
       role,
     });
-    const payload = response.data?.data ?? response.data;
+    const responseBody = response.data || {};
+    const payload = responseBody.data ?? responseBody;
     const { user, token } = payload || {};
 
-    if (payload?.pendingApproval) {
+    if (payload?.pendingApproval || responseBody.pendingApproval) {
       return {
         success: true,
         pendingApproval: true,
         user,
-        message: payload.message || 'حسابك في انتظار مراجعة الإدارة لمدة تصل إلى 48 ساعة.',
+        message: responseBody.message
+          || payload.message
+          || 'حسابك في انتظار مراجعة الإدارة لمدة تصل إلى 48 ساعة.',
       };
     }
 

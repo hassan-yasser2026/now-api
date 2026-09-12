@@ -910,6 +910,8 @@ export const AR_EN = {
   // ---------------------------------------------------------------- payments
   'طرق الدفع': 'Payment methods',
   'الدفع الإلكتروني': 'Online payment',
+  'الدفع بالفيزا': 'Pay by Visa',
+  'متاح قريبًا بعد تفعيل بوابة الدفع': 'Available soon after the payment gateway is enabled',
   'دفع': 'Payment',
   'كاش': 'Cash',
   'بطاقة': 'Card',
@@ -929,6 +931,8 @@ export const AR_EN = {
 
   // ---------------------------------------------------------------- networking
   'تعذر الاتصال بالسيرفر': 'Could not reach the server',
+  'تعذر الاتصال بالخادم. تأكد من اتصال الإنترنت وعنوان API':
+    'Could not reach the server. Check your internet connection and API URL.',
   'تعذر الاتصال بالسيرفر، حاول مرة أخرى': 'Could not reach the server, please try again',
   'تعذر الاتصال بالسيرفر. تأكد من اتصال الإنترنت وحاول مرة أخرى.':
     'Could not reach the server. Check your internet connection and try again.',
