@@ -1807,32 +1807,32 @@ app.get(
         res,
         items
       );
+    } catch (error) {
+      return handlePrismaError(error, res);
+    }
+  }
+);
 
-      // Vendors can review their pending and rejected listings; customers only receive
-      // approved listings from the public route above.
-      app.get(
-        '/api/vendor/:vendorId/menu',
-        authMiddleware,
-        roleMiddleware(ROLES.VENDOR),
-        async (req, res) => {
-          const vendorId = normalizeId(req.params.vendorId);
-          if (!vendorId || vendorId !== req.user.userId) {
-            return errorResponse(res, 'غير مصرح لك', 403);
-          }
+// Vendors can review pending and rejected listings; customers only receive
+// approved listings from the public route above.
+app.get(
+  '/api/vendor/:vendorId/menu',
+  authMiddleware,
+  roleMiddleware(ROLES.VENDOR),
+  async (req, res) => {
+    const vendorId = normalizeId(req.params.vendorId);
+    if (!vendorId || vendorId !== req.user.userId) {
+      return errorResponse(res, 'غير مصرح لك', 403);
+    }
 
-          try {
-            const store = await prisma.store.findUnique({ where: { vendorId } });
-            if (!store) return errorResponse(res, 'المتجر غير موجود', 404);
-            const items = await prisma.menuItem.findMany({
-              where: { storeId: store.id },
-              orderBy: { id: 'desc' },
-            });
-            return successResponse(res, items);
-          } catch (error) {
-            return handlePrismaError(error, res);
-          }
-        }
-      );
+    try {
+      const store = await prisma.store.findUnique({ where: { vendorId } });
+      if (!store) return errorResponse(res, 'المتجر غير موجود', 404);
+      const items = await prisma.menuItem.findMany({
+        where: { storeId: store.id },
+        orderBy: { id: 'desc' },
+      });
+      return successResponse(res, items);
     } catch (error) {
       return handlePrismaError(error, res);
     }
@@ -4319,23 +4319,38 @@ const setAdminManagedUserActive = async (req, res, isActive) => {
   }
 
   try {
-    const user = await prisma.user.update({
-      where: { id: userId },
-      data: {
-        isActive,
-        ...(isActive
-          ? { approvalStatus: SUBMISSION_STATUS.APPROVED, rejectionReason: null }
-          : {}),
-      },
-      select: {
-        id: true,
-        name: true,
-        phone: true,
-        email: true,
-        isActive: true,
-        approvalStatus: true,
-        role: { select: { name: true } },
-      },
+    const user = await prisma.$transaction(async (tx) => {
+      const updatedUser = await tx.user.update({
+        where: { id: userId },
+        data: {
+          isActive,
+          ...(isActive
+            ? { approvalStatus: SUBMISSION_STATUS.APPROVED, rejectionReason: null }
+            : {}),
+        },
+        select: {
+          id: true,
+          name: true,
+          phone: true,
+          email: true,
+          isActive: true,
+          approvalStatus: true,
+          role: { select: { name: true } },
+        },
+      });
+
+      if (isActive && updatedUser.role.name === ROLES.VENDOR) {
+        await tx.store.updateMany({
+          where: { vendorId: userId },
+          data: {
+            isActive: true,
+            approvalStatus: SUBMISSION_STATUS.APPROVED,
+            rejectionReason: null,
+          },
+        });
+      }
+
+      return updatedUser;
     });
 
     return successResponse(res, user);
