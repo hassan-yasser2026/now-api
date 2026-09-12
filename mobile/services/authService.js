@@ -139,6 +139,16 @@ async function register(role, data, { autoLogin = true } = {}) {
     const payload = responseBody.data ?? responseBody;
     const { user, token } = payload || {};
 
+    if (payload?.phoneVerificationRequired) {
+      return {
+        success: true,
+        phoneVerificationRequired: true,
+        pendingApproval: false,
+        user,
+        message: payload.message || 'أدخل رمز التحقق المرسل إلى بريدك الإلكتروني.',
+      };
+    }
+
     if (payload?.pendingApproval || responseBody.pendingApproval) {
       return {
         success: true,
@@ -147,16 +157,6 @@ async function register(role, data, { autoLogin = true } = {}) {
         message: responseBody.message
           || payload.message
           || 'حسابك في انتظار مراجعة الإدارة لمدة تصل إلى 48 ساعة.',
-      };
-    }
-
-    if (payload?.phoneVerificationRequired) {
-      return {
-        success: true,
-        phoneVerificationRequired: true,
-        pendingApproval: false,
-        user,
-        message: payload.message || 'أدخل رمز التحقق المرسل إلى بريدك الإلكتروني.',
       };
     }
 
