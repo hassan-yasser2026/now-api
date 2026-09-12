@@ -513,6 +513,18 @@ const roleMiddleware = (...roles) => {
   };
 };
 
+const isAdmin = (req, res, next) => {
+  if (!req.user) {
+    return errorResponse(res, 'يجب تسجيل الدخول', 401);
+  }
+
+  if (req.user.role !== ROLES.ADMIN) {
+    return errorResponse(res, 'غير مصرح لك بتنفيذ هذا الإجراء', 403);
+  }
+
+  return next();
+};
+
 const adminPermissionMiddleware = (permissionName) => {
   return async (req, res, next) => {
     if (!req.user) {
@@ -713,10 +725,14 @@ app.post('/api/auth/login', authRateLimiter, async (req, res) => {
       );
     }
 
-    if (user.approvalStatus === SUBMISSION_STATUS.PENDING_ADMIN_REVIEW) {
+    const requiresAdminApproval = [ROLES.CUSTOMER, ROLES.VENDOR].includes(user.role.name);
+    if (
+      user.approvalStatus === SUBMISSION_STATUS.PENDING_ADMIN_REVIEW ||
+      (requiresAdminApproval && !user.isActive)
+    ) {
       return errorResponse(
         res,
-        'حسابك في انتظار مراجعة الإدارة. سيتم الرد خلال 48 ساعة.',
+        'حسابك في انتظار مراجعة الإدارة',
         403
       );
     }
@@ -3883,7 +3899,7 @@ app.get(
 app.get(
   '/api/admin/dashboard',
   authMiddleware,
-  roleMiddleware(ROLES.ADMIN),
+  isAdmin,
   async (req, res) => {
     try {
       const roleCount = (name) => prisma.user.count({ where: { role: { name } } });
@@ -4072,7 +4088,7 @@ app.patch(
 app.patch(
   '/api/admin/users/:id/activate',
   authMiddleware,
-  adminPermissionMiddleware('users.suspend'),
+  isAdmin,
   (req, res) => setAdminManagedUserActive(req, res, true)
 );
 
