@@ -8,12 +8,7 @@ const { PrismaClient } = require('@prisma/client');
 const jwt = require('jsonwebtoken');
 const bcrypt = require('bcryptjs');
 const crypto = require('crypto');
-let nodemailer = null;
-try {
-  nodemailer = require('nodemailer');
-} catch {
-  console.warn('Nodemailer is not installed; OTP email delivery is disabled.');
-}
+const nodemailer = require('nodemailer');
 const {
   createRateLimiter,
   setSecurityHeaders,
@@ -201,10 +196,10 @@ const createOtp = () => String(crypto.randomInt(100000, 1000000));
 
 const sendOtpEmail = async (email, code) => {
   const required = ['SMTP_HOST', 'SMTP_PORT', 'SMTP_USER', 'SMTP_PASSWORD'];
-  if (!nodemailer || required.some((key) => !process.env[key])) {
-    console.warn('OTP email not sent: SMTP environment variables are incomplete.');
-    if (NODE_ENV !== 'production') console.info(`Development OTP for ${email}: ${code}`);
-    return false;
+  if (required.some((key) => !process.env[key])) {
+    const error = new Error('SMTP configuration is required for email verification');
+    error.code = 'SMTP_NOT_CONFIGURED';
+    throw error;
   }
 
   const transporter = nodemailer.createTransport({
@@ -792,6 +787,16 @@ app.post('/api/auth/login', authRateLimiter, async (req, res) => {
       );
     }
 
+    if (user.approvalStatus === SUBMISSION_STATUS.REJECTED) {
+      return errorResponse(
+        res,
+        user.rejectionReason
+          ? `تم رفض الحساب من الإدارة. السبب: ${user.rejectionReason}`
+          : 'تم رفض الحساب من الإدارة',
+        403
+      );
+    }
+
     if (
       user.approvalStatus === SUBMISSION_STATUS.PENDING_ADMIN_REVIEW ||
       !user.isActive
@@ -799,16 +804,6 @@ app.post('/api/auth/login', authRateLimiter, async (req, res) => {
       return errorResponse(
         res,
         'حسابك في انتظار مراجعة الإدارة',
-        403
-      );
-    }
-
-    if (user.approvalStatus === SUBMISSION_STATUS.REJECTED) {
-      return errorResponse(
-        res,
-        user.rejectionReason
-          ? `تم رفض الحساب من الإدارة. السبب: ${user.rejectionReason}`
-          : 'تم رفض الحساب من الإدارة',
         403
       );
     }
