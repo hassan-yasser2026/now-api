@@ -87,7 +87,7 @@ const PartnerRegistrationScreen = ({ navigation, route }) => {
         address?.region,
       ].filter(Boolean).join('، ');
       setLocationLabel(readableAddress || 'تم تحديد موقعك على الخريطة');
-    } catch (error) {
+    } catch {
       Alert.alert('تعذر تحديد الموقع', 'اكتب عنوانك يدويًا في خانة الموقع');
     } finally {
       setLocationLoading(false);

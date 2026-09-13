@@ -44,7 +44,6 @@ const VendorNotifications = ({ navigation }) => {
   }, [load]);
 
   const toggleNotifications = async (value) => {
-    const previous = enabled;
     setEnabled(value);
     await AsyncStorage.setItem('notificationsEnabled', String(value));
     try {
@@ -63,7 +62,7 @@ const VendorNotifications = ({ navigation }) => {
     );
     try {
       await api.patch(`/notifications/${notification.id}/read`);
-    } catch (error) {
+    } catch {
       load();
     }
   };

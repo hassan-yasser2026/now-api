@@ -33,7 +33,7 @@ const DeliveryOrders = ({ navigation }) => {
       if (result.success) {
         setOrders(result.orders || []);
       }
-    } catch (e) {
+    } catch {
       // silent
     } finally {
       setLoading(false);

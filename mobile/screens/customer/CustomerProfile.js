@@ -11,7 +11,6 @@ import {
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 
-import { COLORS } from '../../constants/colors';
 import { authService } from '../../services/authService';
 import useAppStore from '../../store/appStore';
 

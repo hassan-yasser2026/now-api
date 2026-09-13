@@ -41,7 +41,7 @@ export default function StoreSettings({ navigation }) {
             setLocation({ lat, lng });
           }
         }
-      } catch (e) {
+      } catch {
         if (mounted) {
           Alert.alert('خطأ', 'تعذر تحميل إعدادات المتجر');
         }
@@ -71,7 +71,7 @@ export default function StoreSettings({ navigation }) {
       });
       Alert.alert('تم', 'تم حفظ الإعدادات بنجاح');
       navigation.goBack();
-    } catch (e) {
+    } catch {
       Alert.alert('خطأ', 'فشل حفظ الإعدادات');
     } finally {
       setSaving(false);

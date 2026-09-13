@@ -61,7 +61,7 @@ const SettingsScreen: React.FC<SettingsScreenProps> = ({ navigation }) => {
     setNotificationsEnabled(enabled);
     try {
       await AsyncStorage.setItem('notificationsEnabled', String(enabled));
-    } catch (error) {
+    } catch {
       console.error('Error saving notification preference:', error);
     }
   };

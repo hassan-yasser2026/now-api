@@ -1,6 +1,5 @@
 import React, { useCallback, useMemo, useState } from 'react';
 import {
-  ActivityIndicator,
   Alert,
   FlatList,
   Image,
@@ -47,7 +46,7 @@ const CustomerHome = ({ navigation }) => {
   const [featuredItems, setFeaturedItems] = useState([]);
   const [locationPickerVisible, setLocationPickerVisible] = useState(false);
 
-  const [refreshing, setRefreshing] = useState(false);
+  const [, setRefreshing] = useState(false);
   const [status, setStatus] = useState('loading'); // 'loading', 'success', 'error'
   const [error, setError] = useState(null);
 

@@ -63,7 +63,7 @@ export default function VendorWorkingHours({ navigation }) {
         if (mounted && store?.operatingHours) {
           setHours(normalizeHours(store.operatingHours));
         }
-      } catch (error) {
+      } catch {
         if (mounted) Alert.alert('خطأ', 'تعذر تحميل أوقات العمل');
       } finally {
         if (mounted) setLoading(false);
@@ -103,7 +103,7 @@ export default function VendorWorkingHours({ navigation }) {
       await api.put(`/stores/${store.id}`, { operatingHours: hours });
       Alert.alert('تم الحفظ', 'سيتم فتح وإغلاق المتجر تلقائيًا حسب هذا الجدول');
       navigation.goBack();
-    } catch (error) {
+    } catch {
       Alert.alert('خطأ', 'فشل حفظ أوقات العمل');
     } finally {
       setSaving(false);

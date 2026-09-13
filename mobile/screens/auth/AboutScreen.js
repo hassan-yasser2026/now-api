@@ -84,7 +84,7 @@ const AboutScreen = ({ navigation }) => {
       }
 
       await Linking.openURL(url);
-    } catch (error) {
+    } catch {
       Alert.alert('خطأ', errorMessage);
     }
   };

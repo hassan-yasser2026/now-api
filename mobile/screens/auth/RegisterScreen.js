@@ -40,7 +40,7 @@ const RegisterScreen = ({ navigation, route }) => {
   const [phoneValid, setPhoneValid] = useState(false);
   const [country, setCountry] = useState(storeCountry);
   const [email, setEmail] = useState('');
-  const [storeName, setStoreName] = useState('');
+  const [storeName] = useState('');
 
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');

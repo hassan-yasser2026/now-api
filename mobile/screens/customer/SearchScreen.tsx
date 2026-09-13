@@ -64,7 +64,7 @@ const SearchScreen = ({ navigation }: SearchScreenProps) => {
         setStores([]);
         Alert.alert('خطأ', result.message || 'فشل تحميل المتاجر');
       }
-    } catch (error) {
+    } catch {
       setStores([]);
       Alert.alert('خطأ', 'تعذر الاتصال بالسيرفر');
     } finally {
