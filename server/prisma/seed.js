@@ -72,6 +72,12 @@ async function main() {
         password: hashedPassword,
         roleId: role.id,
         isActive: true,
+        ...(userData.role === 'customer'
+          ? {
+              phoneVerified: true,
+              approvalStatus: 'APPROVED',
+            }
+          : {}),
       },
       create: {
         name: userData.name,
@@ -79,6 +85,13 @@ async function main() {
         email: userData.email,
         password: hashedPassword,
         roleId: role.id,
+        ...(userData.role === 'customer'
+          ? {
+              isActive: true,
+              phoneVerified: true,
+              approvalStatus: 'APPROVED',
+            }
+          : {}),
       },
     });
 

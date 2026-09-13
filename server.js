@@ -2720,18 +2720,20 @@ app.post(
         });
       }
 
-      const totalPrice =
+      const totalPrice = Math.round(
         preparedItems.reduce(
           (total, item) =>
             total +
             item.priceAtOrder *
               item.quantity,
           0
-        );
+        ) * 100
+      ) / 100;
       const platformCommission =
         Math.round(totalPrice * 0.05 * 100) / 100;
-      const orderTotal =
-        totalPrice + deliveryFee + platformCommission;
+      const orderTotal = Math.round(
+        (totalPrice + deliveryFee + platformCommission) * 100
+      ) / 100;
 
       const order =
         await prisma.$transaction(
@@ -3543,9 +3545,21 @@ app.patch(
       }
 
       const updatedOrder = await prisma.$transaction(async (tx) => {
-        const updated = await tx.order.update({
-          where: { id: orderId },
+        const result = await tx.order.updateMany({
+          where: {
+            id: orderId,
+            deliveryId: req.user.userId,
+            status: order.status,
+          },
           data: { status },
+        });
+
+        if (result.count === 0) {
+          return null;
+        }
+
+        const updated = await tx.order.findUnique({
+          where: { id: orderId },
           include: deliveryOrderInclude,
         });
 
@@ -3566,6 +3580,10 @@ app.patch(
 
         return updated;
       });
+
+      if (!updatedOrder) {
+        return errorResponse(res, 'تغيرت حالة الطلب بالفعل، أعد تحميل الطلب وحاول مرة أخرى', 409);
+      }
 
       return successResponse(res, updatedOrder);
     } catch (error) {

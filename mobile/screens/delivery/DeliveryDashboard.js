@@ -864,7 +864,7 @@ const DeliveryDashboard = ({ navigation }) => {
 
     try {
       await Linking.openURL(url);
-    } catch (error) {
+    } catch (_error) {
       Alert.alert(
         'الدعم',
         'تعذر فتح الاتصال. يمكنك التواصل عبر واتساب على 01067254988.',
@@ -1773,7 +1773,6 @@ const DeliveryDashboard = ({ navigation }) => {
     [
       user?.name,
       navigation,
-      handleLogout,
       handleShareLocation,
       sharingLocation,
       statistics,

@@ -48,13 +48,11 @@ const CustomerHome = ({ navigation }) => {
 
   const [, setRefreshing] = useState(false);
   const [status, setStatus] = useState('loading'); // 'loading', 'success', 'error'
-  const [error, setError] = useState(null);
 
   const [searchText, setSearchText] = useState('');
 
   const loadData = useCallback(async (isRefresh = false) => {
     setStatus(isRefresh ? 'refreshing' : 'loading');
-    setError(null);
 
     try {
       const storesPromise = storeService.getStores(deliveryLocation);
@@ -83,7 +81,6 @@ const CustomerHome = ({ navigation }) => {
 
       setStatus('success');
     } catch (err) {
-      setError(err.message);
       setStatus('error');
       if (!isRefresh) {
         Alert.alert('خطأ', err.message);
@@ -91,7 +88,7 @@ const CustomerHome = ({ navigation }) => {
     } finally {
       setRefreshing(false);
     }
-  }, [deliveryLocation, isAuthenticated, isGuest]);
+  }, [deliveryLocation]);
 
   useFocusEffect(
     useCallback(() => {
@@ -158,7 +155,7 @@ const CustomerHome = ({ navigation }) => {
 
   const handleSettingsPress = useCallback(() => {
     navigation.navigate('Settings');
-  }, [isGuest, navigation]);
+  }, [navigation]);
 
   const handleStartOrder = useCallback(() => {
     if (cartByStore.length > 0) {

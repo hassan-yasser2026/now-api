@@ -95,7 +95,7 @@ const SettingsScreen: React.FC<SettingsScreenProps> = ({ navigation }) => {
       const message = encodeURIComponent('Hello NOW support, I need help.');
       const url = `https://wa.me/${WHATSAPP_NUMBER}?text=${message}`;
       await Linking.openURL(url);
-    } catch (error) {
+    } catch {
       Alert.alert(
         t.settings.support,
         t.settings.supportMessage,

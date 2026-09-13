@@ -31,10 +31,11 @@ const CartScreen: React.FC<CartScreenProps> = ({ navigation }) => {
   const totalItems = (cart as any[]).reduce((sum: any, item: any) => sum + item.quantity, 0);
 
   const deliveryFee = 25; // يمكن جعلها ديناميكية من المتجر
+  const platformCommission = Math.round(totalPrice * 0.05 * 100) / 100;
 
   const finalTotal = useMemo(() => {
-    return totalPrice + deliveryFee;
-  }, [totalPrice, deliveryFee]);
+    return totalPrice + deliveryFee + platformCommission;
+  }, [totalPrice, deliveryFee, platformCommission]);
 
   const handleCheckout = () => {
     if (cart.length === 0) {
@@ -140,6 +141,10 @@ const CartScreen: React.FC<CartScreenProps> = ({ navigation }) => {
         <View style={styles.summaryRow}>
           <Text style={styles.summaryLabel}>رسوم التوصيل</Text>
           <Text style={styles.summaryValue}>{deliveryFee.toFixed(2)} ج.م</Text>
+        </View>
+        <View style={styles.summaryRow}>
+          <Text style={styles.summaryLabel}>رسوم الخدمة</Text>
+          <Text style={styles.summaryValue}>{platformCommission.toFixed(2)} ج.م</Text>
         </View>
         <View style={styles.divider} />
         <View style={styles.summaryRow}>

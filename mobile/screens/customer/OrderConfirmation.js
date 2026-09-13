@@ -391,10 +391,10 @@ const OrderConfirmation = ({ route, navigation }) => {
     storeId,
     storeItems,
     scheduledDate,
+    paymentMethod,
     finalTotal,
     getSafePrice,
     getSafeQuantity,
-    orderService,
     clearCart,
     navigation,
   ]);
