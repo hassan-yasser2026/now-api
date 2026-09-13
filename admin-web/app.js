@@ -226,6 +226,7 @@ async function loadSection() {
       dashboard: () => request('/admin/dashboard'),
       users: () => request('/admin/users'),
       vendors: () => request('/admin/users'),
+      employees: () => request('/admin/users'),
       stores: () => request('/admin/stores'),
       orders: () => request('/admin/orders'),
       payments: () => request('/admin/payments'),
@@ -245,17 +246,31 @@ async function loadSection() {
       delivery: () => request('/admin/delivery'),
       reports: () => request('/admin/reports'),
       'sub-admins': () => request('/admin/sub-admins'),
+      permissions: () => request('/admin/sub-admins'),
+      'system-permissions': () => request('/admin/sub-admins'),
+      'sub-admin-settings': () => request('/admin/sub-admins'),
+      'user-reports': () => request('/admin/reports'),
+      'vendor-reports': () => request('/admin/reports'),
+      'delivery-reports': () => request('/admin/reports'),
+      'sales-reports': () => request('/admin/reports'),
+      'profit-reports': () => request('/admin/reports'),
+      'performance-reports': () => request('/admin/reports'),
+      'financial-reports': () => request('/admin/reports'),
     };
     const data = loaders[state.section] ? await loaders[state.section]() : {};
     ({ dashboard: renderDashboard, users: renderUsers, stores: renderStores, orders: renderOrders,
-      vendors: renderVendors, 'new-orders': renderNewOrders, 'active-orders': renderActiveOrders,
+      vendors: renderVendors, employees: renderEmployees, 'new-orders': renderNewOrders, 'active-orders': renderActiveOrders,
       'ready-orders': renderReadyOrders, 'completed-orders': renderCompletedOrders,
       'cancelled-orders': renderCancelledOrders, 'order-details': renderOrders,
       payments: renderPayments, ratings: renderRatings, 'customer-complaints': renderComplaints,
       'vendor-complaints': renderComplaints, 'delivery-complaints': renderComplaints,
       support: renderComplaints, submissions: renderSubmissions, delivery: renderDeliveries, reports: renderReports,
+      'user-reports': renderReports, 'vendor-reports': renderReports, 'delivery-reports': renderReports,
+      'sales-reports': renderReports, 'profit-reports': renderReports, 'performance-reports': renderReports,
+      'financial-reports': renderReports,
       services: renderSubmissions,
-      'sub-admins': renderSubAdmins }[state.section] || renderPlaceholder)(data, target);
+      'sub-admins': renderSubAdmins, permissions: renderSubAdmins,
+      'system-permissions': renderSubAdmins, 'sub-admin-settings': renderSubAdmins }[state.section] || renderPlaceholder)(data, target);
   } catch (error) {
     if (state.section === 'dashboard') {
       renderDashboard({}, target);
@@ -524,6 +539,13 @@ function renderUsers(payload, target) {
 function renderVendors(payload, target) {
   const vendors = listOf(payload, ['users']).filter((item) => item.role?.name === 'vendor' || item.role === 'vendor');
   renderUsers({ users: vendors }, target);
+}
+
+function renderEmployees(payload, target) {
+  const employees = listOf(payload, ['users']).filter((item) => (
+    item.role?.name === 'sub_admin' || item.role === 'sub_admin'
+  ));
+  renderUsers({ users: employees }, target);
 }
 
 const renderOrdersByStatus = (payload, target, statuses) => {
