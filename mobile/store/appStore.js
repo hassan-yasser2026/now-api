@@ -1,6 +1,11 @@
 import { create } from 'zustand';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { I18nManager } from 'react-native';
+import {
+  getAuthToken,
+  removeAuthToken,
+  setAuthToken,
+} from '../utils/authStorage';
 
 import {
   DEFAULT_COUNTRY_CODE,
@@ -129,7 +134,7 @@ const useAppStore = create((set, get) => ({
   // =========================
   // إجراءات المصادقة (Auth Actions)
   // =========================
-  setAuth: async (userData, tokenData) => {
+  setAuth: async (userData, tokenData, roleData) => {
     try {
       let token = null;
       let user = null;
@@ -150,13 +155,16 @@ const useAppStore = create((set, get) => ({
         return false;
       }
 
-      const userRole = (user.role || 'customer').toLowerCase();
+      const userRole = String(roleData || user.role || 'customer').toLowerCase();
+      const normalizedUser = user.role === userRole
+        ? user
+        : { ...user, role: userRole };
 
-      await AsyncStorage.setItem('token', token);
-      await AsyncStorage.setItem('user', JSON.stringify(user));
+      await setAuthToken(token);
+      await AsyncStorage.setItem('user', JSON.stringify(normalizedUser));
 
       set({
-        user,
+        user: normalizedUser,
         token,
         role: userRole,
         isAuthenticated: true,
@@ -184,7 +192,7 @@ const useAppStore = create((set, get) => ({
   logout: async () => {
     try {
       await Promise.all([
-        AsyncStorage.removeItem('token'),
+        removeAuthToken(),
         AsyncStorage.removeItem('user'),
         AsyncStorage.removeItem('cart'),
       ]);
@@ -213,7 +221,7 @@ const useAppStore = create((set, get) => ({
 
     try {
       const [token, userStr, savedLang, savedCountry, savedTheme, savedCart] = await Promise.all([
-        AsyncStorage.getItem('token'),
+        getAuthToken(),
         AsyncStorage.getItem('user'),
         AsyncStorage.getItem('language'),
         AsyncStorage.getItem('country'),

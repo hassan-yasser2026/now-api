@@ -3,6 +3,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Platform } from 'react-native';
 import Constants from 'expo-constants';
 import useAppStore from '../store/appStore';
+import { getAuthToken } from '../utils/authStorage';
 
 const PRODUCTION_API_URL = 'https://now-api-production-ca56.up.railway.app/api';
 
@@ -77,7 +78,7 @@ const api = axios.create({
 api.interceptors.request.use(
   async (config) => {
     try {
-      const token = await AsyncStorage.getItem('token');
+      const token = await getAuthToken();
       if (token) {
         config.headers = config.headers || {};
         config.headers.Authorization = 'Bearer ' + token;

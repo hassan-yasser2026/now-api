@@ -8,7 +8,8 @@ export const CONFIG = {
   APP_VERSION: '1.0.0',
 
   // رابط الـ API — يُستبدل عبر متغير البيئة EXPO_PUBLIC_API_URL
-  API_URL: process.env.EXPO_PUBLIC_API_URL || 'http://localhost:5000/api',
+  API_URL: process.env.EXPO_PUBLIC_API_URL
+    || 'https://now-api-production-ca56.up.railway.app/api',
 
   API_TIMEOUT: 30000,
 

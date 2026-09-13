@@ -2909,8 +2909,7 @@ app.get(
       const orders =
         await prisma.order.findMany({
           where: {
-            status:
-              ORDER_STATUS.PENDING,
+            status: ORDER_STATUS.READY,
             deliveryId: null,
           },
 
@@ -4114,7 +4113,9 @@ app.put(
           ORDER_STATUS.CANCELLED,
         ],
 
-        [ORDER_STATUS.READY]: [],
+        [ORDER_STATUS.READY]: [
+          ORDER_STATUS.PICKED_UP,
+        ],
 
         [ORDER_STATUS.PICKED_UP]: [
           ORDER_STATUS.ON_THE_WAY,
@@ -4143,6 +4144,7 @@ app.put(
           ORDER_STATUS.CANCELLED,
         ].includes(requestedStatus)) ||
         (isDelivery && [
+          ORDER_STATUS.PICKED_UP,
           ORDER_STATUS.ON_THE_WAY,
           ORDER_STATUS.DELIVERED,
         ].includes(requestedStatus));
@@ -4204,17 +4206,41 @@ app.put(
         );
       }
 
-      const updatedOrder =
-        await prisma.order.update({
+      const updatedOrder = await prisma.$transaction(async (tx) => {
+        const result = await tx.order.updateMany({
           where: {
             id: orderId,
+            status: currentStatus,
+            ...(isDelivery ? { deliveryId: req.user.userId } : {}),
           },
-
           data: updateData,
-
-          include:
-            orderInclude,
         });
+
+        if (result.count === 0) {
+          return null;
+        }
+
+        await tx.orderStatusHistory.create({
+          data: {
+            orderId,
+            status: requestedStatus,
+            actorId: req.user.userId,
+          },
+        });
+
+        return tx.order.findUnique({
+          where: { id: orderId },
+          include: orderInclude,
+        });
+      });
+
+      if (!updatedOrder) {
+        return errorResponse(
+          res,
+          'تغيرت حالة الطلب بالفعل، أعد تحميل الطلب وحاول مرة أخرى',
+          409
+        );
+      }
 
       if (requestedStatus === ORDER_STATUS.DELIVERED) {
         const commission = Number(order.platformCommission || 0);
