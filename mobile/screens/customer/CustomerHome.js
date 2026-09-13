@@ -267,15 +267,6 @@ const CustomerHome = ({ navigation }) => {
     [stores]
   );
 
-  const categoryItems = useMemo(
-    () =>
-      stores.slice(0, 6).map((store, index) => ({
-        ...store,
-        categoryIcon: ['restaurant-outline', 'cart-outline', 'cafe-outline', 'fast-food-outline', 'storefront-outline', 'ice-cream-outline'][index % 6],
-      })),
-    [stores]
-  );
-
   const cartTotal = useMemo(
     () => cart.reduce((sum, item) => sum + Number(item.price || 0) * Number(item.quantity || 0), 0),
     [cart]
@@ -463,40 +454,6 @@ const CustomerHome = ({ navigation }) => {
           </TouchableOpacity>
         </View>
       )}
-
-      <View style={styles.sectionBlock}>
-        <View style={styles.sectionHeader}>
-          <Text style={styles.sectionTitle}>المتاجر المتاحة</Text>
-          <Ionicons name="apps-outline" size={20} color={HOME_ACCENT} />
-        </View>
-        <FlatList
-          horizontal
-          inverted={isRTL}
-          data={categoryItems}
-          showsHorizontalScrollIndicator={false}
-          keyExtractor={(item) => String(item.id)}
-          contentContainerStyle={styles.categoriesList}
-          renderItem={({ item }) => (
-            <TouchableOpacity
-              style={styles.categoryItem}
-              onPress={() => handleStorePress(item)}
-              activeOpacity={0.85}
-            >
-              <View style={styles.categoryIcon}>
-                {item.image || item.logo ? (
-                  <Image
-                    source={{ uri: item.image || item.logo }}
-                    style={styles.categoryImage}
-                  />
-                ) : (
-                  <Ionicons name={item.categoryIcon} size={25} color={HOME_ACCENT} />
-                )}
-              </View>
-              <Text style={styles.categoryLabel} numberOfLines={1}>{item.name || item.category || 'متجر'}</Text>
-            </TouchableOpacity>
-          )}
-        />
-      </View>
 
       <View style={styles.productsSection}>
         <View style={styles.sectionHeader}>
@@ -1216,42 +1173,6 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     paddingVertical: 16,
   },
-  categoriesList: {
-    paddingVertical: 4,
-  },
-  categoryItem: {
-    width: 78,
-    alignItems: 'center',
-    marginRight: 14,
-  },
-  categoryIcon: {
-    width: 64,
-    height: 64,
-    borderRadius: 32,
-    backgroundColor: COLORS.surface,
-    alignItems: 'center',
-    justifyContent: 'center',
-    borderWidth: 1,
-    borderColor: '#D9D9D9',
-    elevation: 2,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 3 },
-    shadowOpacity: 0.08,
-    shadowRadius: 7,
-  },
-  categoryImage: {
-    width: '100%',
-    height: '100%',
-    borderRadius: 32,
-  },
-  categoryLabel: {
-    width: 78,
-    marginTop: 8,
-    color: COLORS.textPrimary,
-    fontSize: 11,
-    fontWeight: '700',
-    textAlign: 'center',
-  },
   ordersSection: {
     marginTop: 4,
     marginBottom: 8,
@@ -1339,6 +1260,9 @@ const styles = StyleSheet.create({
     color: HOME_ACCENT,
   },
   storesList: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    justifyContent: 'space-between',
     paddingHorizontal: 16,
     paddingBottom: 156,
   },
