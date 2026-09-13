@@ -65,6 +65,20 @@ const request = async (path, options = {}) => {
       logout();
     }
 
+    function renderRatings(payload, target) {
+      const rows = listOf(payload, ['ratings']);
+      target.innerHTML = `<div class="panel"><div class="panel-title"><h2>التقييمات</h2><span class="count">${rows.length} تقييم</span></div>
+        <div class="table-wrap"><table><thead><tr><th>العميل</th><th>المتجر</th><th>الطلب</th><th>التقييم</th><th>التعليق</th><th>التاريخ</th></tr></thead><tbody>
+        ${rows.map((item) => `<tr><td>${escapeHtml(item.customer?.name || '—')}</td><td>${escapeHtml(item.store?.name || '—')}</td><td>#${escapeHtml(item.order?.id || '—')}</td><td>${'★'.repeat(Math.max(0, Math.min(5, Number(item.stars || 0))))}</td><td>${escapeHtml(item.comment || '—')}</td><td>${formatDate(item.createdAt)}</td></tr>`).join('') || '<tr><td colspan="6" class="empty">لا توجد تقييمات مسجلة.</td></tr>'}</tbody></table></div></div>`;
+    }
+
+    function renderComplaints(payload, target) {
+      const rows = listOf(payload, ['complaints']);
+      target.innerHTML = `<div class="panel"><div class="panel-title"><h2>${escapeHtml(sectionLabel(state.section))}</h2><span class="count">${rows.length} شكوى مفتوحة</span></div>
+        <div class="table-wrap"><table><thead><tr><th>صاحب الشكوى</th><th>الدور</th><th>الطلب</th><th>آخر رسالة</th><th>الحالة</th><th>آخر تحديث</th></tr></thead><tbody>
+        ${rows.map((item) => `<tr><td>${escapeHtml(item.user?.name || '—')}</td><td>${escapeHtml(item.user?.role?.name || '—')}</td><td>${item.order?.id ? `#${escapeHtml(item.order.id)}` : '—'}</td><td>${escapeHtml(item.messages?.[0]?.message || 'لا توجد رسالة')}</td><td><span class="status warning">${escapeHtml(item.status)}</span></td><td>${formatDate(item.updatedAt)}</td></tr>`).join('') || '<tr><td colspan="6" class="empty">لا توجد شكاوى مفتوحة.</td></tr>'}</tbody></table></div></div>`;
+    }
+
     function renderPayments(payload, target) {
       const rows = listOf(payload, ['payments']);
       target.innerHTML = `<div class="panel"><div class="panel-title"><h2>المدفوعات النقدية</h2><span class="count">${rows.length} عملية</span></div>
@@ -215,6 +229,11 @@ async function loadSection() {
       stores: () => request('/admin/stores'),
       orders: () => request('/admin/orders'),
       payments: () => request('/admin/payments'),
+      ratings: () => request('/admin/ratings'),
+      'customer-complaints': () => request('/admin/complaints?role=customer'),
+      'vendor-complaints': () => request('/admin/complaints?role=vendor'),
+      'delivery-complaints': () => request('/admin/complaints?role=delivery'),
+      support: () => request('/admin/complaints'),
       'new-orders': () => request('/admin/orders'),
       'active-orders': () => request('/admin/orders'),
       'ready-orders': () => request('/admin/orders'),
@@ -232,7 +251,9 @@ async function loadSection() {
       vendors: renderVendors, 'new-orders': renderNewOrders, 'active-orders': renderActiveOrders,
       'ready-orders': renderReadyOrders, 'completed-orders': renderCompletedOrders,
       'cancelled-orders': renderCancelledOrders, 'order-details': renderOrders,
-      payments: renderPayments, submissions: renderSubmissions, delivery: renderDeliveries, reports: renderReports,
+      payments: renderPayments, ratings: renderRatings, 'customer-complaints': renderComplaints,
+      'vendor-complaints': renderComplaints, 'delivery-complaints': renderComplaints,
+      support: renderComplaints, submissions: renderSubmissions, delivery: renderDeliveries, reports: renderReports,
       services: renderSubmissions,
       'sub-admins': renderSubAdmins }[state.section] || renderPlaceholder)(data, target);
   } catch (error) {

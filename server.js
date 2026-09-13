@@ -4662,6 +4662,59 @@ app.get(
           }
         }
       );
+
+      app.get(
+        '/api/admin/ratings',
+        authMiddleware,
+        adminPermissionMiddleware('reports.read'),
+        async (req, res) => {
+          try {
+            const ratings = await prisma.rating.findMany({
+              orderBy: { createdAt: 'desc' },
+              take: 200,
+              include: {
+                customer: { select: { id: true, name: true, phone: true } },
+                store: { select: { id: true, name: true } },
+                order: { select: { id: true, status: true } },
+              },
+            });
+            return successResponse(res, ratings);
+          } catch (error) {
+            return handlePrismaError(error, res);
+          }
+        }
+      );
+
+      app.get(
+        '/api/admin/complaints',
+        authMiddleware,
+        adminPermissionMiddleware('reports.read'),
+        async (req, res) => {
+          const role = normalizeString(req.query.role).toLowerCase();
+          const roleFilter = ['customer', 'vendor', 'delivery'].includes(role)
+            ? { role: { name: role } }
+            : undefined;
+
+          try {
+            const complaints = await prisma.chatSession.findMany({
+              where: {
+                status: { in: ['OPEN', 'ESCALATED'] },
+                ...(roleFilter ? { user: roleFilter } : {}),
+              },
+              orderBy: { updatedAt: 'desc' },
+              take: 200,
+              include: {
+                user: { select: { id: true, name: true, phone: true, role: { select: { name: true } } } },
+                order: { select: { id: true, status: true } },
+                messages: { orderBy: { createdAt: 'desc' }, take: 1 },
+              },
+            });
+            return successResponse(res, complaints);
+          } catch (error) {
+            return handlePrismaError(error, res);
+          }
+        }
+      );
     } catch (error) {
       return handlePrismaError(error, res);
     }
