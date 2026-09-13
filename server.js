@@ -4927,94 +4927,224 @@ app.get(
             : order.delivery,
         }))
       );
+    } catch (error) {
+      return handlePrismaError(error, res);
+    }
+  }
+);
 
-      app.get(
-        '/api/admin/payments',
-        authMiddleware,
-        adminPermissionMiddleware('orders.read'),
-        async (req, res) => {
-          try {
-            const payments = await prisma.paymentTransaction.findMany({
-              orderBy: { createdAt: 'desc' },
-              take: 200,
-              include: {
-                order: {
-                  select: {
-                    id: true,
-                    status: true,
-                    totalPrice: true,
-                    customer: { select: { name: true } },
-                    store: { select: { name: true } },
-                  },
-                },
-              },
-            });
+app.get(
+  '/api/admin/payments',
+  authMiddleware,
+  adminPermissionMiddleware('orders.read'),
+  async (req, res) => {
+    try {
+      const payments = await prisma.paymentTransaction.findMany({
+        orderBy: { createdAt: 'desc' },
+        take: 200,
+        include: {
+          order: {
+            select: {
+              id: true,
+              status: true,
+              totalPrice: true,
+              customer: { select: { name: true } },
+              store: { select: { name: true } },
+            },
+          },
+        },
+      });
 
-            return successResponse(res, payments.map((payment) => ({
-              ...payment,
-              amount: Number(payment.amount),
-              order: payment.order
-                ? { ...payment.order, totalPrice: Number(payment.order.totalPrice) }
-                : null,
-            })));
-          } catch (error) {
-            return handlePrismaError(error, res);
-          }
-        }
-      );
+      return successResponse(res, payments.map((payment) => ({
+        ...payment,
+        amount: Number(payment.amount),
+        order: payment.order
+          ? { ...payment.order, totalPrice: Number(payment.order.totalPrice) }
+          : null,
+      })));
+    } catch (error) {
+      return handlePrismaError(error, res);
+    }
+  }
+);
 
-      app.get(
-        '/api/admin/ratings',
-        authMiddleware,
-        adminPermissionMiddleware('reports.read'),
-        async (req, res) => {
-          try {
-            const ratings = await prisma.rating.findMany({
-              orderBy: { createdAt: 'desc' },
-              take: 200,
-              include: {
-                customer: { select: { id: true, name: true, phone: true } },
-                store: { select: { id: true, name: true } },
-                order: { select: { id: true, status: true } },
-              },
-            });
-            return successResponse(res, ratings);
-          } catch (error) {
-            return handlePrismaError(error, res);
-          }
-        }
-      );
+app.get(
+  '/api/admin/offers',
+  authMiddleware,
+  adminPermissionMiddleware('stores.read'),
+  async (req, res) => {
+    try {
+      const offers = await prisma.offer.findMany({
+        orderBy: { createdAt: 'desc' },
+        take: 200,
+        include: { store: { select: { id: true, name: true, vendor: { select: { name: true } } } } },
+      });
+      return successResponse(res, offers.map((offer) => ({
+        ...offer,
+        discountValue: Number(offer.discountValue),
+      })));
+    } catch (error) {
+      return handlePrismaError(error, res);
+    }
+  }
+);
 
-      app.get(
-        '/api/admin/complaints',
-        authMiddleware,
-        adminPermissionMiddleware('reports.read'),
-        async (req, res) => {
-          const role = normalizeString(req.query.role).toLowerCase();
-          const roleFilter = ['customer', 'vendor', 'delivery'].includes(role)
-            ? { role: { name: role } }
-            : undefined;
+app.get(
+  '/api/admin/wallets',
+  authMiddleware,
+  adminPermissionMiddleware('finance.read'),
+  async (req, res) => {
+    try {
+      const wallets = await prisma.wallet.findMany({
+        orderBy: { updatedAt: 'desc' },
+        take: 200,
+        include: {
+          user: { select: { id: true, name: true, phone: true, role: { select: { name: true } } } },
+          transactions: { orderBy: { createdAt: 'desc' }, take: 10, select: { id: true, amount: true, type: true, description: true, createdAt: true } },
+        },
+      });
+      return successResponse(res, wallets.map((wallet) => ({
+        ...wallet,
+        balance: Number(wallet.balance),
+        transactions: wallet.transactions.map((transaction) => ({
+          ...transaction,
+          amount: Number(transaction.amount),
+        })),
+      })));
+    } catch (error) {
+      return handlePrismaError(error, res);
+    }
+  }
+);
 
-          try {
-            const complaints = await prisma.chatSession.findMany({
-              where: {
-                status: { in: ['OPEN', 'ESCALATED'] },
-                ...(roleFilter ? { user: roleFilter } : {}),
-              },
-              orderBy: { updatedAt: 'desc' },
-              take: 200,
-              include: {
-                user: { select: { id: true, name: true, phone: true, role: { select: { name: true } } } },
-                order: { select: { id: true, status: true } },
-                messages: { orderBy: { createdAt: 'desc' }, take: 1 },
-              },
-            });
-            return successResponse(res, complaints);
-          } catch (error) {
-            return handlePrismaError(error, res);
-          }
-        }
-      );
+app.get(
+  '/api/admin/invoices',
+  authMiddleware,
+  adminPermissionMiddleware('finance.read'),
+  async (req, res) => {
+    try {
+      const invoices = await prisma.order.findMany({
+        where: { status: ORDER_STATUS.DELIVERED },
+        orderBy: { createdAt: 'desc' },
+        take: 200,
+        select: {
+          id: true,
+          subtotal: true,
+          deliveryFee: true,
+          totalPrice: true,
+          createdAt: true,
+          customer: { select: { name: true } },
+          store: { select: { name: true } },
+          paymentTransactions: { orderBy: { createdAt: 'desc' }, take: 1, select: { status: true, method: true } },
+        },
+      });
+      return successResponse(res, invoices.map((invoice) => ({
+        ...invoice,
+        subtotal: Number(invoice.subtotal),
+        deliveryFee: Number(invoice.deliveryFee),
+        totalPrice: Number(invoice.totalPrice),
+      })));
+    } catch (error) {
+      return handlePrismaError(error, res);
+    }
+  }
+);
+
+app.get(
+  '/api/admin/notifications',
+  authMiddleware,
+  adminPermissionMiddleware('notifications.read'),
+  async (req, res) => {
+    try {
+      const notifications = await prisma.notification.findMany({
+        orderBy: { createdAt: 'desc' },
+        take: 200,
+        include: { user: { select: { id: true, name: true, role: { select: { name: true } } } } },
+      });
+      return successResponse(res, notifications);
+    } catch (error) {
+      return handlePrismaError(error, res);
+    }
+  }
+);
+
+app.post(
+  '/api/admin/notifications/broadcast',
+  authMiddleware,
+  adminPermissionMiddleware('notifications.write'),
+  async (req, res) => {
+    const title = normalizeString(req.body?.title);
+    const body = normalizeString(req.body?.body);
+    const role = normalizeString(req.body?.role).toLowerCase();
+    if (!title || !body || title.length > 120 || body.length > 1000) {
+      return errorResponse(res, 'عنوان ونص الإشعار مطلوبان وبحدود صالحة', 422);
+    }
+    if (role && !['customer', 'vendor', 'delivery', 'admin', 'sub_admin'].includes(role)) {
+      return errorResponse(res, 'الدور المستهدف غير صالح', 422);
+    }
+    try {
+      const users = await prisma.user.findMany({
+        where: { isActive: true, deletedAt: null, ...(role ? { role: { name: role } } : {}) },
+        select: { id: true },
+      });
+      if (!users.length) return successResponse(res, { sent: 0 });
+      const result = await prisma.notification.createMany({
+        data: users.map(({ id }) => ({ userId: id, type: 'SYSTEM', title, body })),
+      });
+      return successResponse(res, { sent: result.count }, 201);
+    } catch (error) {
+      return handlePrismaError(error, res);
+    }
+  }
+);
+
+app.get(
+  '/api/admin/ratings',
+  authMiddleware,
+  adminPermissionMiddleware('reports.read'),
+  async (req, res) => {
+    try {
+      const ratings = await prisma.rating.findMany({
+        orderBy: { createdAt: 'desc' },
+        take: 200,
+        include: {
+          customer: { select: { id: true, name: true, phone: true } },
+          store: { select: { id: true, name: true } },
+          order: { select: { id: true, status: true } },
+        },
+      });
+      return successResponse(res, ratings);
+    } catch (error) {
+      return handlePrismaError(error, res);
+    }
+  }
+);
+
+app.get(
+  '/api/admin/complaints',
+  authMiddleware,
+  adminPermissionMiddleware('reports.read'),
+  async (req, res) => {
+    const role = normalizeString(req.query.role).toLowerCase();
+    const roleFilter = ['customer', 'vendor', 'delivery'].includes(role)
+      ? { role: { name: role } }
+      : undefined;
+
+    try {
+      const complaints = await prisma.chatSession.findMany({
+        where: {
+          status: { in: ['OPEN', 'ESCALATED'] },
+          ...(roleFilter ? { user: roleFilter } : {}),
+        },
+        orderBy: { updatedAt: 'desc' },
+        take: 200,
+        include: {
+          user: { select: { id: true, name: true, phone: true, role: { select: { name: true } } } },
+          order: { select: { id: true, status: true } },
+          messages: { orderBy: { createdAt: 'desc' }, take: 1 },
+        },
+      });
+      return successResponse(res, complaints);
     } catch (error) {
       return handlePrismaError(error, res);
     }
@@ -5263,6 +5393,37 @@ app.get(
           quantity: item._sum.quantity || 0,
         })),
       });
+    } catch (error) {
+      return handlePrismaError(error, res);
+    }
+  }
+);
+
+app.get(
+  '/api/admin/audit-log',
+  authMiddleware,
+  adminPermissionMiddleware('audit.read'),
+  async (req, res) => {
+    const requestedLimit = Number.parseInt(req.query.limit, 10);
+    const limit = Number.isInteger(requestedLimit)
+      ? Math.min(Math.max(requestedLimit, 1), 100)
+      : 50;
+
+    try {
+      const logs = await prisma.auditLog.findMany({
+        take: limit,
+        orderBy: { createdAt: 'desc' },
+        select: {
+          id: true,
+          action: true,
+          entity: true,
+          entityId: true,
+          createdAt: true,
+          actor: { select: { id: true, name: true, role: { select: { name: true } } } },
+        },
+      });
+
+      return successResponse(res, logs);
     } catch (error) {
       return handlePrismaError(error, res);
     }

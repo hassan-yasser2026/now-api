@@ -70,14 +70,19 @@ const roleLabel = (value) => ({
 }[String(value || '').toLowerCase()] || value || '—');
 const permissionLabel = (value) => ({
   'users.read': 'عرض المستخدمين',
-  'users.write': 'إدارة المستخدمين',
+  'users.update': 'تعديل المستخدمين',
+  'users.suspend': 'تعطيل المستخدمين',
   'stores.read': 'عرض المتاجر',
-  'stores.write': 'إدارة المتاجر',
+  'stores.update': 'تعديل المتاجر',
+  'stores.suspend': 'تعطيل المتاجر',
   'orders.read': 'عرض الطلبات',
-  'orders.write': 'إدارة الطلبات',
   'vendors.read': 'عرض البائعين',
+  'delivery.read': 'عرض المندوبين',
   'reports.read': 'عرض التقارير',
   'reports.export': 'تصدير التقارير',
+  'audit.read': 'عرض سجل العمليات',
+  'notifications.read': 'عرض الإشعارات',
+  'notifications.write': 'إرسال الإشعارات',
   'finance.read': 'عرض المالية',
   'finance.write': 'إدارة المالية',
   'settings.read': 'عرض الإعدادات',
@@ -107,27 +112,6 @@ const request = async (path, options = {}) => {
     if (response.status === 401) {
       logout();
     }
-
-    function renderRatings(payload, target) {
-      const rows = listOf(payload, ['ratings']);
-      target.innerHTML = `<div class="panel"><div class="panel-title"><h2>التقييمات</h2><span class="count">${rows.length} تقييم</span></div>
-        <div class="table-wrap"><table><thead><tr><th>العميل</th><th>المتجر</th><th>الطلب</th><th>التقييم</th><th>التعليق</th><th>التاريخ</th></tr></thead><tbody>
-        ${rows.map((item) => `<tr><td>${escapeHtml(item.customer?.name || '—')}</td><td>${escapeHtml(item.store?.name || '—')}</td><td>#${escapeHtml(item.order?.id || '—')}</td><td>${'★'.repeat(Math.max(0, Math.min(5, Number(item.stars || 0))))}</td><td>${escapeHtml(item.comment || '—')}</td><td>${formatDate(item.createdAt)}</td></tr>`).join('') || '<tr><td colspan="6" class="empty">لا توجد تقييمات مسجلة.</td></tr>'}</tbody></table></div></div>`;
-    }
-
-    function renderComplaints(payload, target) {
-      const rows = listOf(payload, ['complaints']);
-      target.innerHTML = `<div class="panel"><div class="panel-title"><h2>${escapeHtml(sectionLabel(state.section))}</h2><span class="count">${rows.length} شكوى مفتوحة</span></div>
-        <div class="table-wrap"><table><thead><tr><th>صاحب الشكوى</th><th>الدور</th><th>الطلب</th><th>آخر رسالة</th><th>الحالة</th><th>آخر تحديث</th></tr></thead><tbody>
-        ${rows.map((item) => `<tr><td>${escapeHtml(item.user?.name || '—')}</td><td>${escapeHtml(roleLabel(item.user?.role?.name))}</td><td>${item.order?.id ? `#${escapeHtml(item.order.id)}` : '—'}</td><td>${escapeHtml(item.messages?.[0]?.message || 'لا توجد رسالة')}</td><td><span class="status warning">${escapeHtml(statusLabel(item.status))}</span></td><td>${formatDate(item.updatedAt)}</td></tr>`).join('') || '<tr><td colspan="6" class="empty">لا توجد شكاوى مفتوحة.</td></tr>'}</tbody></table></div></div>`;
-    }
-
-    function renderPayments(payload, target) {
-      const rows = listOf(payload, ['payments']);
-      target.innerHTML = `<div class="panel"><div class="panel-title"><h2>المدفوعات النقدية</h2><span class="count">${rows.length} عملية</span></div>
-        <div class="table-wrap"><table><thead><tr><th>الطلب</th><th>العميل</th><th>المتجر</th><th>المبلغ</th><th>الطريقة</th><th>الحالة</th><th>التاريخ</th></tr></thead><tbody>
-        ${rows.map((item) => `<tr><td><b>#${escapeHtml(item.order?.id || item.orderId)}</b></td><td>${escapeHtml(item.order?.customer?.name || '—')}</td><td>${escapeHtml(item.order?.store?.name || '—')}</td><td><b>${money(item.amount)}</b></td><td>دفع عند الاستلام</td><td><span class="status ${item.status === 'SUCCESS' ? 'success' : 'warning'}">${escapeHtml(statusLabel(item.status))}</span></td><td>${formatDate(item.createdAt)}</td></tr>`).join('') || '<tr><td colspan="7" class="empty">لا توجد مدفوعات مسجلة.</td></tr>'}</tbody></table></div></div>`;
-    }
     throw new Error(payload.message || 'تعذر تحميل البيانات');
   }
     console.debug('[NOW Admin] response', { method, path, status: response.status });
@@ -149,6 +133,74 @@ const listOf = (value, keys = []) => {
   for (const key of keys) if (Array.isArray(value?.[key])) return value[key];
   return [];
 };
+
+function renderRatings(payload, target) {
+  const rows = listOf(payload, ['ratings']);
+  target.innerHTML = `<div class="panel"><div class="panel-title"><h2>التقييمات</h2><span class="count">${rows.length} تقييم</span></div>
+    <div class="table-wrap"><table><thead><tr><th>العميل</th><th>المتجر</th><th>الطلب</th><th>التقييم</th><th>التعليق</th><th>التاريخ</th></tr></thead><tbody>
+    ${rows.map((item) => `<tr><td>${escapeHtml(item.customer?.name || '—')}</td><td>${escapeHtml(item.store?.name || '—')}</td><td>#${escapeHtml(item.order?.id || '—')}</td><td>${'★'.repeat(Math.max(0, Math.min(5, Number(item.stars || 0))))}</td><td>${escapeHtml(item.comment || '—')}</td><td>${formatDate(item.createdAt)}</td></tr>`).join('') || '<tr><td colspan="6" class="empty">لا توجد تقييمات مسجلة.</td></tr>'}</tbody></table></div></div>`;
+}
+
+function renderComplaints(payload, target) {
+  const rows = listOf(payload, ['complaints']);
+  target.innerHTML = `<div class="panel"><div class="panel-title"><h2>${escapeHtml(sectionLabel(state.section))}</h2><span class="count">${rows.length} شكوى مفتوحة</span></div>
+    <div class="table-wrap"><table><thead><tr><th>صاحب الشكوى</th><th>الدور</th><th>الطلب</th><th>آخر رسالة</th><th>الحالة</th><th>آخر تحديث</th></tr></thead><tbody>
+    ${rows.map((item) => `<tr><td>${escapeHtml(item.user?.name || '—')}</td><td>${escapeHtml(roleLabel(item.user?.role?.name))}</td><td>${item.order?.id ? `#${escapeHtml(item.order.id)}` : '—'}</td><td>${escapeHtml(item.messages?.[0]?.message || 'لا توجد رسالة')}</td><td><span class="status warning">${escapeHtml(statusLabel(item.status))}</span></td><td>${formatDate(item.updatedAt)}</td></tr>`).join('') || '<tr><td colspan="6" class="empty">لا توجد شكاوى مفتوحة.</td></tr>'}</tbody></table></div></div>`;
+}
+
+function renderPayments(payload, target) {
+  const rows = listOf(payload, ['payments']);
+  target.innerHTML = `<div class="panel"><div class="panel-title"><h2>المدفوعات النقدية</h2><span class="count">${rows.length} عملية</span></div>
+    <div class="table-wrap"><table><thead><tr><th>الطلب</th><th>العميل</th><th>المتجر</th><th>المبلغ</th><th>الطريقة</th><th>الحالة</th><th>التاريخ</th></tr></thead><tbody>
+    ${rows.map((item) => `<tr><td><b>#${escapeHtml(item.order?.id || item.orderId)}</b></td><td>${escapeHtml(item.order?.customer?.name || '—')}</td><td>${escapeHtml(item.order?.store?.name || '—')}</td><td><b>${money(item.amount)}</b></td><td>دفع عند الاستلام</td><td><span class="status ${item.status === 'SUCCESS' ? 'success' : 'warning'}">${escapeHtml(statusLabel(item.status))}</span></td><td>${formatDate(item.createdAt)}</td></tr>`).join('') || '<tr><td colspan="7" class="empty">لا توجد مدفوعات مسجلة.</td></tr>'}</tbody></table></div></div>`;
+}
+
+function renderOffers(payload, target) {
+  const rows = listOf(payload, ['offers']);
+  target.innerHTML = `<div class="panel"><div class="panel-title"><h2>العروض</h2><span class="count">${rows.length} عرض</span></div>
+    <div class="table-wrap"><table><thead><tr><th>العرض</th><th>المتجر</th><th>البائع</th><th>الخصم</th><th>الحالة</th><th>التاريخ</th></tr></thead><tbody>
+    ${rows.map((item) => `<tr><td><b>${escapeHtml(item.title)}</b><small>${escapeHtml(item.description || '—')}</small></td><td>${escapeHtml(item.store?.name || '—')}</td><td>${escapeHtml(item.store?.vendor?.name || '—')}</td><td>${escapeHtml(item.discountValue)} ${item.discountType === 'FIXED' ? 'ج.م' : '%'}</td><td><span class="status ${item.approvalStatus === 'APPROVED' && item.isActive ? 'success' : item.approvalStatus === 'REJECTED' ? 'danger' : 'warning'}">${escapeHtml(statusLabel(item.approvalStatus))}</span></td><td>${formatDate(item.createdAt)}</td></tr>`).join('') || '<tr><td colspan="6" class="empty">لا توجد عروض مسجلة.</td></tr>'}</tbody></table></div></div>`;
+}
+
+function renderWallets(payload, target) {
+  const rows = listOf(payload, ['wallets']);
+  target.innerHTML = `<div class="panel"><div class="panel-title"><h2>المحافظ</h2><span class="count">${rows.length} محفظة</span></div>
+    <div class="table-wrap"><table><thead><tr><th>المستخدم</th><th>الدور</th><th>الهاتف</th><th>الرصيد</th><th>آخر حركة</th></tr></thead><tbody>
+    ${rows.map((item) => `<tr><td>${escapeHtml(item.user?.name || '—')}</td><td>${escapeHtml(roleLabel(item.user?.role?.name))}</td><td>${escapeHtml(item.user?.phone || '—')}</td><td><b>${money(item.balance)}</b></td><td>${formatDate(item.transactions?.[0]?.createdAt)}</td></tr>`).join('') || '<tr><td colspan="5" class="empty">لا توجد محافظ.</td></tr>'}</tbody></table></div></div>`;
+}
+
+function renderInvoices(payload, target) {
+  const rows = listOf(payload, ['invoices']);
+  target.innerHTML = `<div class="panel"><div class="panel-title"><h2>الفواتير</h2><span class="count">${rows.length} فاتورة</span></div>
+    <div class="table-wrap"><table><thead><tr><th>الطلب</th><th>العميل</th><th>المتجر</th><th>الإجمالي</th><th>الدفع</th><th>التاريخ</th></tr></thead><tbody>
+    ${rows.map((item) => `<tr><td>#${escapeHtml(item.id)}</td><td>${escapeHtml(item.customer?.name || '—')}</td><td>${escapeHtml(item.store?.name || '—')}</td><td><b>${money(item.totalPrice)}</b></td><td>${escapeHtml(item.paymentTransactions?.[0]?.status || '—')}</td><td>${formatDate(item.createdAt)}</td></tr>`).join('') || '<tr><td colspan="6" class="empty">لا توجد فواتير للطلبات المكتملة.</td></tr>'}</tbody></table></div></div>`;
+}
+
+function renderGlobalNotifications(payload, target) {
+  const rows = listOf(payload, ['notifications']);
+  target.innerHTML = `<div class="panel"><div class="panel-title"><h2>الإشعارات العامة</h2><button class="primary compact" id="broadcast-notification">إرسال إشعار</button></div>
+    <div class="table-wrap"><table><thead><tr><th>العنوان</th><th>المستلم</th><th>الدور</th><th>الحالة</th><th>التاريخ</th></tr></thead><tbody>
+    ${rows.map((item) => `<tr><td><b>${escapeHtml(item.title)}</b><small>${escapeHtml(item.body)}</small></td><td>${escapeHtml(item.user?.name || '—')}</td><td>${escapeHtml(roleLabel(item.user?.role?.name))}</td><td>${item.readAt ? 'مقروء' : 'غير مقروء'}</td><td>${formatDate(item.createdAt)}</td></tr>`).join('') || '<tr><td colspan="5" class="empty">لا توجد إشعارات.</td></tr>'}</tbody></table></div></div>`;
+  document.querySelector('#broadcast-notification')?.addEventListener('click', async () => {
+    const title = window.prompt('عنوان الإشعار:');
+    const body = title && window.prompt('نص الإشعار:');
+    if (!title?.trim() || !body?.trim()) return;
+    if (!window.confirm('سيتم إرسال الإشعار للمستخدمين النشطين. هل تريد المتابعة؟')) return;
+    try {
+      await request('/admin/notifications/broadcast', { method: 'POST', body: JSON.stringify({ title: title.trim(), body: body.trim() }) });
+      await loadSection();
+    } catch (error) {
+      alert(error.message);
+    }
+  });
+}
+
+function renderAuditLog(payload, target) {
+  const rows = listOf(payload, ['logs', 'auditLogs']);
+  target.innerHTML = `<div class="panel"><div class="panel-title"><h2>سجل العمليات</h2><span class="count">${rows.length} عملية</span></div>
+    <div class="table-wrap"><table><thead><tr><th>العملية</th><th>الوحدة</th><th>المعرّف</th><th>المنفذ</th><th>الدور</th><th>التاريخ</th></tr></thead><tbody>
+    ${rows.map((item) => `<tr><td>${escapeHtml(item.action)}</td><td>${escapeHtml(item.entity)}</td><td>${escapeHtml(item.entityId || '—')}</td><td>${escapeHtml(item.actor?.name || 'النظام')}</td><td>${escapeHtml(roleLabel(item.actor?.role?.name))}</td><td>${formatDate(item.createdAt)}</td></tr>`).join('') || '<tr><td colspan="6" class="empty">لا توجد عمليات مسجلة.</td></tr>'}</tbody></table></div></div>`;
+}
 
 const renderLogin = (message = '') => {
   app.innerHTML = `
@@ -273,6 +325,10 @@ async function loadSection() {
       stores: () => request('/admin/stores'),
       orders: () => request('/admin/orders'),
       payments: () => request('/admin/payments'),
+      offers: () => request('/admin/offers'),
+      wallets: () => request('/admin/wallets'),
+      invoices: () => request('/admin/invoices'),
+      'global-notifications': () => request('/admin/notifications'),
       ratings: () => request('/admin/ratings'),
       'customer-complaints': () => request('/admin/complaints?role=customer'),
       'vendor-complaints': () => request('/admin/complaints?role=vendor'),
@@ -288,6 +344,7 @@ async function loadSection() {
       services: () => request('/admin/submissions'),
       delivery: () => request('/admin/delivery'),
       reports: () => request('/admin/reports'),
+      'audit-log': () => request('/admin/audit-log'),
       'sub-admins': () => request('/admin/sub-admins'),
       permissions: () => request('/admin/sub-admins'),
       'system-permissions': () => request('/admin/sub-admins'),
@@ -306,11 +363,14 @@ async function loadSection() {
       'ready-orders': renderReadyOrders, 'completed-orders': renderCompletedOrders,
       'cancelled-orders': renderCancelledOrders, 'order-details': renderOrders,
       payments: renderPayments, ratings: renderRatings, 'customer-complaints': renderComplaints,
+      offers: renderOffers, wallets: renderWallets, invoices: renderInvoices,
+      'global-notifications': renderGlobalNotifications,
       'vendor-complaints': renderComplaints, 'delivery-complaints': renderComplaints,
       support: renderComplaints, submissions: renderSubmissions, delivery: renderDeliveries, reports: renderReports,
       'user-reports': renderReports, 'vendor-reports': renderReports, 'delivery-reports': renderReports,
       'sales-reports': renderReports, 'profit-reports': renderReports, 'performance-reports': renderReports,
       'financial-reports': renderReports,
+      'audit-log': renderAuditLog,
       services: renderSubmissions,
       'sub-admins': renderSubAdmins, permissions: renderSubAdmins,
       'system-permissions': renderSubAdmins, 'sub-admin-settings': renderSubAdmins }[state.section] || renderPlaceholder)(data, target);
@@ -661,7 +721,10 @@ function renderStores(payload, target) {
   ${actionButton('تعديل', 'neutral-text', 'edit-store', item.id)}</td></tr>`).join('')}</tbody></table></div></div>`;
   bindFilter(() => renderStores(payload, document.querySelector('#section-content')));
   bindActionButtons(loadSection, {
-    'suspend-store': (id) => request(`/admin/stores/${id}/suspend`, { method: 'PATCH' }),
+    'suspend-store': async (id) => {
+      if (!window.confirm('سيتم تعطيل المتجر ومنع استقبال الطلبات. هل تريد المتابعة؟')) return;
+      return request(`/admin/stores/${id}/suspend`, { method: 'PATCH' });
+    },
     'activate-store': (id) => request(`/admin/stores/${id}/activate`, { method: 'PATCH' }),
     'edit-store': async (id) => { const name = prompt('اسم المتجر الجديد:'); if (name) await request(`/admin/stores/${id}`, { method: 'PATCH', body: JSON.stringify({ name }) }); },
   });
@@ -689,7 +752,15 @@ function renderDeliveries(payload, target) {
   bindFilter(() => renderDeliveries(payload, document.querySelector('#section-content')));
   bindActionButtons(loadSection, {
     'activate-delivery': (id) => request(`/admin/users/${id}/activate`, { method: 'PATCH' }),
-    'suspend-delivery': (id) => request(`/admin/users/${id}/suspend`, { method: 'PATCH' }),
+    'suspend-delivery': async (id) => {
+      if (!window.confirm('سيتم تعطيل حساب المندوب ومنعه من استقبال الطلبات. هل تريد المتابعة؟')) return;
+      const reason = window.prompt('اكتب سبب تعطيل حساب المندوب:');
+      if (!reason?.trim()) return;
+      return request(`/admin/users/${id}/suspend`, {
+        method: 'PATCH',
+        body: JSON.stringify({ reason: reason.trim() }),
+      });
+    },
   });
 }
 
@@ -721,8 +792,10 @@ function rankPanel(title, rows = [], key, suffix) {
 function renderSubAdmins(payload, target) {
   const rows = listOf(payload, ['users', 'subAdmins']);
   const permissionGroups = [
-    ['إدارة المستخدمين', ['users.read', 'users.write']], ['إدارة الطلبات', ['orders.read', 'orders.write']],
-    ['إدارة البائعين والخدمات', ['vendors.read', 'stores.write']], ['التقارير والإحصائيات', ['reports.read', 'reports.export']],
+    ['إدارة المستخدمين', ['users.read', 'users.update', 'users.suspend']], ['إدارة الطلبات', ['orders.read']],
+    ['إدارة البائعين والخدمات', ['vendors.read', 'stores.read', 'stores.update', 'stores.suspend']],
+    ['المندوبون', ['delivery.read']], ['التقارير والإحصائيات', ['reports.read', 'reports.export', 'audit.read']],
+    ['الإشعارات', ['notifications.read', 'notifications.write']],
     ['الإدارة المالية', ['finance.read', 'finance.write']], ['إدارة النظام', ['settings.read', 'settings.write']],
   ];
   target.innerHTML = `<div class="subadmin-page"><div class="pro-panel subadmin-intro"><div><span class="eyebrow">صلاحيات الوصول</span><h2>إدارة الإدمن الفرعي</h2><p>أنشئ حسابات مخصصة لفريقك وحدد بالضبط ما يمكن لكل عضو الوصول إليه.</p></div><button class="primary compact" id="add-sub-admin">+ إنشاء إدمن فرعي</button></div><div class="pro-panel"><div class="pro-panel-head"><div><h3>حسابات فريق الإدارة</h3><small>${rows.length} حساب بصلاحيات مخصصة</small></div><span class="count">صلاحيات آمنة</span></div><div class="table-wrap"><table><thead><tr><th>المستخدم</th><th>الهاتف</th><th>الصلاحيات</th><th>آخر دخول</th><th>الحالة</th><th>إجراءات</th></tr></thead><tbody>${rows.length ? rows.map((item) => `<tr><td><b>${escapeHtml(item.name)}</b></td><td>${escapeHtml(item.phone)}</td><td><span class="permission-summary">${escapeHtml((item.permissions || []).map(permissionLabel).join('، ') || '—')}</span></td><td>${formatDate(item.lastLoginAt)}</td><td><span class="status ${item.isActive ? 'success' : 'danger'}">${item.isActive ? 'نشط' : 'موقوف'}</span></td><td>${actionButton('تعديل الصلاحيات', 'neutral-text', 'edit-permissions', item.id)} ${actionButton(item.isActive ? 'إيقاف' : 'تفعيل', item.isActive ? 'danger-text' : 'success-text', item.isActive ? 'disable-sub-admin' : 'enable-sub-admin', item.id)}</td></tr>`).join('') : '<tr><td colspan="6" class="empty">لا يوجد إدمن فرعي حتى الآن. أنشئ أول حساب لفريقك.</td></tr>'}</tbody></table></div></div></div><dialog id="subadmin-modal" class="subadmin-modal"><form method="dialog" id="subadmin-form"><div class="pro-panel-head"><h3>إنشاء إدمن فرعي</h3><button type="button" class="modal-close">×</button></div><label class="field">الاسم<input name="name" required placeholder="اسم الموظف" /></label><label class="field">رقم الهاتف<input name="phone" required placeholder="01xxxxxxxxx" /></label><label class="field">كلمة المرور<input name="password" type="password" required minlength="8" placeholder="8 أحرف على الأقل" /></label><h4>الصلاحيات المسموحة</h4><div class="permission-grid">${permissionGroups.map(([group, permissions]) => `<fieldset><legend>${group}</legend>${permissions.map((permission) => `<label><input type="checkbox" name="permissions" value="${permission}" /> ${permissionLabel(permission)}</label>`).join('')}</fieldset>`).join('')}</div><button class="primary" value="default" type="submit">حفظ الإدمن والصلاحيات</button></form></dialog>`;
@@ -734,7 +807,10 @@ function renderSubAdmins(payload, target) {
     try { await request('/admin/sub-admins', { method: 'POST', body: JSON.stringify({ name: form.get('name'), phone: form.get('phone'), password: form.get('password'), permissions: form.getAll('permissions') }) }); modal.close(); await loadSection(); } catch (error) { alert(error.message); }
   });
   bindActionButtons(loadSection, {
-    'disable-sub-admin': (id) => request(`/admin/sub-admins/${id}`, { method: 'DELETE' }),
+    'disable-sub-admin': async (id) => {
+      if (!window.confirm('سيتم تعطيل هذا المشرف الفرعي. هل تريد المتابعة؟')) return;
+      return request(`/admin/sub-admins/${id}`, { method: 'DELETE' });
+    },
     'enable-sub-admin': (id) => request(`/admin/sub-admins/${id}`, { method: 'PATCH', body: JSON.stringify({ isActive: true }) }),
     'edit-permissions': async (id) => { const permissions = prompt('أدخل الصلاحيات مفصولة بفاصلة:'); if (permissions) await request(`/admin/sub-admins/${id}`, { method: 'PATCH', body: JSON.stringify({ permissions: permissions.split(',').map((value) => value.trim()).filter(Boolean) }) }); },
   });
