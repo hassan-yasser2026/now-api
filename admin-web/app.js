@@ -64,6 +64,13 @@ const request = async (path, options = {}) => {
     if (response.status === 401) {
       logout();
     }
+
+    function renderPayments(payload, target) {
+      const rows = listOf(payload, ['payments']);
+      target.innerHTML = `<div class="panel"><div class="panel-title"><h2>المدفوعات النقدية</h2><span class="count">${rows.length} عملية</span></div>
+        <div class="table-wrap"><table><thead><tr><th>الطلب</th><th>العميل</th><th>المتجر</th><th>المبلغ</th><th>الطريقة</th><th>الحالة</th><th>التاريخ</th></tr></thead><tbody>
+        ${rows.map((item) => `<tr><td><b>#${escapeHtml(item.order?.id || item.orderId)}</b></td><td>${escapeHtml(item.order?.customer?.name || '—')}</td><td>${escapeHtml(item.order?.store?.name || '—')}</td><td><b>${money(item.amount)}</b></td><td>${escapeHtml(item.method || 'CASH_ON_DELIVERY')}</td><td><span class="status ${item.status === 'SUCCESS' ? 'success' : 'warning'}">${escapeHtml(item.status)}</span></td><td>${formatDate(item.createdAt)}</td></tr>`).join('') || '<tr><td colspan="7" class="empty">لا توجد مدفوعات مسجلة.</td></tr>'}</tbody></table></div></div>`;
+    }
     throw new Error(payload.message || 'تعذر تحميل البيانات');
   }
     console.debug('[NOW Admin] response', { method, path, status: response.status });
@@ -207,6 +214,7 @@ async function loadSection() {
       vendors: () => request('/admin/users'),
       stores: () => request('/admin/stores'),
       orders: () => request('/admin/orders'),
+      payments: () => request('/admin/payments'),
       'new-orders': () => request('/admin/orders'),
       'active-orders': () => request('/admin/orders'),
       'ready-orders': () => request('/admin/orders'),
@@ -224,7 +232,7 @@ async function loadSection() {
       vendors: renderVendors, 'new-orders': renderNewOrders, 'active-orders': renderActiveOrders,
       'ready-orders': renderReadyOrders, 'completed-orders': renderCompletedOrders,
       'cancelled-orders': renderCancelledOrders, 'order-details': renderOrders,
-      submissions: renderSubmissions, delivery: renderDeliveries, reports: renderReports,
+      payments: renderPayments, submissions: renderSubmissions, delivery: renderDeliveries, reports: renderReports,
       services: renderSubmissions,
       'sub-admins': renderSubAdmins }[state.section] || renderPlaceholder)(data, target);
   } catch (error) {
@@ -502,7 +510,7 @@ const renderOrdersByStatus = (payload, target, statuses) => {
   renderOrders({ orders }, target);
 };
 const renderNewOrders = (payload, target) => renderOrdersByStatus(payload, target, ['PENDING', 'NEW']);
-const renderActiveOrders = (payload, target) => renderOrdersByStatus(payload, target, ['CONFIRMED', 'PREPARING', 'READY']);
+const renderActiveOrders = (payload, target) => renderOrdersByStatus(payload, target, ['ACCEPTED', 'PREPARING', 'READY']);
 const renderReadyOrders = (payload, target) => renderOrdersByStatus(payload, target, ['READY_FOR_DELIVERY', 'READY']);
 const renderCompletedOrders = (payload, target) => renderOrdersByStatus(payload, target, ['DELIVERED', 'COMPLETED']);
 const renderCancelledOrders = (payload, target) => renderOrdersByStatus(payload, target, ['CANCELLED', 'REJECTED']);

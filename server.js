@@ -4627,6 +4627,41 @@ app.get(
             : order.delivery,
         }))
       );
+
+      app.get(
+        '/api/admin/payments',
+        authMiddleware,
+        adminPermissionMiddleware('orders.read'),
+        async (req, res) => {
+          try {
+            const payments = await prisma.paymentTransaction.findMany({
+              orderBy: { createdAt: 'desc' },
+              take: 200,
+              include: {
+                order: {
+                  select: {
+                    id: true,
+                    status: true,
+                    totalPrice: true,
+                    customer: { select: { name: true } },
+                    store: { select: { name: true } },
+                  },
+                },
+              },
+            });
+
+            return successResponse(res, payments.map((payment) => ({
+              ...payment,
+              amount: Number(payment.amount),
+              order: payment.order
+                ? { ...payment.order, totalPrice: Number(payment.order.totalPrice) }
+                : null,
+            })));
+          } catch (error) {
+            return handlePrismaError(error, res);
+          }
+        }
+      );
     } catch (error) {
       return handlePrismaError(error, res);
     }
