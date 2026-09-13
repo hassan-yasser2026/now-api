@@ -47,6 +47,9 @@ model User {
   latitude            Decimal?             @db.Decimal(9, 6)
   longitude           Decimal?             @db.Decimal(9, 6)
   isActive            Boolean              @default(true)
+  suspensionReason    String?
+  suspendedUntil      DateTime?
+  deletedAt           DateTime?
   phoneVerified       Boolean              @default(false)
   approvalStatus      SubmissionStatus    @default(APPROVED)
   rejectionReason     String?
@@ -73,6 +76,7 @@ model User {
 
   @@index([roleId])
   @@index([isActive])
+  @@index([deletedAt])
   @@map("users")
 }
 

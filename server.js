@@ -572,11 +572,12 @@ const authMiddleware = async (req, res, next) => {
       select: {
         isActive: true,
         approvalStatus: true,
+        deletedAt: true,
         role: { select: { name: true } },
       },
     });
 
-    if (!user || !user.isActive || user.role.name !== decoded.role) {
+    if (!user || user.deletedAt || !user.isActive || user.role.name !== decoded.role) {
       return errorResponse(
         res,
         'الحساب غير نشط أو تغيرت صلاحياته',
@@ -887,14 +888,39 @@ app.post('/api/auth/login', authRateLimiter, async (req, res) => {
     }
 
     if (
-      user.approvalStatus === SUBMISSION_STATUS.PENDING_ADMIN_REVIEW ||
       !user.isActive
+      && user.suspendedUntil
+      && new Date(user.suspendedUntil).getTime() <= Date.now()
     ) {
+      await prisma.user.update({
+        where: { id: user.id },
+        data: {
+          isActive: true,
+          suspensionReason: null,
+          suspendedUntil: null,
+        },
+      });
+      user.isActive = true;
+      user.suspensionReason = null;
+      user.suspendedUntil = null;
+    }
+
+    if (user.approvalStatus === SUBMISSION_STATUS.PENDING_ADMIN_REVIEW) {
       return errorResponse(
         res,
         'حسابك في انتظار مراجعة الإدارة',
         403
       );
+    }
+
+    if (!user.isActive) {
+      const suspensionMessage = user.suspensionReason
+        ? `تم تعطيل الحساب. السبب: ${user.suspensionReason}`
+        : 'تم تعطيل الحساب من الإدارة';
+      const openingMessage = user.suspendedUntil
+        ? ` يمكن محاولة الدخول بعد: ${new Date(user.suspendedUntil).toLocaleString('ar-EG')}.`
+        : ' يرجى التواصل مع الدعم لإعادة التفعيل.';
+      return errorResponse(res, `${suspensionMessage}.${openingMessage}`, 403);
     }
 
     if (user.role.name === ROLES.CUSTOMER && !user.phoneVerified) {
@@ -4339,18 +4365,19 @@ app.get(
   isAdmin,
   async (req, res) => {
     try {
-      const roleCount = (name) => prisma.user.count({ where: { role: { name } } });
+      const activeUserWhere = { deletedAt: null };
+      const roleCount = (name) => prisma.user.count({ where: { ...activeUserWhere, role: { name } } });
       const monthStart = new Date();
       monthStart.setDate(monthStart.getDate() - 30);
       const [users, vendors, deliveries, orders, sales, commissions, recentOrders, recentUsers, recentActivities, orderHistory] = await Promise.all([
-        prisma.user.count(),
+        prisma.user.count({ where: activeUserWhere }),
         roleCount(ROLES.VENDOR),
         roleCount(ROLES.DELIVERY),
         prisma.order.count(),
         prisma.order.aggregate({ where: { status: ORDER_STATUS.DELIVERED }, _sum: { totalPrice: true } }),
         prisma.order.aggregate({ where: { status: ORDER_STATUS.DELIVERED }, _sum: { platformCommission: true } }),
         prisma.order.findMany({ take: 5, orderBy: { createdAt: 'desc' }, select: { id: true, status: true, totalPrice: true, createdAt: true, customer: { select: { name: true } }, store: { select: { name: true } } } }),
-        prisma.user.findMany({ take: 5, orderBy: { createdAt: 'desc' }, select: { id: true, name: true, phone: true, createdAt: true, role: { select: { name: true } } } }),
+        prisma.user.findMany({ where: activeUserWhere, take: 5, orderBy: { createdAt: 'desc' }, select: { id: true, name: true, phone: true, createdAt: true, role: { select: { name: true } } } }),
         prisma.auditLog.findMany({ take: 6, orderBy: { createdAt: 'desc' }, select: { id: true, action: true, entity: true, createdAt: true, actor: { select: { name: true } } } }),
         prisma.order.findMany({ where: { createdAt: { gte: monthStart } }, select: { createdAt: true, totalPrice: true } }),
       ]);
@@ -4397,6 +4424,7 @@ app.get(
     try {
       const users =
         await prisma.user.findMany({
+          where: { deletedAt: null },
           select: {
             id: true,
             name: true,
@@ -4404,6 +4432,8 @@ app.get(
             email: true,
             isActive: true,
             approvalStatus: true,
+            suspensionReason: true,
+            suspendedUntil: true,
 
             role: {
               select: {
@@ -4462,7 +4492,7 @@ app.patch(
       }
 
       const user = await prisma.user.update({
-        where: { id: userId },
+        where: { id: userId, deletedAt: null },
         data,
         select: {
           id: true,
@@ -4470,6 +4500,8 @@ app.patch(
           phone: true,
           email: true,
           isActive: true,
+          suspensionReason: true,
+          suspendedUntil: true,
           role: { select: { name: true } },
         },
       });
@@ -4495,12 +4527,35 @@ const setAdminManagedUserActive = async (req, res, isActive) => {
     return errorResponse(res, 'لا يمكنك تعطيل حسابك الحالي', 409);
   }
 
+  let suspensionReason = null;
+  let suspendedUntil = null;
+
+  if (!isActive) {
+    suspensionReason = normalizeString(req.body?.reason);
+    if (!suspensionReason) {
+      return errorResponse(res, 'سبب تعطيل الحساب مطلوب', 422);
+    }
+    if (suspensionReason.length > 500) {
+      return errorResponse(res, 'سبب تعطيل الحساب طويل جدًا', 422);
+    }
+
+    if (req.body?.suspendedUntil !== undefined && req.body.suspendedUntil !== null && req.body.suspendedUntil !== '') {
+      const parsedUntil = new Date(req.body.suspendedUntil);
+      if (Number.isNaN(parsedUntil.getTime()) || parsedUntil.getTime() <= Date.now()) {
+        return errorResponse(res, 'وقت انتهاء التعطيل يجب أن يكون وقتًا مستقبليًا صالحًا', 422);
+      }
+      suspendedUntil = parsedUntil;
+    }
+  }
+
   try {
     const user = await prisma.$transaction(async (tx) => {
       const updatedUser = await tx.user.update({
-        where: { id: userId },
+        where: { id: userId, deletedAt: null },
         data: {
           isActive,
+          suspensionReason,
+          suspendedUntil,
           ...(isActive
             ? { approvalStatus: SUBMISSION_STATUS.APPROVED, rejectionReason: null }
             : {}),
@@ -4512,6 +4567,8 @@ const setAdminManagedUserActive = async (req, res, isActive) => {
           email: true,
           isActive: true,
           approvalStatus: true,
+          suspensionReason: true,
+          suspendedUntil: true,
           role: { select: { name: true } },
         },
       });
@@ -4546,7 +4603,7 @@ app.patch(
 app.patch(
   '/api/admin/users/:id/activate',
   authMiddleware,
-  isAdmin,
+  adminPermissionMiddleware('users.suspend'),
   (req, res) => setAdminManagedUserActive(req, res, true)
 );
 
@@ -4554,7 +4611,47 @@ app.delete(
   '/api/admin/users/:id',
   authMiddleware,
   adminPermissionMiddleware('users.suspend'),
-  (req, res) => setAdminManagedUserActive(req, res, false)
+  async (req, res) => {
+    const userId = normalizeId(req.params.id);
+
+    if (!userId) {
+      return errorResponse(res, 'رقم المستخدم غير صالح', 400);
+    }
+
+    if (userId === req.user.userId) {
+      return errorResponse(res, 'لا يمكنك حذف حسابك الحالي', 409);
+    }
+
+    try {
+      const deletedUser = await prisma.user.update({
+        where: { id: userId, deletedAt: null },
+        data: {
+          phone: `deleted:${userId}:${Date.now()}`,
+          email: null,
+          name: `حساب محذوف #${userId}`,
+          password: await bcrypt.hash(crypto.randomBytes(32).toString('hex'), 12),
+          profileImage: null,
+          idImage: null,
+          motorcycleImage: null,
+          motorcycleCardImage: null,
+          isActive: false,
+          suspensionReason: null,
+          suspendedUntil: null,
+          deletedAt: new Date(),
+        },
+        select: {
+          id: true,
+          name: true,
+          isActive: true,
+          deletedAt: true,
+        },
+      });
+
+      return successResponse(res, deletedUser);
+    } catch (error) {
+      return handlePrismaError(error, res);
+    }
+  }
 );
 
 // ============================================================

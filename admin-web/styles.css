@@ -366,6 +366,32 @@ button:active { transform: translateY(0); }
 .table-wrap {
   overflow-x: auto;
 }
+
+.admin-dialog {
+  width: min(520px, calc(100% - 32px));
+  border: 0;
+  border-radius: 16px;
+  padding: 24px;
+  box-shadow: 0 24px 80px rgba(0, 0, 0, .25);
+}
+
+.admin-dialog::backdrop {
+  background: rgba(15, 23, 42, .55);
+}
+
+.admin-dialog .dialog-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+  margin-top: 16px;
+}
+
+.suspension-reason {
+  display: block;
+  margin-top: 4px;
+  color: #b42318;
+  white-space: normal;
+}
 table {
   width: 100%;
   border-collapse: collapse;

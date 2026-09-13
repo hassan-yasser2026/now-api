@@ -566,16 +566,64 @@ function renderUsers(payload, target) {
   rows = rows.filter((item) => (!state.query || `${item.name} ${item.phone}`.includes(state.query))
     && (state.status === 'all' || (state.status === 'active' ? item.isActive : !item.isActive)));
   target.innerHTML = `${toolbar()}<div class="panel"><div class="panel-title"><h2>إدارة المستخدمين</h2><span class="count">${rows.length} مستخدم</span></div>
-    <div class="table-wrap"><table><thead><tr><th>المستخدم</th><th>الهاتف</th><th>الدور</th><th>تاريخ التسجيل</th><th>الحالة</th><th>إجراء</th></tr></thead><tbody>
+    <div class="table-wrap"><table><thead><tr><th>المستخدم</th><th>الهاتف</th><th>الدور</th><th>تاريخ التسجيل</th><th>الحالة / سبب التعطيل</th><th>فتح الحساب</th><th>إجراء</th></tr></thead><tbody>
     ${rows.map((item) => `<tr><td><b>${escapeHtml(item.name)}</b></td><td>${escapeHtml(item.phone)}</td><td><span class="tag">${escapeHtml(roleLabel(item.role?.name || item.role))}</span></td>
-    <td>${formatDate(item.createdAt)}</td><td><span class="status ${item.isActive ? 'success' : 'danger'}">${item.isActive ? 'نشط' : 'معطل'}</span></td><td>
+    <td>${formatDate(item.createdAt)}</td><td><span class="status ${item.isActive ? 'success' : 'danger'}">${item.isActive ? 'نشط' : 'معطل'}</span>${item.suspensionReason ? `<small class="suspension-reason">${escapeHtml(item.suspensionReason)}</small>` : ''}</td><td>${item.suspendedUntil ? formatDate(item.suspendedUntil) : (item.suspensionReason ? 'تواصل مع الدعم' : '—')}</td><td>
     ${actionButton(item.isActive ? 'تعطيل' : 'تفعيل', item.isActive ? 'danger-text' : 'success-text', item.isActive ? 'suspend-user' : 'activate-user', item.id)}
-    ${actionButton('تعديل', 'neutral-text', 'edit-user', item.id)}</td></tr>`).join('')}</tbody></table></div></div>`;
+    ${actionButton('تعديل', 'neutral-text', 'edit-user', item.id)}
+    ${actionButton('حذف', 'danger-text', 'delete-user', item.id)}</td></tr>`).join('')}</tbody></table></div>
+    <dialog id="suspend-user-dialog" class="admin-dialog">
+      <form method="dialog" id="suspend-user-form">
+        <h3>تعطيل الحساب</h3>
+        <p class="muted">لن تظهر كلمة المرور أبدًا. اكتب سببًا واضحًا للمستخدم.</p>
+        <label class="field">سبب التعطيل<textarea name="reason" required maxlength="500" rows="3"></textarea></label>
+        <label class="field">وقت فتح الحساب (اختياري)<input name="suspendedUntil" type="datetime-local" /></label>
+        <div class="dialog-actions"><button type="button" class="small-btn neutral-text" id="cancel-suspend">إلغاء</button><button type="submit" class="small-btn danger-text">حفظ التعطيل</button></div>
+      </form>
+    </dialog></div>`;
   bindFilter(() => renderUsers(payload, document.querySelector('#section-content')));
+  const suspendDialog = document.querySelector('#suspend-user-dialog');
+  const suspendForm = document.querySelector('#suspend-user-form');
+  let pendingSuspendId = null;
+  document.querySelectorAll('[data-action="suspend-user"]').forEach((button) => button.addEventListener('click', () => {
+    pendingSuspendId = button.dataset.id;
+    suspendForm.reset();
+    suspendDialog.showModal();
+  }));
+  document.querySelector('#cancel-suspend')?.addEventListener('click', () => suspendDialog.close());
+  suspendForm?.addEventListener('submit', async (event) => {
+    event.preventDefault();
+    const form = new FormData(event.currentTarget);
+    const reason = String(form.get('reason') || '').trim();
+    const suspendedUntilInput = String(form.get('suspendedUntil') || '').trim();
+    if (!reason || !pendingSuspendId) return;
+    let suspendedUntil = null;
+    if (suspendedUntilInput) {
+      const parsedUntil = new Date(suspendedUntilInput);
+      if (Number.isNaN(parsedUntil.getTime())) {
+        alert('وقت فتح الحساب غير صالح');
+        return;
+      }
+      suspendedUntil = parsedUntil.toISOString();
+    }
+    try {
+      await request(`/admin/users/${pendingSuspendId}/suspend`, {
+        method: 'PATCH',
+        body: JSON.stringify({ reason, suspendedUntil }),
+      });
+      suspendDialog.close();
+      await loadSection();
+    } catch (error) {
+      alert(error.message);
+    }
+  });
   bindActionButtons(loadSection, {
-    'suspend-user': (id) => request(`/admin/users/${id}/suspend`, { method: 'PATCH' }),
     'activate-user': (id) => request(`/admin/users/${id}/activate`, { method: 'PATCH' }),
     'edit-user': async (id) => { const name = prompt('اسم المستخدم الجديد:'); if (name) await request(`/admin/users/${id}`, { method: 'PATCH', body: JSON.stringify({ name }) }); },
+    'delete-user': async (id) => {
+      if (!window.confirm('سيتم حذف الحساب وإتاحة التسجيل بنفس الهاتف. هل تريد المتابعة؟')) return;
+      return request(`/admin/users/${id}`, { method: 'DELETE' });
+    },
   });
 }
 
