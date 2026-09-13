@@ -385,6 +385,11 @@ const isWithinDeliveryRadius = (from, to) => {
   return distance !== null && distance <= DELIVERY_RADIUS_KM;
 };
 
+const getNearbyDistance = (from, to) => {
+  const distance = distanceInKm(from, to);
+  return distance !== null && distance <= DELIVERY_RADIUS_KM ? distance : null;
+};
+
 const isValidEmail = (email) => {
   if (!email) {
     return true;
@@ -750,6 +755,7 @@ app.get('/api/health', async (req, res) => {
         status: 'online',
         environment: NODE_ENV,
         database: 'connected',
+        deliveryRadiusKm: DELIVERY_RADIUS_KM,
         smtpConfigured: Boolean(
           process.env.SMTP_HOST
           && process.env.SMTP_PORT
@@ -1536,7 +1542,7 @@ app.get('/api/stores', async (req, res) => {
 
     const nearbyStores = customerPoint
       ? stores.filter((store) => isWithinDeliveryRadius(customerPoint, parseLatLng(store.latitude, store.longitude)))
-      : stores;
+      : stores.filter((store) => parseLatLng(store.latitude, store.longitude));
 
     return successResponse(res, nearbyStores.map((store) => {
       const total = store.ratings.reduce((sum, rating) => sum + rating.stars, 0);
@@ -1545,6 +1551,9 @@ app.get('/api/stores', async (req, res) => {
         ...storeData,
         ratingAverage: ratings.length ? Number((total / ratings.length).toFixed(1)) : 0,
         ratingCount: ratings.length,
+        distanceKm: customerPoint
+          ? Number(getNearbyDistance(customerPoint, parseLatLng(store.latitude, store.longitude)).toFixed(2))
+          : null,
       };
     }));
   } catch (error) {
