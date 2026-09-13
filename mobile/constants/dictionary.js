@@ -519,6 +519,7 @@ export const AR_EN = {
   'من المتاجر القريبة خلال 25 دقيقة': 'From nearby stores in 25 minutes',
   'توصيل سريع': 'Fast delivery',
   'ابحث عن مطعم أو متجر...': 'Search for a restaurant or store...',
+  'ابحث عن منتج...': 'Search for a product...',
   'ابحث عن متجر أو فئة أو منتج': 'Search a store, category or product',
   'ابحث عن صنف...': 'Search for an item...',
   'جرّب البحث بكلمة مختلفة أو غيّر الفلتر.':

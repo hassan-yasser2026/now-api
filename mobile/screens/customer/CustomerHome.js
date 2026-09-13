@@ -22,29 +22,12 @@ import { COLORS } from '../../constants/colors';
 import useAppStore from '../../store/appStore';
 
 import storeService from '../../services/storeService';
-import { orderService } from '../../services/orderService';
 
 import Loading from '../../components/Loading';
 import LocationPickerModal from '../../components/LocationPickerModal';
 
 const HOME_ACCENT = '#0B8FA3';
 const HOME_DARK = '#151515';
-
-const STATUS_LABELS = {
-  PENDING: 'في انتظار المتجر',
-  PREPARING: 'جاري التحضير',
-  READY: 'جاهز للاستلام',
-  PICKED_UP: 'خرج للتوصيل',
-  DELIVERED: 'تم التوصيل',
-  CANCELLED: 'ملغي',
-
-  Pending: 'في انتظار المتجر',
-  Preparing: 'جاري التحضير',
-  Ready: 'جاهز للاستلام',
-  Picked_Up: 'خرج للتوصيل',
-  Delivered: 'تم التوصيل',
-  Cancelled: 'ملغي',
-};
 
 const CustomerHome = ({ navigation }) => {
   const {
@@ -62,7 +45,6 @@ const CustomerHome = ({ navigation }) => {
 
   const [stores, setStores] = useState([]);
   const [featuredItems, setFeaturedItems] = useState([]);
-  const [orders, setOrders] = useState([]);
   const [locationPickerVisible, setLocationPickerVisible] = useState(false);
 
   const [refreshing, setRefreshing] = useState(false);
@@ -77,14 +59,7 @@ const CustomerHome = ({ navigation }) => {
 
     try {
       const storesPromise = storeService.getStores(deliveryLocation);
-      const ordersPromise = (isAuthenticated && !isGuest)
-        ? orderService.getCustomerOrders()
-        : Promise.resolve({ success: true, orders: [] });
-
-      const [storesResult, ordersResult] = await Promise.all([
-        storesPromise,
-        ordersPromise,
-      ]);
+      const storesResult = await storesPromise;
 
       if (storesResult.success) {
         const loadedStores = Array.isArray(storesResult.stores) ? storesResult.stores : [];
@@ -105,13 +80,6 @@ const CustomerHome = ({ navigation }) => {
         setFeaturedItems(menuResults.flat().slice(0, 12));
       } else {
         throw new Error(storesResult.message || 'فشل تحميل المتاجر');
-      }
-
-      if (ordersResult.success) {
-        setOrders(Array.isArray(ordersResult.orders) ? ordersResult.orders : []);
-      } else {
-        console.warn('Could not fetch customer orders:', ordersResult.message);
-        setOrders([]);
       }
 
       setStatus('success');
@@ -135,15 +103,6 @@ const CustomerHome = ({ navigation }) => {
   const onRefresh = useCallback(() => {
     loadData(true);
   }, [loadData]);
-
-  const activeOrders = useMemo(
-    () =>
-      orders.filter((order) => {
-        const orderStatus = String(order.status || '').toUpperCase();
-        return orderStatus !== 'DELIVERED' && orderStatus !== 'CANCELLED';
-      }),
-    [orders]
-  );
 
   const visibleProducts = useMemo(() => {
     const search = searchText.trim().toLowerCase();
@@ -169,17 +128,6 @@ const CustomerHome = ({ navigation }) => {
       navigation.navigate('StoreMenu', {
         storeId: store.id,
         storeName: store.name,
-      });
-    },
-    [navigation]
-  );
-
-  const handleOrderPress = useCallback(
-    (order) => {
-      if (!order?.id) return;
-
-      navigation.navigate('OrderTracking', {
-        orderId: order.id,
       });
     },
     [navigation]
@@ -222,15 +170,6 @@ const CustomerHome = ({ navigation }) => {
     Alert.alert('اطلب أوردر', 'اختار متجر وأضف منتجات للسلة أولاً.');
   }, [cartByStore.length, navigation]);
 
-  const handleCartStorePress = useCallback((storeId) => {
-    if (isGuest) {
-      navigation.navigate('Login');
-      return;
-    }
-
-    navigation.navigate('OrderConfirmation', { storeId });
-  }, [isGuest, navigation]);
-
   const handleBottomNavigation = useCallback((route) => {
     if (route === 'account') {
       navigation.navigate(isGuest ? 'Settings' : 'CustomerProfile');
@@ -251,32 +190,6 @@ const CustomerHome = ({ navigation }) => {
       navigation.navigate('About');
     }
   }, [isGuest, navigation]);
-
-  const cartTotal = useMemo(
-    () => cart.reduce((sum, item) => sum + Number(item.price || 0) * Number(item.quantity || 0), 0),
-    [cart]
-  );
-
-  const statsCards = [
-    {
-      key: 'orders',
-      label: 'طلباتك',
-      value: `${activeOrders.length}`,
-      icon: 'receipt-outline',
-    },
-    {
-      key: 'cart',
-      label: 'السلة',
-      value: `${cart.length}`,
-      icon: 'cart-outline',
-    },
-    {
-      key: 'total',
-      label: 'إجمالي',
-      value: `${cartTotal.toFixed(2)} ج.م`,
-      icon: 'cash-outline',
-    },
-  ];
 
   const featuredOffers = [
     {
@@ -301,10 +214,6 @@ const CustomerHome = ({ navigation }) => {
       icon: 'sparkles-outline',
     },
   ];
-
-  const getStatusLabel = (orderStatus) => {
-    return STATUS_LABELS[orderStatus] || orderStatus || 'غير معروف';
-  };
 
   if (status === 'loading') {
     return <Loading text="جاري تحميل المتاجر..." />;
@@ -341,14 +250,20 @@ const CustomerHome = ({ navigation }) => {
             <TouchableOpacity style={styles.profileButton} onPress={handleSettingsPress} activeOpacity={0.8}>
               <Ionicons name="settings-outline" size={20} color={HOME_ACCENT} />
             </TouchableOpacity>
-            {orders.length > 0 && (
-              <TouchableOpacity style={styles.iconButton} onPress={() => navigation.navigate('Orders')} activeOpacity={0.8}>
-                <Ionicons name="bag-handle-outline" size={22} color="#fff" />
+            <TouchableOpacity
+              style={styles.iconButton}
+              onPress={() => navigation.navigate(isGuest ? 'Login' : 'Cart')}
+              activeOpacity={0.8}
+              accessibilityRole="button"
+              accessibilityLabel="السلة"
+            >
+              <Ionicons name="cart-outline" size={22} color="#fff" />
+              {cart.length > 0 && (
                 <View style={styles.cartBadgeHeader}>
-                  <Text style={styles.cartBadgeTextHeader}>{orders.length > 9 ? '9+' : orders.length}</Text>
+                  <Text style={styles.cartBadgeTextHeader}>{cart.length > 9 ? '9+' : cart.length}</Text>
                 </View>
-              </TouchableOpacity>
-            )}
+              )}
+            </TouchableOpacity>
 
             {isAuthenticated && (
               <TouchableOpacity
@@ -493,95 +408,7 @@ const CustomerHome = ({ navigation }) => {
         />
       </View>
 
-      <View style={styles.statsGrid}>
-        {statsCards.map((stat) => (
-          <View key={stat.key} style={styles.statCard}>
-            <View style={styles.statIconWrap}>
-              <Ionicons name={stat.icon} size={18} color={HOME_ACCENT} />
-            </View>
-            <Text style={styles.statValue}>{stat.value}</Text>
-            <Text style={styles.statLabel}>{stat.label}</Text>
-          </View>
-        ))}
-      </View>
-
-      {/* Active Orders */}
-      {isAuthenticated && activeOrders.length > 0 && (
-        <View style={styles.ordersSection}>
-          <View style={styles.sectionHeader}>
-            <Text style={styles.sectionTitle}>طلباتك الحالية</Text>
-            <TouchableOpacity onPress={() => navigation.navigate('Orders')}>
-              <Text style={styles.seeAll}>عرض الكل</Text>
-            </TouchableOpacity>
-          </View>
-
-          <FlatList
-            horizontal
-            inverted
-            data={activeOrders}
-            showsHorizontalScrollIndicator={false}
-            contentContainerStyle={styles.horizontalList}
-            keyExtractor={(item) => String(item.id)}
-            renderItem={({ item }) => (
-              <TouchableOpacity
-                style={styles.orderCard}
-                onPress={() => handleOrderPress(item)}
-                activeOpacity={0.85}
-              >
-                <View style={styles.orderTopRow}>
-                  <View style={styles.orderIcon}>
-                    <Ionicons name="receipt-outline" size={20} color={HOME_ACCENT} />
-                  </View>
-                  <Text style={styles.orderId}>#{item.id}</Text>
-                </View>
-
-                <Text style={styles.orderStatus} numberOfLines={1}>
-                  {getStatusLabel(item.status)}
-                </Text>
-
-                <Text style={styles.orderTotal}>
-                  {Number(item.totalPrice || 0).toFixed(2)} ج.م
-                </Text>
-
-                <View style={styles.trackRow}>
-                  <Text style={styles.trackText}>تتبع الطلب</Text>
-                  <Ionicons name="arrow-back" size={16} color={HOME_ACCENT} />
-                </View>
-              </TouchableOpacity>
-            )}
-          />
-        </View>
-      )}
-
       </ScrollView>
-
-      {/* Cart Bars */}
-      {cartByStore.length > 0 && (
-        <View style={styles.cartBarsContainer}>
-          {cartByStore.map((cartStore) => (
-            <TouchableOpacity
-              key={cartStore.storeId}
-              style={styles.cartBar}
-              onPress={() => handleCartStorePress(cartStore.storeId)}
-              activeOpacity={0.9}
-            >
-              <View style={styles.cartInfo}>
-                <View style={styles.cartBadgeBar}>
-                  <Text style={styles.cartBadgeTextBar}>{cartStore.totalItems}</Text>
-                </View>
-                <View>
-                  <Text style={styles.cartTotal}>{cartStore.totalPrice.toFixed(2)} ج.م</Text>
-                  <Text style={styles.cartStoreName}>من {cartStore.storeName}</Text>
-                </View>
-              </View>
-              <View style={styles.cartBtn}>
-                <Text style={styles.cartBtnText}>عرض السلة</Text>
-                <Ionicons name="arrow-forward" size={16} color="#fff" />
-              </View>
-            </TouchableOpacity>
-          ))}
-        </View>
-      )}
 
       {isGuest && (
         <View style={styles.guestBottomNav}>
