@@ -63,9 +63,9 @@ const VendorProfile = ({ navigation }) => {
             <Text style={styles.menuLabel}>أوقات العمل</Text>
             <Ionicons name="chevron-forward" size={20} color={COLORS.textSecondary} />
           </TouchableOpacity>
-          <TouchableOpacity style={styles.menuItem} onPress={() => navigation.navigate('About')}>
-            <Ionicons name="help-circle-outline" size={24} color={COLORS.textPrimary} />
-            <Text style={styles.menuLabel}>الدعم والمساعدة</Text>
+          <TouchableOpacity style={styles.menuItem} onPress={() => navigation.navigate('Support')}>
+            <Ionicons name="headset-outline" size={24} color={COLORS.textPrimary} />
+            <Text style={styles.menuLabel}>الشكاوى والدعم</Text>
             <Ionicons name="chevron-forward" size={20} color={COLORS.textSecondary} />
           </TouchableOpacity>
         </View>

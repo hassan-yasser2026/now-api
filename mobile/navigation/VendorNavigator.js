@@ -17,6 +17,7 @@ import AccountSettingsScreen from '../screens/customer/AccountSettingsScreen';
 import AboutScreen from '../screens/auth/AboutScreen';
 import VendorWorkingHours from '../screens/vendor/VendorWorkingHours';
 import WalletScreen from '../screens/wallet/WalletScreen';
+import SupportScreen from '../screens/support/SupportScreen';
 
 const Stack = createNativeStackNavigator();
 
@@ -49,6 +50,7 @@ const VendorNavigator = () => {
       <Stack.Screen name="VendorProfile" component={VendorProfile} />
       <Stack.Screen name="About" component={AboutScreen} />
       <Stack.Screen name="VendorWorkingHours" component={VendorWorkingHours} />
+      <Stack.Screen name="Support" component={SupportScreen} />
     </Stack.Navigator>
   );
 };

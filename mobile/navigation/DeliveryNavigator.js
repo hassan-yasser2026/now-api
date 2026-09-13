@@ -13,6 +13,7 @@ import VendorNotifications from '../screens/vendor/VendorNotifications';
 import AccountSettingsScreen from '../screens/customer/AccountSettingsScreen';
 import AboutScreen from '../screens/auth/AboutScreen';
 import WalletScreen from '../screens/wallet/WalletScreen';
+import SupportScreen from '../screens/support/SupportScreen';
 
 const Stack = createNativeStackNavigator();
 
@@ -33,6 +34,7 @@ const DeliveryNavigator = () => {
       <Stack.Screen name="AccountSettings" component={AccountSettingsScreen} />
       <Stack.Screen name="DeliveryNotifications" component={VendorNotifications} />
       <Stack.Screen name="About" component={AboutScreen} />
+      <Stack.Screen name="Support" component={SupportScreen} />
     </Stack.Navigator>
   );
 };

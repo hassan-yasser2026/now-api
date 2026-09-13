@@ -3004,6 +3004,84 @@ app.post(
 );
 
 app.get(
+  '/api/support/complaints',
+  authMiddleware,
+  async (req, res) => {
+    try {
+      const complaints = await prisma.chatSession.findMany({
+        where: { userId: req.user.userId },
+        include: {
+          order: { select: { id: true } },
+          messages: {
+            orderBy: { createdAt: 'asc' },
+            select: { id: true, sender: true, message: true, createdAt: true },
+          },
+        },
+        orderBy: { updatedAt: 'desc' },
+      });
+      return successResponse(res, complaints);
+    } catch (error) {
+      return handlePrismaError(error, res);
+    }
+  }
+);
+
+app.post(
+  '/api/support/complaints',
+  authMiddleware,
+  async (req, res) => {
+    const category = typeof req.body?.category === 'string' ? req.body.category.trim() : '';
+    const message = typeof req.body?.message === 'string' ? req.body.message.trim() : '';
+    const orderId = req.body?.orderId ? normalizeId(req.body.orderId) : null;
+
+    if (!message || message.length < 5) {
+      return errorResponse(res, 'اكتب تفاصيل الشكوى بشكل أوضح', 400);
+    }
+    if (message.length > 2000) {
+      return errorResponse(res, 'الشكوى طويلة جداً', 400);
+    }
+
+    try {
+      if (orderId) {
+        const order = await prisma.order.findFirst({
+          where: {
+            id: orderId,
+            OR: [
+              { customerId: req.user.userId },
+              { deliveryId: req.user.userId },
+              { store: { vendorId: req.user.userId } },
+            ],
+          },
+          select: { id: true },
+        });
+        if (!order) return errorResponse(res, 'الطلب غير موجود أو غير تابع لحسابك', 404);
+      }
+
+      const complaint = await prisma.chatSession.create({
+        data: {
+          userId: req.user.userId,
+          orderId,
+          status: 'OPEN',
+          messages: {
+            create: {
+              sender: 'USER',
+              message: category ? `[${category}] ${message}` : message,
+            },
+          },
+        },
+        include: {
+          order: { select: { id: true } },
+          messages: { orderBy: { createdAt: 'asc' } },
+        },
+      });
+      return successResponse(res, complaint, 201, { message: 'تم إرسال الشكوى بنجاح' });
+    } catch (error) {
+      return handlePrismaError(error, res);
+    }
+  }
+);
+
+app.get(
   '/api/vendor/ratings',
   authMiddleware,
   roleMiddleware(ROLES.VENDOR),

@@ -13,6 +13,7 @@ const DeliveryMore = ({ navigation }) => {
     { label: 'طلباتي', icon: 'clipboard-outline', route: 'DeliveryOrders' },
     { label: 'الأرباح', icon: 'wallet-outline', route: 'DeliveryEarnings' },
     { label: 'تقييمات العملاء', icon: 'star-outline', route: 'DeliveryRatings' },
+    { label: 'الشكاوى والدعم', icon: 'headset-outline', route: 'Support' },
     { label: 'الإشعارات', icon: 'notifications-outline', route: 'DeliveryNotifications' },
     { label: 'حول التطبيق', icon: 'information-circle-outline', route: 'About' },
   ];

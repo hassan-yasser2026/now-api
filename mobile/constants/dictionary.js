@@ -1112,7 +1112,27 @@ export const AR_EN = {
     'All basic information is required: name, phone, email, and a password of at least 8 characters',
   'مشكلة في التسجيل؟ الدعم: 01067254988': 'Registration problem? Support: 01067254988',
   'مشكلة في الدخول؟ الدعم: 01067254988': 'Login problem? Support: 01067254988',
-};
+  'الشكاوى والدعم': 'Complaints & support',
+  'إرسال شكوى أو استفسار': 'Submit a complaint or inquiry',
+  'شكوى على طلب': 'Complaint about an order',
+  'مشكلة في الحساب': 'Account problem',
+  'مشكلة في الدفع': 'Payment problem',
+  'اقتراح أو استفسار': 'Suggestion or inquiry',
+  'رقم الطلب (اختياري)': 'Order number (optional)',
+  'اكتب تفاصيل المشكلة...': 'Describe the problem...',
+  'إرسال الشكوى': 'Submit complaint',
+  'الشكاوى السابقة': 'Previous complaints',
+  'لا توجد شكاوى سابقة': 'No previous complaints',
+  'الشكوى قصيرة': 'Complaint is too short',
+  'اكتب تفاصيل المشكلة أولاً': 'Describe the problem first',
+  'تعذر إرسال الشكوى': 'Could not submit complaint',
+  'تعذر تحميل الشكاوى': 'Could not load complaints',
+  'تم إرسال شكواك وسيتم الرد عليها من فريق الدعم':
+    'Your complaint was submitted and support will reply',
+  'تم الحل': 'Resolved',
+  'مفتوحة': 'Open',
+  'بدون رسالة': 'No message',
+} ;
 
 /**
  * Templates that are interpolated at runtime, so they never match AR_EN

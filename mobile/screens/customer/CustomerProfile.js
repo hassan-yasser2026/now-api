@@ -2,7 +2,6 @@ import React from 'react';
 import {
   Alert,
   Image,
-  Linking,
   SafeAreaView,
   ScrollView,
   StyleSheet,
@@ -17,7 +16,6 @@ import { authService } from '../../services/authService';
 import useAppStore from '../../store/appStore';
 
 const PROFILE_ACCENT = '#9BEAF5';
-const SUPPORT_WHATSAPP = '201067254988';
 
 const CustomerProfile = ({ navigation }) => {
   const user = useAppStore((state) => state.user);
@@ -65,17 +63,6 @@ const CustomerProfile = ({ navigation }) => {
     );
   };
 
-  const openSupport = async () => {
-    const message = encodeURIComponent('مرحبًا، أحتاج إلى مساعدة في تطبيق NOW');
-    const url = `https://wa.me/${SUPPORT_WHATSAPP}?text=${message}`;
-
-    try {
-      await Linking.openURL(url);
-    } catch {
-      Alert.alert('الدعم', 'تعذر فتح واتساب');
-    }
-  };
-
   const menuItems = [
     {
       icon: 'person-outline',
@@ -84,8 +71,8 @@ const CustomerProfile = ({ navigation }) => {
     },
     {
       icon: 'headset-outline',
-      label: 'الدعم',
-      onPress: openSupport,
+      label: 'الشكاوى والدعم',
+      onPress: () => navigation.navigate('Support'),
     },
     {
       icon: 'settings-outline',
