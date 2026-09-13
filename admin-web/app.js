@@ -35,11 +35,54 @@ const sectionGroups = [
     ['reports', 'تقارير الطلبات'], ['user-reports', 'تقارير المستخدمين'], ['vendor-reports', 'تقارير البائعين'], ['delivery-reports', 'تقارير المندوبين'], ['sales-reports', 'تقارير المبيعات'], ['profit-reports', 'تقارير الأرباح'], ['performance-reports', 'تقارير الأداء'],
   ] },
   { title: 'إدارة النظام', icon: '⚙', items: [
-    ['platform-settings', 'إعدادات المنصة'], ['global-notifications', 'الإشعارات العامة'], ['audit-log', 'سجل العمليات Audit Log'], ['backup', 'النسخ الاحتياطي'], ['payment-settings', 'إعدادات الدفع'], ['delivery-settings', 'إعدادات التوصيل'], ['commission-settings', 'إعدادات العمولات'], ['system-permissions', 'الصلاحيات'], ['sub-admin-settings', 'الإدمن الفرعي'],
+    ['platform-settings', 'إعدادات المنصة'], ['global-notifications', 'الإشعارات العامة'], ['audit-log', 'سجل العمليات'], ['backup', 'النسخ الاحتياطي'], ['payment-settings', 'إعدادات الدفع'], ['delivery-settings', 'إعدادات التوصيل'], ['commission-settings', 'إعدادات العمولات'], ['system-permissions', 'الصلاحيات'], ['sub-admin-settings', 'الإدمن الفرعي'],
   ] },
 ];
 const sections = sectionGroups.flatMap((group) => group.items.map(([key, label]) => [key, label, group.icon]));
 const sectionLabel = (key) => sections.find(([itemKey]) => itemKey === key)?.[1] || 'لوحة الإدارة';
+const statusLabel = (value) => ({
+  PENDING: 'قيد الانتظار',
+  ACCEPTED: 'مقبول',
+  PREPARING: 'قيد التحضير',
+  READY: 'جاهز للتوصيل',
+  PICKED_UP: 'تم الاستلام',
+  ON_THE_WAY: 'في الطريق',
+  DELIVERED: 'تم التوصيل',
+  CANCELLED: 'ملغي',
+  COMPLETED: 'مكتمل',
+  REJECTED: 'مرفوض',
+  PENDING_ADMIN_REVIEW: 'بانتظار مراجعة الإدارة',
+  APPROVED: 'معتمد',
+  OPEN: 'مفتوحة',
+  RESOLVED: 'تم الحل',
+  ESCALATED: 'مصعّدة',
+  ONLINE: 'متصل',
+  AVAILABLE: 'متاح',
+  BUSY: 'مشغول',
+  OFFLINE: 'غير متصل',
+}[String(value || '').toUpperCase()] || value || '—');
+const roleLabel = (value) => ({
+  admin: 'مدير النظام',
+  sub_admin: 'مشرف فرعي',
+  customer: 'عميل',
+  vendor: 'بائع',
+  delivery: 'مندوب',
+}[String(value || '').toLowerCase()] || value || '—');
+const permissionLabel = (value) => ({
+  'users.read': 'عرض المستخدمين',
+  'users.write': 'إدارة المستخدمين',
+  'stores.read': 'عرض المتاجر',
+  'stores.write': 'إدارة المتاجر',
+  'orders.read': 'عرض الطلبات',
+  'orders.write': 'إدارة الطلبات',
+  'vendors.read': 'عرض البائعين',
+  'reports.read': 'عرض التقارير',
+  'reports.export': 'تصدير التقارير',
+  'finance.read': 'عرض المالية',
+  'finance.write': 'إدارة المالية',
+  'settings.read': 'عرض الإعدادات',
+  'settings.write': 'إدارة الإعدادات',
+}[value] || value || '—');
 
 const escapeHtml = (value) => String(value ?? '')
   .replaceAll('&', '&amp;').replaceAll('<', '&lt;')
@@ -76,14 +119,14 @@ const request = async (path, options = {}) => {
       const rows = listOf(payload, ['complaints']);
       target.innerHTML = `<div class="panel"><div class="panel-title"><h2>${escapeHtml(sectionLabel(state.section))}</h2><span class="count">${rows.length} شكوى مفتوحة</span></div>
         <div class="table-wrap"><table><thead><tr><th>صاحب الشكوى</th><th>الدور</th><th>الطلب</th><th>آخر رسالة</th><th>الحالة</th><th>آخر تحديث</th></tr></thead><tbody>
-        ${rows.map((item) => `<tr><td>${escapeHtml(item.user?.name || '—')}</td><td>${escapeHtml(item.user?.role?.name || '—')}</td><td>${item.order?.id ? `#${escapeHtml(item.order.id)}` : '—'}</td><td>${escapeHtml(item.messages?.[0]?.message || 'لا توجد رسالة')}</td><td><span class="status warning">${escapeHtml(item.status)}</span></td><td>${formatDate(item.updatedAt)}</td></tr>`).join('') || '<tr><td colspan="6" class="empty">لا توجد شكاوى مفتوحة.</td></tr>'}</tbody></table></div></div>`;
+        ${rows.map((item) => `<tr><td>${escapeHtml(item.user?.name || '—')}</td><td>${escapeHtml(roleLabel(item.user?.role?.name))}</td><td>${item.order?.id ? `#${escapeHtml(item.order.id)}` : '—'}</td><td>${escapeHtml(item.messages?.[0]?.message || 'لا توجد رسالة')}</td><td><span class="status warning">${escapeHtml(statusLabel(item.status))}</span></td><td>${formatDate(item.updatedAt)}</td></tr>`).join('') || '<tr><td colspan="6" class="empty">لا توجد شكاوى مفتوحة.</td></tr>'}</tbody></table></div></div>`;
     }
 
     function renderPayments(payload, target) {
       const rows = listOf(payload, ['payments']);
       target.innerHTML = `<div class="panel"><div class="panel-title"><h2>المدفوعات النقدية</h2><span class="count">${rows.length} عملية</span></div>
         <div class="table-wrap"><table><thead><tr><th>الطلب</th><th>العميل</th><th>المتجر</th><th>المبلغ</th><th>الطريقة</th><th>الحالة</th><th>التاريخ</th></tr></thead><tbody>
-        ${rows.map((item) => `<tr><td><b>#${escapeHtml(item.order?.id || item.orderId)}</b></td><td>${escapeHtml(item.order?.customer?.name || '—')}</td><td>${escapeHtml(item.order?.store?.name || '—')}</td><td><b>${money(item.amount)}</b></td><td>${escapeHtml(item.method || 'CASH_ON_DELIVERY')}</td><td><span class="status ${item.status === 'SUCCESS' ? 'success' : 'warning'}">${escapeHtml(item.status)}</span></td><td>${formatDate(item.createdAt)}</td></tr>`).join('') || '<tr><td colspan="7" class="empty">لا توجد مدفوعات مسجلة.</td></tr>'}</tbody></table></div></div>`;
+        ${rows.map((item) => `<tr><td><b>#${escapeHtml(item.order?.id || item.orderId)}</b></td><td>${escapeHtml(item.order?.customer?.name || '—')}</td><td>${escapeHtml(item.order?.store?.name || '—')}</td><td><b>${money(item.amount)}</b></td><td>دفع عند الاستلام</td><td><span class="status ${item.status === 'SUCCESS' ? 'success' : 'warning'}">${escapeHtml(statusLabel(item.status))}</span></td><td>${formatDate(item.createdAt)}</td></tr>`).join('') || '<tr><td colspan="7" class="empty">لا توجد مدفوعات مسجلة.</td></tr>'}</tbody></table></div></div>`;
     }
     throw new Error(payload.message || 'تعذر تحميل البيانات');
   }
@@ -112,7 +155,7 @@ const renderLogin = (message = '') => {
     <section class="auth-page">
       <form class="auth-card" id="login-form">
         <p class="brand"><span>N</span>OW</p>
-        <p class="eyebrow">ADMIN CONTROL CENTER</p>
+        <p class="eyebrow">مركز تحكم الإدارة</p>
         <h1>لوحة الإدارة</h1>
         <p class="muted">تحكم كامل في منصة NOW من مكان واحد</p>
         <label class="field">رقم الهاتف<input name="phone" type="tel" autocomplete="username" required /></label>
@@ -163,7 +206,7 @@ const renderApp = () => {
   app.innerHTML = `
     <div class="layout">
       <aside class="sidebar">
-        <div class="brand-wrap"><p class="brand"><span>N</span>OW</p><small>ADMIN CENTER</small></div>
+        <div class="brand-wrap"><p class="brand"><span>N</span>OW</p><small>مركز الإدارة</small></div>
         <nav class="nav">${sectionGroups.map((group) => `
           <div class="nav-group">
             <div class="nav-group-title"><i>${group.icon}</i><span>${group.title}</span><b>⌄</b></div>
@@ -175,7 +218,7 @@ const renderApp = () => {
       </aside>
       <main class="main">
         <header class="topbar">
-          <div><p class="eyebrow">NOW PLATFORM</p><h1>${escapeHtml(sectionLabel(state.section))}</h1>
+          <div><p class="eyebrow">منصة NOW</p><h1>${escapeHtml(sectionLabel(state.section))}</h1>
           <p class="muted">مرحبًا ${escapeHtml(state.user?.name || 'مدير النظام')}، إليك ملخص المنصة اليوم</p></div>
           <div class="top-actions"><span class="date-chip">${new Date().toLocaleDateString('ar-EG')}</span><button class="refresh" id="refresh">↻ تحديث</button></div>
         </header>
@@ -291,8 +334,8 @@ function renderDashboard(data, target) {
   const metricValue = (value, suffix = '') => value === null || value === undefined ? 'غير متاح' : `${escapeHtml(value)}${suffix}`;
   const chartPoints = Array.isArray(metrics.monthly) && metrics.monthly.length ? metrics.monthly : [];
   const chartPath = chartPoints.length ? chartPoints.map((point, index) => `${index ? 'L' : 'M'} ${index * (760 / Math.max(chartPoints.length - 1, 1))} ${230 - Math.min(Number(point.orders || 0), 230)}`).join(' ') : 'M 0 230';
-  const recentOrdersHtml = (metrics.recentOrders || []).map((item) => `<tr><td>${escapeHtml(item.id)}</td><td>${escapeHtml(item.customer?.name || '—')}</td><td>${escapeHtml(item.store?.name || '—')}</td><td><span class="table-status ${item.status === 'DELIVERED' ? 'done' : item.status === 'CANCELLED' ? 'cancelled' : 'progress'}">${escapeHtml(item.status || '—')}</span></td><td>${formatDate(item.createdAt)}</td><td>${money(item.totalPrice)}</td></tr>`).join('') || '<tr><td colspan="6" class="empty">لا توجد طلبات مسجلة.</td></tr>';
-  const recentUsersHtml = (metrics.recentUsers || []).map((item, index) => `<li><span class="list-avatar ${index % 2 ? 'pink' : ''}">${escapeHtml(item.name?.[0] || '?')}</span><div><b>${escapeHtml(item.name)}</b><small>${escapeHtml(item.role?.name || '—')}</small></div><time>${formatDate(item.createdAt)}</time></li>`).join('') || '<li class="empty">لا يوجد مستخدمون.</li>';
+  const recentOrdersHtml = (metrics.recentOrders || []).map((item) => `<tr><td>${escapeHtml(item.id)}</td><td>${escapeHtml(item.customer?.name || '—')}</td><td>${escapeHtml(item.store?.name || '—')}</td><td><span class="table-status ${item.status === 'DELIVERED' ? 'done' : item.status === 'CANCELLED' ? 'cancelled' : 'progress'}">${escapeHtml(statusLabel(item.status))}</span></td><td>${formatDate(item.createdAt)}</td><td>${money(item.totalPrice)}</td></tr>`).join('') || '<tr><td colspan="6" class="empty">لا توجد طلبات مسجلة.</td></tr>';
+  const recentUsersHtml = (metrics.recentUsers || []).map((item, index) => `<li><span class="list-avatar ${index % 2 ? 'pink' : ''}">${escapeHtml(item.name?.[0] || '?')}</span><div><b>${escapeHtml(item.name)}</b><small>${escapeHtml(roleLabel(item.role?.name))}</small></div><time>${formatDate(item.createdAt)}</time></li>`).join('') || '<li class="empty">لا يوجد مستخدمون.</li>';
   const activityHtml = (metrics.recentActivities || []).map((item) => `<li><span class="activity-icon cyan">•</span><div><b>${escapeHtml(item.action)} - ${escapeHtml(item.entity)}</b><small>${escapeHtml(item.actor?.name || 'النظام')}</small></div><time>${formatDate(item.createdAt)}</time></li>`).join('') || '<li class="empty">لا توجد عمليات مسجلة.</li>';
   if (!Object.keys(metrics).length) {
     target.innerHTML = '<div class="section-placeholder"><div class="placeholder-icon">!</div><h2>تعذر تحميل بيانات لوحة التحكم</h2><p>لا توجد بيانات من الخادم حاليًا. تحقق من اتصال قاعدة البيانات ثم أعد المحاولة.</p><button class="refresh" id="dashboard-retry">إعادة المحاولة</button></div>';
@@ -524,7 +567,7 @@ function renderUsers(payload, target) {
     && (state.status === 'all' || (state.status === 'active' ? item.isActive : !item.isActive)));
   target.innerHTML = `${toolbar()}<div class="panel"><div class="panel-title"><h2>إدارة المستخدمين</h2><span class="count">${rows.length} مستخدم</span></div>
     <div class="table-wrap"><table><thead><tr><th>المستخدم</th><th>الهاتف</th><th>الدور</th><th>تاريخ التسجيل</th><th>الحالة</th><th>إجراء</th></tr></thead><tbody>
-    ${rows.map((item) => `<tr><td><b>${escapeHtml(item.name)}</b></td><td>${escapeHtml(item.phone)}</td><td><span class="tag">${escapeHtml(item.role?.name || item.role || '—')}</span></td>
+    ${rows.map((item) => `<tr><td><b>${escapeHtml(item.name)}</b></td><td>${escapeHtml(item.phone)}</td><td><span class="tag">${escapeHtml(roleLabel(item.role?.name || item.role))}</span></td>
     <td>${formatDate(item.createdAt)}</td><td><span class="status ${item.isActive ? 'success' : 'danger'}">${item.isActive ? 'نشط' : 'معطل'}</span></td><td>
     ${actionButton(item.isActive ? 'تعطيل' : 'تفعيل', item.isActive ? 'danger-text' : 'success-text', item.isActive ? 'suspend-user' : 'activate-user', item.id)}
     ${actionButton('تعديل', 'neutral-text', 'edit-user', item.id)}</td></tr>`).join('')}</tbody></table></div></div>`;
@@ -582,7 +625,7 @@ function renderOrders(payload, target) {
   target.innerHTML = `${toolbar('بحث برقم الطلب أو العميل...')}<div class="panel"><div class="panel-title"><h2>إدارة الطلبات</h2><span class="count">${rows.length} طلب</span></div>
   <div class="table-wrap"><table><thead><tr><th>رقم الطلب</th><th>العميل</th><th>المتجر</th><th>المندوب</th><th>الإجمالي</th><th>الحالة</th><th>التاريخ</th></tr></thead><tbody>
   ${rows.map((item) => `<tr><td><b>#${escapeHtml(item.id)}</b></td><td>${escapeHtml(item.customer?.name || '—')}</td><td>${escapeHtml(item.store?.name || '—')}</td>
-  <td>${escapeHtml(item.delivery?.name || 'غير معين')}</td><td><b>${money(item.totalPrice)}</b></td><td><span class="status order-status">${escapeHtml(item.status || '—')}</span></td><td>${formatDate(item.createdAt)}</td></tr>`).join('')}</tbody></table></div></div>`;
+  <td>${escapeHtml(item.delivery?.name || 'غير معين')}</td><td><b>${money(item.totalPrice)}</b></td><td><span class="status order-status">${escapeHtml(statusLabel(item.status))}</span></td><td>${formatDate(item.createdAt)}</td></tr>`).join('')}</tbody></table></div></div>`;
   bindFilter(() => renderOrders(payload, document.querySelector('#section-content')));
 }
 
@@ -592,7 +635,7 @@ function renderDeliveries(payload, target) {
   target.innerHTML = `${toolbar()}<div class="panel"><div class="panel-title"><h2>إدارة المندوبين</h2><span class="count">${rows.length} مندوب</span></div>
   <div class="table-wrap"><table><thead><tr><th>المندوب</th><th>الهاتف</th><th>الطلبات</th><th>حالة التوصيل</th><th>الحساب</th></tr></thead><tbody>
   ${rows.map((item) => `<tr><td><b>${escapeHtml(item.name)}</b></td><td>${escapeHtml(item.phone)}</td><td>${item._count?.deliveries || 0}</td>
-  <td><span class="status ${item.deliveryProfile?.status === 'ONLINE' ? 'success' : 'muted-status'}">${escapeHtml(item.deliveryProfile?.status || 'OFFLINE')}</span></td>
+  <td><span class="status ${item.deliveryProfile?.status === 'ONLINE' ? 'success' : 'muted-status'}">${escapeHtml(statusLabel(item.deliveryProfile?.status || 'OFFLINE'))}</span></td>
   <td><span class="status ${item.approvalStatus === 'PENDING_ADMIN_REVIEW' ? 'warning' : item.isActive ? 'success' : 'danger'}">${item.approvalStatus === 'PENDING_ADMIN_REVIEW' ? 'بانتظار المراجعة' : item.isActive ? 'نشط' : 'معطل'}</span>
   ${item.approvalStatus === 'PENDING_ADMIN_REVIEW' || !item.isActive ? actionButton('موافقة وتفعيل', 'success-text', 'activate-delivery', item.id) : actionButton('تعطيل', 'danger-text', 'suspend-delivery', item.id)}</td></tr>`).join('')}</tbody></table></div></div>`;
   bindFilter(() => renderDeliveries(payload, document.querySelector('#section-content')));
@@ -634,7 +677,7 @@ function renderSubAdmins(payload, target) {
     ['إدارة البائعين والخدمات', ['vendors.read', 'stores.write']], ['التقارير والإحصائيات', ['reports.read', 'reports.export']],
     ['الإدارة المالية', ['finance.read', 'finance.write']], ['إدارة النظام', ['settings.read', 'settings.write']],
   ];
-  target.innerHTML = `<div class="subadmin-page"><div class="pro-panel subadmin-intro"><div><span class="eyebrow">SYSTEM ACCESS CONTROL</span><h2>إدارة الإدمن الفرعي</h2><p>أنشئ حسابات مخصصة لفريقك وحدد بالضبط ما يمكن لكل عضو الوصول إليه.</p></div><button class="primary compact" id="add-sub-admin">+ إنشاء إدمن فرعي</button></div><div class="pro-panel"><div class="pro-panel-head"><div><h3>حسابات فريق الإدارة</h3><small>${rows.length} حساب بصلاحيات مخصصة</small></div><span class="count">صلاحيات آمنة</span></div><div class="table-wrap"><table><thead><tr><th>المستخدم</th><th>الهاتف</th><th>الصلاحيات</th><th>آخر دخول</th><th>الحالة</th><th>إجراءات</th></tr></thead><tbody>${rows.length ? rows.map((item) => `<tr><td><b>${escapeHtml(item.name)}</b></td><td>${escapeHtml(item.phone)}</td><td><span class="permission-summary">${escapeHtml((item.permissions || []).length || 0)} صلاحية</span></td><td>${formatDate(item.lastLoginAt)}</td><td><span class="status ${item.isActive ? 'success' : 'danger'}">${item.isActive ? 'نشط' : 'موقوف'}</span></td><td>${actionButton('تعديل الصلاحيات', 'neutral-text', 'edit-permissions', item.id)} ${actionButton(item.isActive ? 'إيقاف' : 'تفعيل', item.isActive ? 'danger-text' : 'success-text', item.isActive ? 'disable-sub-admin' : 'enable-sub-admin', item.id)}</td></tr>`).join('') : '<tr><td colspan="6" class="empty">لا يوجد إدمن فرعي حتى الآن. أنشئ أول حساب لفريقك.</td></tr>'}</tbody></table></div></div></div><dialog id="subadmin-modal" class="subadmin-modal"><form method="dialog" id="subadmin-form"><div class="pro-panel-head"><h3>إنشاء إدمن فرعي</h3><button type="button" class="modal-close">×</button></div><label class="field">الاسم<input name="name" required placeholder="اسم الموظف" /></label><label class="field">رقم الهاتف<input name="phone" required placeholder="01xxxxxxxxx" /></label><label class="field">كلمة المرور<input name="password" type="password" required minlength="8" placeholder="8 أحرف على الأقل" /></label><h4>الصلاحيات المسموحة</h4><div class="permission-grid">${permissionGroups.map(([group, permissions]) => `<fieldset><legend>${group}</legend>${permissions.map((permission) => `<label><input type="checkbox" name="permissions" value="${permission}" /> ${permission}</label>`).join('')}</fieldset>`).join('')}</div><button class="primary" value="default" type="submit">حفظ الإدمن والصلاحيات</button></form></dialog>`;
+  target.innerHTML = `<div class="subadmin-page"><div class="pro-panel subadmin-intro"><div><span class="eyebrow">صلاحيات الوصول</span><h2>إدارة الإدمن الفرعي</h2><p>أنشئ حسابات مخصصة لفريقك وحدد بالضبط ما يمكن لكل عضو الوصول إليه.</p></div><button class="primary compact" id="add-sub-admin">+ إنشاء إدمن فرعي</button></div><div class="pro-panel"><div class="pro-panel-head"><div><h3>حسابات فريق الإدارة</h3><small>${rows.length} حساب بصلاحيات مخصصة</small></div><span class="count">صلاحيات آمنة</span></div><div class="table-wrap"><table><thead><tr><th>المستخدم</th><th>الهاتف</th><th>الصلاحيات</th><th>آخر دخول</th><th>الحالة</th><th>إجراءات</th></tr></thead><tbody>${rows.length ? rows.map((item) => `<tr><td><b>${escapeHtml(item.name)}</b></td><td>${escapeHtml(item.phone)}</td><td><span class="permission-summary">${escapeHtml((item.permissions || []).map(permissionLabel).join('، ') || '—')}</span></td><td>${formatDate(item.lastLoginAt)}</td><td><span class="status ${item.isActive ? 'success' : 'danger'}">${item.isActive ? 'نشط' : 'موقوف'}</span></td><td>${actionButton('تعديل الصلاحيات', 'neutral-text', 'edit-permissions', item.id)} ${actionButton(item.isActive ? 'إيقاف' : 'تفعيل', item.isActive ? 'danger-text' : 'success-text', item.isActive ? 'disable-sub-admin' : 'enable-sub-admin', item.id)}</td></tr>`).join('') : '<tr><td colspan="6" class="empty">لا يوجد إدمن فرعي حتى الآن. أنشئ أول حساب لفريقك.</td></tr>'}</tbody></table></div></div></div><dialog id="subadmin-modal" class="subadmin-modal"><form method="dialog" id="subadmin-form"><div class="pro-panel-head"><h3>إنشاء إدمن فرعي</h3><button type="button" class="modal-close">×</button></div><label class="field">الاسم<input name="name" required placeholder="اسم الموظف" /></label><label class="field">رقم الهاتف<input name="phone" required placeholder="01xxxxxxxxx" /></label><label class="field">كلمة المرور<input name="password" type="password" required minlength="8" placeholder="8 أحرف على الأقل" /></label><h4>الصلاحيات المسموحة</h4><div class="permission-grid">${permissionGroups.map(([group, permissions]) => `<fieldset><legend>${group}</legend>${permissions.map((permission) => `<label><input type="checkbox" name="permissions" value="${permission}" /> ${permissionLabel(permission)}</label>`).join('')}</fieldset>`).join('')}</div><button class="primary" value="default" type="submit">حفظ الإدمن والصلاحيات</button></form></dialog>`;
   const modal = document.querySelector('#subadmin-modal');
   document.querySelector('#add-sub-admin')?.addEventListener('click', () => modal.showModal());
   document.querySelector('.modal-close')?.addEventListener('click', () => modal.close());
