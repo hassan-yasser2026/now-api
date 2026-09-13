@@ -131,7 +131,7 @@ const LoginScreen = ({ navigation, route }) => {
       */
 
     } catch (error) {
-      console.log('LOGIN SCREEN ERROR:', error);
+      console.error('LOGIN SCREEN ERROR:', error);
 
       Alert.alert(
         'خطأ',
