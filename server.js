@@ -366,6 +366,7 @@ const DELIVERY_RADIUS_KM = Number.isFinite(Number(process.env.DELIVERY_RADIUS_KM
   && Number(process.env.DELIVERY_RADIUS_KM) > 0
   ? Number(process.env.DELIVERY_RADIUS_KM)
   : 15;
+const APP_BUILD_ID = process.env.APP_BUILD_ID || '1406043';
 
 const distanceInKm = (from, to) => {
   if (!from || !to) return null;
@@ -752,6 +753,7 @@ app.get('/api/health', async (req, res) => {
       res,
       {
         name: 'NOW API',
+        build: APP_BUILD_ID,
         status: 'online',
         environment: NODE_ENV,
         database: 'connected',
