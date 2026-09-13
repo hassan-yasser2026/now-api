@@ -151,6 +151,31 @@ const allowedOrigins = (() => {
     .filter(Boolean);
 })();
 
+console.info('[CORS CONFIG]', {
+  allowedOrigins,
+  credentials: false,
+});
+
+const adminTraceMiddleware = (req, res, next) => {
+  const startedAt = Date.now();
+  console.info('[ADMIN REQUEST]', {
+    method: req.method,
+    path: req.originalUrl,
+    origin: req.get('origin') || null,
+  });
+
+  res.on('finish', () => {
+    console.info('[ADMIN RESPONSE]', {
+      method: req.method,
+      path: req.originalUrl,
+      status: res.statusCode,
+      durationMs: Date.now() - startedAt,
+    });
+  });
+
+  next();
+};
+
 app.use(
   cors({
     origin: allowedOrigins,
@@ -166,6 +191,8 @@ app.options('*', cors({
   allowedHeaders: ['Content-Type', 'Authorization'],
   credentials: false,
 }));
+
+app.use('/api/admin', adminTraceMiddleware);
 
 app.use(
   express.json({

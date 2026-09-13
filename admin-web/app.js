@@ -50,6 +50,9 @@ const escapeHtml = (value) => String(value ?? '')
 const unwrap = (payload) => payload?.data ?? payload;
 
 const request = async (path, options = {}) => {
+  const method = options.method || 'GET';
+  console.debug('[NOW Admin] request', { method, path });
+  try {
   const response = await fetch(`${API_URL}${path}`, {
     ...options,
     headers: {
@@ -65,7 +68,16 @@ const request = async (path, options = {}) => {
     }
     throw new Error(payload.message || 'تعذر تحميل البيانات');
   }
-  return unwrap(payload);
+    console.debug('[NOW Admin] response', { method, path, status: response.status });
+    return unwrap(payload);
+  } catch (error) {
+    console.error('[NOW Admin] request failed', {
+      method,
+      path,
+      message: error.message,
+    });
+    throw error;
+  }
 };
 
 const formatDate = (value) => value ? new Date(value).toLocaleString('ar-EG') : '—';
