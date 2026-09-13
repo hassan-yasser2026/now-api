@@ -24,9 +24,7 @@ import useAppStore from '../../store/appStore';
 import storeService from '../../services/storeService';
 import { orderService } from '../../services/orderService';
 
-import StoreCard from '../../components/StoreCard';
 import Loading from '../../components/Loading';
-import EmptyState from '../../components/EmptyState';
 import LocationPickerModal from '../../components/LocationPickerModal';
 
 const HOME_ACCENT = '#0B8FA3';
@@ -72,7 +70,6 @@ const CustomerHome = ({ navigation }) => {
   const [error, setError] = useState(null);
 
   const [searchText, setSearchText] = useState('');
-  const [showOpenOnly, setShowOpenOnly] = useState(false);
 
   const loadData = useCallback(async (isRefresh = false) => {
     setStatus(isRefresh ? 'refreshing' : 'loading');
@@ -94,7 +91,7 @@ const CustomerHome = ({ navigation }) => {
         setStores(loadedStores);
 
         const menuResults = await Promise.all(
-          loadedStores.slice(0, 6).map(async (store) => {
+          loadedStores.map(async (store) => {
             const menuResult = await storeService.getMenu(store.id);
             if (!menuResult.success) return [];
             return (menuResult.menu || []).slice(0, 4).map((item) => ({
@@ -148,18 +145,11 @@ const CustomerHome = ({ navigation }) => {
     [orders]
   );
 
-  const filteredStores = useMemo(
-    () =>
-      stores.filter((store) => {
-        const search = searchText.trim().toLowerCase();
-        const storeName = String(store.name || '').toLowerCase();
-        const description = String(store.description || '').toLowerCase();
-        const matchesSearch = !search || storeName.includes(search) || description.includes(search);
-        const matchesOpen = !showOpenOnly || store.isOpen === true;
-        return matchesSearch && matchesOpen;
-      }),
-    [stores, searchText, showOpenOnly]
-  );
+  const visibleProducts = useMemo(() => {
+    const search = searchText.trim().toLowerCase();
+    if (!search) return featuredItems;
+    return featuredItems.filter((item) => String(item.name || '').toLowerCase().includes(search));
+  }, [featuredItems, searchText]);
 
   const handleStorePress = useCallback(
     (store) => {
@@ -262,23 +252,12 @@ const CustomerHome = ({ navigation }) => {
     }
   }, [isGuest, navigation]);
 
-  const openStoresCount = useMemo(
-    () => stores.filter((store) => store.isOpen === true).length,
-    [stores]
-  );
-
   const cartTotal = useMemo(
     () => cart.reduce((sum, item) => sum + Number(item.price || 0) * Number(item.quantity || 0), 0),
     [cart]
   );
 
   const statsCards = [
-    {
-      key: 'stores',
-      label: 'متاجر الآن',
-      value: `${openStoresCount}`,
-      icon: 'storefront-outline',
-    },
     {
       key: 'orders',
       label: 'طلباتك',
@@ -354,7 +333,7 @@ const CustomerHome = ({ navigation }) => {
               {isGuest ? 'أهلاً بك 👋' : `أهلاً ${user?.name || ''}`}
             </Text>
             <Text style={styles.subGreeting}>
-              {isGuest ? 'اكتشف المتاجر واطلب اللي نفسك فيه' : 'اكتشف المتاجر القريبة منك'}
+              {isGuest ? 'اكتشف المنتجات واطلب اللي نفسك فيه' : 'اكتشف المنتجات القريبة منك'}
             </Text>
           </View>
 
@@ -411,7 +390,7 @@ const CustomerHome = ({ navigation }) => {
           <Ionicons name="search-outline" size={21} color={HOME_ACCENT} />
           <TextInput
             style={[styles.searchInput, isRTL ? styles.searchInputRTL : styles.searchInputLTR]}
-            placeholder="ابحث عن مطعم أو متجر..."
+            placeholder="ابحث عن منتج..."
             placeholderTextColor={COLORS.textLight}
             value={searchText}
             onChangeText={setSearchText}
@@ -457,23 +436,17 @@ const CustomerHome = ({ navigation }) => {
 
       <View style={styles.productsSection}>
         <View style={styles.sectionHeader}>
-          <Text style={styles.sectionTitle}>منتجات مقترحة</Text>
-          <Ionicons name="fast-food-outline" size={20} color={HOME_ACCENT} />
+          <Text style={styles.sectionTitle}>المنتجات المتاحة</Text>
+          <Text style={styles.productCount}>{visibleProducts.length} منتج</Text>
         </View>
-        <FlatList
-          horizontal
-          inverted={isRTL}
-          data={featuredItems}
-          showsHorizontalScrollIndicator={false}
-          keyExtractor={(item, index) => `${item.storeId}-${item.id}-${index}`}
-          contentContainerStyle={styles.productsList}
-          ListEmptyComponent={
-            <Text style={styles.productsEmpty}>المنتجات ستظهر هنا قريباً</Text>
-          }
-          renderItem={({ item }) => (
+        {visibleProducts.length > 0 ? (
+          <View style={styles.productsList}>
+            {visibleProducts.map((item, index) => (
             <TouchableOpacity
+              key={`${item.storeId}-${item.id}-${index}`}
               style={styles.productCard}
               onPress={() => handleStorePress(stores.find((store) => store.id === item.storeId))}
+              accessibilityLabel={item.name || 'منتج'}
               activeOpacity={0.85}
             >
               <Image
@@ -483,14 +456,14 @@ const CustomerHome = ({ navigation }) => {
                 style={styles.productImage}
                 resizeMode="cover"
               />
-              <View style={styles.productCardBody}>
-                <Text style={styles.productName} numberOfLines={1}>{item.name || 'منتج'}</Text>
-                <Text style={styles.productStore} numberOfLines={1}>{item.storeName}</Text>
-                <Text style={styles.productPrice}>{Number(item.price || 0).toFixed(2)} ج.م</Text>
-              </View>
             </TouchableOpacity>
-          )}
-        />
+            ))}
+          </View>
+        ) : (
+          <Text style={styles.productsEmpty}>
+            {searchText ? 'لا توجد منتجات مطابقة للبحث' : 'المنتجات ستظهر هنا قريباً'}
+          </Text>
+        )}
       </View>
 
       <View style={styles.offersSection}>
@@ -518,33 +491,6 @@ const CustomerHome = ({ navigation }) => {
             </View>
           )}
         />
-      </View>
-
-      {/* Filters */}
-      <View style={styles.filtersRow}>
-        <TouchableOpacity
-          style={[styles.filterButton, !showOpenOnly && styles.filterButtonActive]}
-          onPress={() => setShowOpenOnly(false)}
-        >
-          <Ionicons
-            name="apps-outline"
-            size={18}
-            color={!showOpenOnly ? '#fff' : COLORS.textSecondary}
-          />
-          <Text style={[styles.filterText, !showOpenOnly && styles.filterTextActive]}>الكل</Text>
-        </TouchableOpacity>
-
-        <TouchableOpacity
-          style={[styles.filterButton, showOpenOnly && styles.filterButtonActive]}
-          onPress={() => setShowOpenOnly(true)}
-        >
-          <Ionicons
-            name="checkmark-circle-outline"
-            size={18}
-            color={showOpenOnly ? '#fff' : COLORS.textSecondary}
-          />
-          <Text style={[styles.filterText, showOpenOnly && styles.filterTextActive]}>مفتوح الآن</Text>
-        </TouchableOpacity>
       </View>
 
       <View style={styles.statsGrid}>
@@ -607,42 +553,6 @@ const CustomerHome = ({ navigation }) => {
         </View>
       )}
 
-      {/* Stores */}
-      <View style={styles.storesSection}>
-        <View style={styles.sectionHeader}>
-          <Text style={styles.sectionTitle}>المتاجر المتاحة</Text>
-          <Text style={styles.storeCount}>{filteredStores.length} متجر</Text>
-        </View>
-
-        {filteredStores.length > 0 ? (
-          <View style={styles.storesList}>
-            {filteredStores.map((store) => (
-              <StoreCard
-                key={String(store.id)}
-                store={store}
-                onPress={() => handleStorePress(store)}
-              />
-            ))}
-          </View>
-        ) : status === 'error' ? (
-          <EmptyState
-            icon="cloud-offline-outline"
-            title="حدث خطأ"
-            message={error || 'فشل تحميل البيانات، حاول التحديث.'}
-            onRetry={onRefresh}
-          />
-        ) : (
-          <EmptyState
-            icon="storefront-outline"
-            title={searchText ? 'لا توجد نتائج' : 'لا توجد متاجر'}
-            message={
-              searchText
-                ? 'جرّب البحث بكلمة مختلفة أو غيّر الفلتر.'
-                : 'لا توجد متاجر متاحة في منطقتك حالياً.'
-            }
-          />
-        )}
-      </View>
       </ScrollView>
 
       {/* Cart Bars */}
@@ -1121,12 +1031,15 @@ const styles = StyleSheet.create({
     marginBottom: 4,
   },
   productsList: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    justifyContent: 'space-between',
     paddingHorizontal: 16,
-    paddingBottom: 4,
+    paddingBottom: 12,
   },
   productCard: {
-    width: 178,
-    marginRight: 12,
+    width: '48%',
+    marginBottom: 14,
     borderRadius: 18,
     backgroundColor: '#FFFFFF',
     borderWidth: 1,
@@ -1140,32 +1053,8 @@ const styles = StyleSheet.create({
   },
   productImage: {
     width: '100%',
-    height: 112,
+    aspectRatio: 1,
     backgroundColor: '#E9FAFD',
-  },
-  productCardBody: {
-    padding: 10,
-    alignItems: 'flex-end',
-  },
-  productName: {
-    width: '100%',
-    color: COLORS.textPrimary,
-    fontSize: 14,
-    fontWeight: '800',
-    textAlign: 'right',
-  },
-  productStore: {
-    width: '100%',
-    color: COLORS.textSecondary,
-    fontSize: 11,
-    marginTop: 4,
-    textAlign: 'right',
-  },
-  productPrice: {
-    color: HOME_ACCENT,
-    fontSize: 13,
-    fontWeight: '900',
-    marginTop: 7,
   },
   productsEmpty: {
     color: COLORS.textSecondary,
@@ -1177,11 +1066,6 @@ const styles = StyleSheet.create({
     marginTop: 4,
     marginBottom: 8,
     paddingBottom: 8,
-  },
-  storesSection: {
-    flex: 1,
-    marginTop: 4,
-    paddingBottom: 20,
   },
   sectionHeader: {
     flexDirection: 'row',
@@ -1200,7 +1084,7 @@ const styles = StyleSheet.create({
     fontWeight: '700',
     color: HOME_ACCENT,
   },
-  storeCount: {
+  productCount: {
     fontSize: 12,
     color: COLORS.textSecondary,
   },
@@ -1258,13 +1142,6 @@ const styles = StyleSheet.create({
     fontSize: 12,
     fontWeight: '700',
     color: HOME_ACCENT,
-  },
-  storesList: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    justifyContent: 'space-between',
-    paddingHorizontal: 16,
-    paddingBottom: 156,
   },
   guestBottomNav: {
     position: 'absolute',
