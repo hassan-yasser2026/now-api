@@ -180,17 +180,26 @@ async function register(role, data, { autoLogin = true } = {}) {
     console.error('REGISTER API ERROR:', {
       role,
       status: error.response?.status,
-      data: error.response?.data,
+      serverMessage: error.response?.data?.message,
       message: error.message,
       code: error.code,
     });
 
+    const responseMessage = error.response?.data?.message
+      || error.response?.data?.data?.message;
+
     return {
       success: false,
-      message: error.response?.data?.message
-        || error.response?.data?.data?.message
-        || error.message
-        || 'فشل إنشاء الحساب',
+      message: responseMessage
+        || (!error.response
+          ? 'تعذر الاتصال بالخادم. تأكد من اتصال الإنترنت وعنوان API'
+          : error.response.status === 409
+            ? 'رقم الهاتف أو البريد الإلكتروني مستخدم بالفعل'
+            : error.response.status === 422
+              ? 'بيانات التسجيل غير صحيحة'
+              : error.response.status >= 500
+                ? 'الخدمة غير متاحة حاليًا. حاول مرة أخرى لاحقًا'
+                : 'تعذر إنشاء الحساب'),
     };
   }
 }

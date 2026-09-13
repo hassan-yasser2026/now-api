@@ -243,7 +243,7 @@ const RegisterScreen = ({ navigation, route }) => {
         );
       }
     } catch (error) {
-      console.log(
+      console.error(
         'REGISTER SCREEN ERROR:',
         error?.response?.data || error?.message
       );

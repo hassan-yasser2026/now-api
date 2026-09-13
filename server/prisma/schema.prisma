@@ -76,6 +76,7 @@ model User {
 
   @@index([roleId])
   @@index([isActive])
+  @@index([approvalStatus])
   @@index([deletedAt])
   @@map("users")
 }
@@ -180,6 +181,7 @@ model Store {
 
   @@index([categoryId])
   @@index([isActive, isOpen])
+  @@index([approvalStatus])
   @@map("stores")
 }
 
@@ -221,6 +223,7 @@ model MenuItem {
 
   @@index([storeId, isAvailable])
   @@index([categoryId])
+  @@index([approvalStatus])
   @@map("menu_items")
 }
 

@@ -289,6 +289,11 @@ const MISSING_ARABIC_FALLBACKS = [
 
 export const AR_EN = {
   ...Object.fromEntries(MISSING_ARABIC_FALLBACKS.map((value) => [value, value])),
+  'الخدمة غير متاحة حاليًا. حاول مرة أخرى لاحقًا':
+    'The service is currently unavailable. Please try again later',
+  'بيانات التسجيل غير صحيحة': 'The registration data is invalid',
+  'رقم الهاتف أو البريد الإلكتروني مستخدم بالفعل':
+    'The phone number or email is already in use',
   // ---------------------------------------------------------------- branding
   'ناو': 'NOW',
   'ع': 'ع',

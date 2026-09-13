@@ -248,6 +248,15 @@ const sendOtpEmail = async (email, code) => {
   return true;
 };
 
+const isSmtpConfigured = () => (
+  Boolean(
+    process.env.SMTP_HOST
+    && process.env.SMTP_PORT
+    && process.env.SMTP_USER
+    && process.env.SMTP_PASSWORD
+  )
+);
+
 const creditWallet = async (tx, userId, amount, type, orderId, description) => {
   const value = Number(amount);
   if (!Number.isFinite(value) || value <= 0) return;
@@ -1113,7 +1122,18 @@ app.post('/api/auth/register', authRateLimiter, async (req, res) => {
     );
   }
 
-  if (role === ROLES.CUSTOMER && !email) {
+  const isCustomer = role === ROLES.CUSTOMER;
+  const phoneVerificationRequired = isCustomer && NODE_ENV === 'production';
+
+  if (phoneVerificationRequired && !isSmtpConfigured()) {
+    return errorResponse(
+      res,
+      'خدمة تأكيد رقم الهاتف غير متاحة حاليًا. يرجى المحاولة لاحقًا.',
+      503
+    );
+  }
+
+  if (phoneVerificationRequired && !email) {
     return errorResponse(res, 'البريد الإلكتروني مطلوب لتأكيد رقم الهاتف', 400);
   }
 
@@ -1195,8 +1215,6 @@ app.post('/api/auth/register', authRateLimiter, async (req, res) => {
       password,
       12
     );
-    const isCustomer = role === ROLES.CUSTOMER;
-
     const result = await prisma.$transaction(
       async (tx) => {
         const user = await tx.user.create({
@@ -1216,7 +1234,7 @@ app.post('/api/auth/register', authRateLimiter, async (req, res) => {
             approvalStatus: isCustomer
               ? SUBMISSION_STATUS.APPROVED
               : SUBMISSION_STATUS.PENDING_ADMIN_REVIEW,
-            phoneVerified: false,
+            phoneVerified: !phoneVerificationRequired,
           },
         });
 
@@ -1241,7 +1259,7 @@ app.post('/api/auth/register', authRateLimiter, async (req, res) => {
       }
     );
 
-    if (role === ROLES.CUSTOMER) {
+    if (phoneVerificationRequired) {
       const code = createOtp();
       await prisma.otpVerification.create({
         data: {
