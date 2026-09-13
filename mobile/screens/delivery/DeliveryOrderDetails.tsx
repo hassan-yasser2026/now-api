@@ -121,8 +121,10 @@ const DeliveryOrderDetails: React.FC<{ route: any; navigation: any }> = ({
     setError(null);
     try {
       const response = await deliveryService.getOrderById(orderId);
-      // التعامل مع أشكال مختلفة للاستجابة
-      const data = response?.data || response;
+      const data = response?.order || response?.data?.order || response?.data;
+      if (!data?.id) {
+        throw new Error(response?.message || 'استجابة الطلب غير صحيحة');
+      }
       setOrder(data);
     } catch (err: any) {
       setError(err?.message || 'فشل جلب بيانات الطلب');
@@ -140,7 +142,9 @@ const DeliveryOrderDetails: React.FC<{ route: any; navigation: any }> = ({
     setUpdating(true);
     try {
       const response = await deliveryService.updateOrderStatus(orderId, newStatus);
-      // بعد التحديث، نعيد تحميل البيانات
+      if (!response?.success) {
+        throw new Error(response?.message || 'تغيير حالة الطلب غير مسموح');
+      }
       await loadOrder();
       Alert.alert('نجاح', 'تم تحديث حالة الطلب بنجاح');
     } catch (err: any) {

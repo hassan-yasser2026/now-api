@@ -634,6 +634,7 @@ export const AR_EN = {
   'لم يتم تحديث الطلب': 'Order was not updated',
   'تعذر تحميل الطلب': 'Could not load the order',
   'تعذر تحميل الطلبات': 'Could not load orders',
+  'تعذر تحميل الطلبات حاليًا.': 'Could not load orders right now.',
   'تعذر تحميل بيانات الطلب': 'Could not load the order data',
   'تعذر تحديث الطلبات': 'Could not refresh orders',
   'فشل تحميل الطلبات': 'Failed to load orders',
@@ -970,6 +971,8 @@ export const AR_EN = {
   'تعذر الاتصال بالسيرفر. تأكد من تشغيل السيرفر والاتصال بالإنترنت.':
     'Could not reach the server. Make sure the server is running and you are online.',
   'استجابة الخادم غير صحيحة': 'Invalid server response',
+  'استجابة الطلب غير صحيحة': 'Invalid order response',
+  'تغيير حالة الطلب غير مسموح': 'Changing the order status is not allowed',
   'حدث خطأ غير متوقع، حاول مرة أخرى': 'An unexpected error occurred, please try again',
 
   // ------------------------------------------------------------ auth screens

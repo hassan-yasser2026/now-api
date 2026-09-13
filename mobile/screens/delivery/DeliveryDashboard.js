@@ -27,7 +27,6 @@ import * as Location from 'expo-location';
 import { COLORS } from '../../constants/colors';
 import useAppStore from '../../store/appStore';
 import { authService } from '../../services/authService';
-import { orderService } from '../../services/orderService';
 import deliveryService from '../../services/deliveryService';
 
 
@@ -373,21 +372,34 @@ const DeliveryDashboard = ({ navigation }) => {
           return;
         }
 
-        const result = await orderService.getDeliveryOrders(user.id);
+        const extractOrders = (result) => {
+          if (Array.isArray(result?.data)) return result.data;
+          if (Array.isArray(result?.orders)) return result.orders;
+          if (Array.isArray(result?.data?.orders)) return result.data.orders;
+          return [];
+        };
+
+        const [assignedResult, availableResult] = await Promise.all([
+          deliveryService.getMyOrders().catch(() => null),
+          deliveryService.getAvailableOrders().catch(() => null),
+        ]);
 
         if (!mountedRef.current) {
           return;
         }
 
-        if (result?.success) {
-          const serverOrders = Array.isArray(result.orders) ? result.orders : [];
-          setOrders(serverOrders);
-        } else {
-          setOrders([]);
+        const mergedOrders = [...extractOrders(assignedResult), ...extractOrders(availableResult)];
+        const uniqueOrders = Array.from(
+          new Map(mergedOrders.map((order) => [String(order?.id), order])).values()
+        );
 
-          if (!silent && result?.message) {
-            Alert.alert('تعذر تحميل الطلبات', result.message);
-          }
+        setOrders(uniqueOrders);
+
+        if (!uniqueOrders.length && !silent && !assignedResult?.success && !availableResult?.success) {
+          Alert.alert(
+            'تعذر تحميل الطلبات',
+            assignedResult?.message || availableResult?.message || 'تعذر تحميل الطلبات حاليًا.'
+          );
         }
       } catch (error) {
         console.error(
@@ -611,12 +623,7 @@ const DeliveryDashboard = ({ navigation }) => {
               try {
                 setProcessingOrderId(orderId);
 
-                const result =
-                  await orderService.updateOrderStatus(
-                    orderId,
-                    ORDER_STATUS.PICKED_UP,
-                    user?.id
-                  );
+                const result = await deliveryService.acceptOrder(orderId);
 
                 if (!mountedRef.current) {
                   return;
@@ -730,11 +737,10 @@ const DeliveryDashboard = ({ navigation }) => {
               try {
                 setProcessingOrderId(orderId);
 
-                const result =
-                  await orderService.updateOrderStatus(
-                    orderId,
-                    ORDER_STATUS.DELIVERED
-                  );
+                const result = await deliveryService.updateOrderStatus(
+                  orderId,
+                  ORDER_STATUS.DELIVERED
+                );
 
                 if (!mountedRef.current) {
                   return;
