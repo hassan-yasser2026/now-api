@@ -1,5 +1,4 @@
 ﻿import axios from 'axios';
-import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Platform } from 'react-native';
 import Constants from 'expo-constants';
 import useAppStore from '../store/appStore';

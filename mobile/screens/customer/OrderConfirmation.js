@@ -905,10 +905,12 @@ const OrderConfirmation = ({ route, navigation }) => {
             style={styles.confirmBtn}
           />
 
+          {/* eslint-disable react/no-unescaped-entities */}
           <Text style={styles.bottomNote}>
             بالضغط على "تأكيد الطلب" أنت تؤكد صحة
             بيانات التوصيل وطلبك.
           </Text>
+          {/* eslint-enable react/no-unescaped-entities */}
         </ScrollView>
       </KeyboardAvoidingView>
 

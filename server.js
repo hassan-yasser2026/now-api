@@ -131,20 +131,26 @@ app.use(createRateLimiter({
 }));
 
 const allowedOrigins = (() => {
-  // 🔹 القيمة الافتراضية الآمنة - لا تحتاج لـ build time
-  const corsOrigin = (process.env.CORS_ORIGIN || '*').trim();
+  const corsOrigin = (process.env.CORS_ORIGIN || '').trim();
+  const defaultOrigins = [
+    'https://now-api-production-ca56.up.railway.app',
+    'http://localhost:8081',
+    'http://localhost:19006',
+    'http://127.0.0.1:8081',
+  ];
 
-  // 🔹 إذا كانت فارغة أو غير معرفة، استخدم *
-  if (!corsOrigin || corsOrigin === '' || corsOrigin === 'undefined') {
-    return '*';
+  if (!corsOrigin || corsOrigin === 'undefined') {
+    return defaultOrigins;
   }
 
-  // 🔹 إذا كانت *
+  if (corsOrigin === '*' && process.env.ALLOW_ALL_CORS !== 'true') {
+    return defaultOrigins;
+  }
+
   if (corsOrigin === '*') {
     return '*';
   }
 
-  // 🔹 إذا كانت قائمة origins
   return corsOrigin
     .split(',')
     .map((origin) => origin.trim())

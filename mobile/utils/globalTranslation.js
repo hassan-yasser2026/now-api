@@ -123,14 +123,12 @@ export const installGlobalTranslation = () => {
   installed = true;
 
   try {
-    // eslint-disable-next-line @typescript-eslint/no-require-imports
     patchJsxRuntime(require('react/jsx-runtime'));
   } catch (error) {
     console.warn('Translation: jsx-runtime patch skipped', error?.message);
   }
 
   try {
-    // eslint-disable-next-line @typescript-eslint/no-require-imports
     patchJsxRuntime(require('react/jsx-dev-runtime'));
   } catch {
     // Only present in development bundles.

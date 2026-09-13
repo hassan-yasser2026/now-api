@@ -178,17 +178,6 @@ const useAppStore = create((set, get) => ({
     }
   },
 
-  updateUser: async (userData) => {
-    try {
-      await AsyncStorage.setItem('user', JSON.stringify(userData));
-      set({ user: userData });
-      return true;
-    } catch (error) {
-      console.error('Error saving updated user:', error);
-      return false;
-    }
-  },
-
   logout: async () => {
     try {
       await Promise.all([

@@ -2685,11 +2685,6 @@ const styles = StyleSheet.create({
     marginLeft: 6,
   },
 
-  statusText: {
-    fontSize: 11,
-    fontWeight: '800',
-  },
-
   customerSection: {
     flexDirection:
       'row-reverse',
