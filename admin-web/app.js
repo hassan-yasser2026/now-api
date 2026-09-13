@@ -1,6 +1,4 @@
-const API_URL =
-  window.NOW_API_URL ||
-  'https://now-api-production-ca56.up.railway.app/api';
+const API_URL = 'https://now-api-production-ca56.up.railway.app/api';
 const app = document.querySelector('#app');
 
 const state = {
