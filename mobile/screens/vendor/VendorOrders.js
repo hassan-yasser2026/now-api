@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { View, Text, StyleSheet, FlatList, TouchableOpacity, Image } from 'react-native';
+import { View, Text, StyleSheet, FlatList, TouchableOpacity, Image, TextInput } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { COLORS } from '../../constants/colors';
 import { orderService } from '../../services/orderService';
@@ -32,6 +32,7 @@ const statusColors = {
 export default function VendorOrders({ navigation }) {
   const { user } = useAppStore();
   const [orders, setOrders] = useState([]);
+  const [search, setSearch] = useState('');
 
   useEffect(() => {
     const loadOrders = async () => {
@@ -66,6 +67,11 @@ export default function VendorOrders({ navigation }) {
     </TouchableOpacity>
   );
 
+  const visibleOrders = orders.filter((item) => {
+    const query = search.trim().toLowerCase();
+    return !query || `${item.id} ${item.customerName || ''} ${item.address || ''}`.toLowerCase().includes(query);
+  });
+
   return (
     <View style={styles.container}>
       <View style={styles.header}>
@@ -76,8 +82,12 @@ export default function VendorOrders({ navigation }) {
         <View style={styles.headerSpacer} />
       </View>
 
+      <View style={styles.searchBox}>
+        <Ionicons name="search-outline" size={20} color={COLORS.primary} />
+        <TextInput value={search} onChangeText={setSearch} placeholder="ابحث برقم الطلب أو العميل..." placeholderTextColor={COLORS.textLight} style={styles.searchInput} />
+      </View>
       <FlatList
-        data={orders}
+        data={visibleOrders}
         keyExtractor={(item) => String(item.id)}
         contentContainerStyle={styles.list}
         renderItem={renderItem}
@@ -101,6 +111,8 @@ const styles = StyleSheet.create({
   backBtn: { width: 40, height: 40, borderRadius: 12, alignItems: 'center', justifyContent: 'center' },
   title: { fontSize: 20, fontWeight: 'bold', color: COLORS.textPrimary },
   headerSpacer: { width: 40 },
+  searchBox: { marginHorizontal: 16, marginTop: 10, paddingHorizontal: 12, flexDirection: 'row-reverse', alignItems: 'center', backgroundColor: '#fff', borderRadius: 12, borderWidth: 1, borderColor: COLORS.border },
+  searchInput: { flex: 1, paddingHorizontal: 10, paddingVertical: 11, textAlign: 'right', color: COLORS.textPrimary },
   list: { padding: 16 },
   card: {
     backgroundColor: '#fff',

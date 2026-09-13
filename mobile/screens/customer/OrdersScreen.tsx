@@ -6,6 +6,7 @@ import {
   SafeAreaView,
   StyleSheet,
   Text,
+  TextInput,
   TouchableOpacity,
   View,
 } from 'react-native';
@@ -66,6 +67,7 @@ const OrdersScreen = ({ navigation }: OrdersScreenProps) => {
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState('');
+  const [search, setSearch] = useState('');
 
   const loadOrders = useCallback(async (isRefresh = false) => {
     if (isRefresh) {
@@ -96,13 +98,14 @@ const OrdersScreen = ({ navigation }: OrdersScreenProps) => {
   );
 
   const filteredOrders = useMemo(() => {
-    if (activeFilter === 'ALL') {
-      return orders;
-    }
-    return orders.filter(
-      (order) => String(order.status || '').toUpperCase() === activeFilter
-    );
-  }, [activeFilter, orders]);
+    const query = search.trim().toLowerCase();
+    return orders.filter((order) => {
+      const matchesStatus = activeFilter === 'ALL'
+        || String(order.status || '').toUpperCase() === activeFilter;
+      const haystack = `${order.id} ${order.storeName || ''} ${order.store?.name || ''} ${order.address || ''}`.toLowerCase();
+      return matchesStatus && (!query || haystack.includes(query));
+    });
+  }, [activeFilter, orders, search]);
 
   const activeOrders = useMemo(
     () => orders.filter((order) => !['DELIVERED', 'CANCELLED'].includes(
@@ -168,6 +171,16 @@ const OrdersScreen = ({ navigation }: OrdersScreenProps) => {
                   <Text style={styles.brand}>NOW</Text>
                   <Text style={styles.title}>طلباتي</Text>
                   <Text style={styles.subtitle}>تابع كل طلباتك في مكان واحد</Text>
+                </View>
+                <View style={styles.searchBox}>
+                  <Ionicons name="search-outline" size={20} color={ACCENT} />
+                  <TextInput
+                    value={search}
+                    onChangeText={setSearch}
+                    placeholder="ابحث برقم الطلب أو المتجر..."
+                    placeholderTextColor={COLORS.textLight}
+                    style={styles.searchInput}
+                  />
                 </View>
                 <View style={styles.heroIcon}>
                   <Ionicons name="receipt-outline" size={29} color="#fff" />
@@ -293,6 +306,23 @@ const OrdersScreen = ({ navigation }: OrdersScreenProps) => {
 };
 
 const styles = StyleSheet.create({
+  searchBox: {
+    marginTop: 14,
+    paddingHorizontal: 12,
+    flexDirection: 'row-reverse',
+    alignItems: 'center',
+    backgroundColor: '#fff',
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: COLORS.border,
+  },
+  searchInput: {
+    flex: 1,
+    paddingHorizontal: 10,
+    paddingVertical: 11,
+    textAlign: 'right',
+    color: COLORS.textPrimary,
+  },
   container: { flex: 1, backgroundColor: '#F7FBFC' },
   centered: { flex: 1, alignItems: 'center', justifyContent: 'center', backgroundColor: '#F7FBFC', padding: 24 },
   loadingText: { marginTop: 12, color: COLORS.textSecondary, fontSize: 15, fontWeight: '700' },

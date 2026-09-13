@@ -7,6 +7,7 @@ import {
   StyleSheet,
   ActivityIndicator,
   RefreshControl,
+  TextInput,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { COLORS } from '../../constants/colors';
@@ -20,6 +21,7 @@ const DeliveryOrders = ({ navigation }) => {
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [filter, setFilter] = useState('all');
+  const [search, setSearch] = useState('');
 
   useEffect(() => {
     fetchOrders();
@@ -134,9 +136,16 @@ const DeliveryOrders = ({ navigation }) => {
           </TouchableOpacity>
         ))}
       </View>
+      <View style={styles.searchBox}>
+        <Ionicons name="search-outline" size={20} color={COLORS.primary} />
+        <TextInput value={search} onChangeText={setSearch} placeholder="ابحث برقم الطلب أو العميل..." placeholderTextColor={COLORS.textLight} style={styles.searchInput} />
+      </View>
 
       <FlatList
-        data={filteredOrders}
+        data={filteredOrders.filter((item) => {
+          const query = search.trim().toLowerCase();
+          return !query || `${item.id} ${item.customerName || ''} ${item.address || ''}`.toLowerCase().includes(query);
+        })}
         renderItem={renderItem}
         keyExtractor={(item) => item.id.toString()}
         contentContainerStyle={styles.list}
@@ -160,6 +169,8 @@ const styles = StyleSheet.create({
   header: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', padding: 16, borderBottomWidth: 1, borderBottomColor: COLORS.border },
   backBtn: { padding: 4 },
   headerTitle: { fontSize: 18, fontWeight: 'bold', color: COLORS.textPrimary },
+  searchBox: { marginHorizontal: 16, marginBottom: 8, paddingHorizontal: 12, flexDirection: 'row-reverse', alignItems: 'center', backgroundColor: '#fff', borderRadius: 12, borderWidth: 1, borderColor: COLORS.border },
+  searchInput: { flex: 1, paddingHorizontal: 10, paddingVertical: 11, textAlign: 'right', color: COLORS.textPrimary },
   filterContainer: { flexDirection: 'row', paddingHorizontal: 16, paddingVertical: 12, gap: 8 },
   filterBtn: { paddingHorizontal: 16, paddingVertical: 8, borderRadius: 20, backgroundColor: COLORS.surface, borderWidth: 1, borderColor: COLORS.border },
   filterBtnActive: { backgroundColor: COLORS.primary, borderColor: COLORS.primary },

@@ -520,6 +520,8 @@ export const AR_EN = {
   'توصيل سريع': 'Fast delivery',
   'ابحث عن مطعم أو متجر...': 'Search for a restaurant or store...',
   'ابحث عن منتج...': 'Search for a product...',
+  'ابحث برقم الطلب أو العميل...': 'Search by order number or customer...',
+  'ابحث برقم الطلب أو المتجر...': 'Search by order number or store...',
   'ابحث عن متجر أو فئة أو منتج': 'Search a store, category or product',
   'ابحث عن صنف...': 'Search for an item...',
   'جرّب البحث بكلمة مختلفة أو غيّر الفلتر.':
