@@ -35,9 +35,12 @@ const normalizeMenu = (response) => {
 };
 
 const storeService = {
-  getStores: async () => {
+  getStores: async (location = null) => {
     try {
-      const response = await api.get('/stores');
+      const params = location?.lat != null && location?.lng != null
+        ? { latitude: location.lat, longitude: location.lng }
+        : undefined;
+      const response = await api.get('/stores', { params });
       const stores = normalizeStores(response).filter((store) => store?.isOpen !== false);
       return { success: true, stores };
     } catch (error) {

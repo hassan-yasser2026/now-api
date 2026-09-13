@@ -79,7 +79,7 @@ const CustomerHome = ({ navigation }) => {
     setError(null);
 
     try {
-      const storesPromise = storeService.getStores();
+      const storesPromise = storeService.getStores(deliveryLocation);
       const ordersPromise = (isAuthenticated && !isGuest)
         ? orderService.getCustomerOrders()
         : Promise.resolve({ success: true, orders: [] });
@@ -127,7 +127,7 @@ const CustomerHome = ({ navigation }) => {
     } finally {
       setRefreshing(false);
     }
-  }, [isAuthenticated, isGuest]);
+  }, [deliveryLocation, isAuthenticated, isGuest]);
 
   useFocusEffect(
     useCallback(() => {

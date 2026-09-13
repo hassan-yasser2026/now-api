@@ -362,6 +362,29 @@ const parseLatLng = (latitude, longitude) => {
   return { lat, lng };
 };
 
+const DELIVERY_RADIUS_KM = Number.isFinite(Number(process.env.DELIVERY_RADIUS_KM))
+  && Number(process.env.DELIVERY_RADIUS_KM) > 0
+  ? Number(process.env.DELIVERY_RADIUS_KM)
+  : 15;
+
+const distanceInKm = (from, to) => {
+  if (!from || !to) return null;
+  const toRadians = (value) => (value * Math.PI) / 180;
+  const earthRadiusKm = 6371;
+  const dLat = toRadians(to.lat - from.lat);
+  const dLng = toRadians(to.lng - from.lng);
+  const lat1 = toRadians(from.lat);
+  const lat2 = toRadians(to.lat);
+  const a = Math.sin(dLat / 2) ** 2
+    + Math.cos(lat1) * Math.cos(lat2) * Math.sin(dLng / 2) ** 2;
+  return earthRadiusKm * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+};
+
+const isWithinDeliveryRadius = (from, to) => {
+  const distance = distanceInKm(from, to);
+  return distance !== null && distance <= DELIVERY_RADIUS_KM;
+};
+
 const isValidEmail = (email) => {
   if (!email) {
     return true;
@@ -1484,6 +1507,7 @@ app.delete(
 
 app.get('/api/stores', async (req, res) => {
   try {
+    const customerPoint = parseLatLng(req.query.latitude, req.query.longitude);
     const stores = await prisma.store.findMany({
       where: {
         isActive: true,
@@ -1510,7 +1534,11 @@ app.get('/api/stores', async (req, res) => {
       },
     });
 
-    return successResponse(res, stores.map((store) => {
+    const nearbyStores = customerPoint
+      ? stores.filter((store) => isWithinDeliveryRadius(customerPoint, parseLatLng(store.latitude, store.longitude)))
+      : stores;
+
+    return successResponse(res, nearbyStores.map((store) => {
       const total = store.ratings.reduce((sum, rating) => sum + rating.stars, 0);
       const { ratings, ...storeData } = store;
       return {
@@ -2522,6 +2550,12 @@ app.post(
         );
       }
 
+      const customerPoint = parseLatLng(req.body.latitude, req.body.longitude);
+      const storePoint = parseLatLng(store.latitude, store.longitude);
+      if (!storePoint || !isWithinDeliveryRadius(customerPoint, storePoint)) {
+        return errorResponse(res, `المتجر خارج نطاق التوصيل (${DELIVERY_RADIUS_KM} كم)`, 422);
+      }
+
       let parsedScheduledAt = null;
 
       if (scheduledAt) {
@@ -3260,11 +3294,16 @@ app.get(
     try {
       const profile = await prisma.deliveryProfile.findUnique({
         where: { userId: req.user.userId },
-        select: { status: true },
+        select: { status: true, latitude: true, longitude: true },
       });
 
       if (!profile || profile.status !== 'AVAILABLE') {
         return errorResponse(res, 'يجب تغيير حالتك إلى متاح لاستقبال الطلبات', 409);
+      }
+
+      const deliveryPoint = parseLatLng(profile.latitude, profile.longitude);
+      if (!deliveryPoint) {
+        return errorResponse(res, 'فعّل GPS وشارك موقعك لاستقبال الطلبات القريبة', 409);
       }
 
       const orders = await prisma.order.findMany({
@@ -3276,7 +3315,14 @@ app.get(
         orderBy: { createdAt: 'asc' },
       });
 
-      return successResponse(res, orders);
+      const nearbyOrders = orders.filter((order) => {
+        const storePoint = parseLatLng(order.store?.latitude, order.store?.longitude);
+        const customerPoint = parseLatLng(order.deliveryLat, order.deliveryLng);
+        return isWithinDeliveryRadius(deliveryPoint, storePoint)
+          && isWithinDeliveryRadius(deliveryPoint, customerPoint);
+      });
+
+      return successResponse(res, nearbyOrders);
     } catch (error) {
       return handlePrismaError(error, res);
     }
