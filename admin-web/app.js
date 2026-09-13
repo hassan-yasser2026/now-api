@@ -194,16 +194,28 @@ async function loadSection() {
     const loaders = {
       dashboard: () => request('/admin/dashboard'),
       users: () => request('/admin/users'),
+      vendors: () => request('/admin/users'),
       stores: () => request('/admin/stores'),
       orders: () => request('/admin/orders'),
+      'new-orders': () => request('/admin/orders'),
+      'active-orders': () => request('/admin/orders'),
+      'ready-orders': () => request('/admin/orders'),
+      'completed-orders': () => request('/admin/orders'),
+      'cancelled-orders': () => request('/admin/orders'),
+      'order-details': () => request('/admin/orders'),
       submissions: () => request('/admin/submissions'),
+      services: () => request('/admin/submissions'),
       delivery: () => request('/admin/delivery'),
       reports: () => request('/admin/reports'),
       'sub-admins': () => request('/admin/sub-admins'),
     };
     const data = loaders[state.section] ? await loaders[state.section]() : {};
     ({ dashboard: renderDashboard, users: renderUsers, stores: renderStores, orders: renderOrders,
+      vendors: renderVendors, 'new-orders': renderNewOrders, 'active-orders': renderActiveOrders,
+      'ready-orders': renderReadyOrders, 'completed-orders': renderCompletedOrders,
+      'cancelled-orders': renderCancelledOrders, 'order-details': renderOrders,
       submissions: renderSubmissions, delivery: renderDeliveries, reports: renderReports,
+      services: renderSubmissions,
       'sub-admins': renderSubAdmins }[state.section] || renderPlaceholder)(data, target);
   } catch (error) {
     if (state.section === 'dashboard') {
@@ -469,6 +481,21 @@ function renderUsers(payload, target) {
     'edit-user': async (id) => { const name = prompt('اسم المستخدم الجديد:'); if (name) await request(`/admin/users/${id}`, { method: 'PATCH', body: JSON.stringify({ name }) }); },
   });
 }
+
+function renderVendors(payload, target) {
+  const vendors = listOf(payload, ['users']).filter((item) => item.role?.name === 'vendor' || item.role === 'vendor');
+  renderUsers({ users: vendors }, target);
+}
+
+const renderOrdersByStatus = (payload, target, statuses) => {
+  const orders = listOf(payload, ['orders']).filter((order) => statuses.includes(order.status));
+  renderOrders({ orders }, target);
+};
+const renderNewOrders = (payload, target) => renderOrdersByStatus(payload, target, ['PENDING', 'NEW']);
+const renderActiveOrders = (payload, target) => renderOrdersByStatus(payload, target, ['CONFIRMED', 'PREPARING', 'READY']);
+const renderReadyOrders = (payload, target) => renderOrdersByStatus(payload, target, ['READY_FOR_DELIVERY', 'READY']);
+const renderCompletedOrders = (payload, target) => renderOrdersByStatus(payload, target, ['DELIVERED', 'COMPLETED']);
+const renderCancelledOrders = (payload, target) => renderOrdersByStatus(payload, target, ['CANCELLED', 'REJECTED']);
 
 function renderStores(payload, target) {
   let rows = listOf(payload, ['stores']);
