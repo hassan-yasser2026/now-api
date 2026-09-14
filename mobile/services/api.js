@@ -9,11 +9,14 @@ const getApiBaseUrl = () => {
   const configuredUrl = process.env.EXPO_PUBLIC_API_URL?.trim();
 
   if (configuredUrl) {
-    const isLocalUrl = /^https?:\/\/(localhost|127\.0\.0\.1)(?::\d+)?\b/i.test(configuredUrl);
-    if (isLocalUrl) {
-      return PRODUCTION_API_URL;
+    const normalizedUrl = configuredUrl.replace(/\/+$/, '');
+    const isProductionUrl = /^https:\/\/now-api-production-ca56\.up\.railway\.app\/api$/i.test(normalizedUrl);
+    if (isProductionUrl) {
+      return normalizedUrl;
     }
-    return configuredUrl.replace(/\/+$/, '');
+
+    console.warn('Ignoring unsupported mobile API URL; using Railway production API');
+    return PRODUCTION_API_URL;
   }
 
   // A missing Expo URL must never send the installed mobile app to an

@@ -125,7 +125,7 @@ const LoginScreen = ({ navigation, route }) => {
 
       Alert.alert(
         'خطأ',
-        'حدث خطأ غير متوقع، حاول مرة أخرى'
+        'حدث خطأ أثناء تسجيل الدخول. حاول مرة أخرى'
       );
     } finally {
       setLoading(false);

@@ -55,16 +55,41 @@ export const authService = {
       }
       return { success: false, message: 'فشل حفظ بيانات الدخول' };
     } catch (error) {
+      const status = error.response?.status;
+      const serverMessage = error.response?.data?.message
+        || error.response?.data?.data?.message;
+
+      console.error('LOGIN API ERROR:', {
+        status,
+        message: error.message,
+        code: error.code,
+        url: error.config?.url,
+        baseURL: error.config?.baseURL,
+      });
+
       if (!error.response) {
         return {
           success: false,
-          message: 'تعذر الاتصال بالخادم. تأكد من تشغيل API وعنوانه الصحيح',
+          status: error.code === 'ECONNABORTED' ? 'TIMEOUT' : 'NETWORK_ERROR',
+          message: error.code === 'ECONNABORTED'
+            ? 'انتهت مهلة الاتصال بالخادم. حاول مرة أخرى'
+            : 'تعذر الاتصال بالخادم. تحقق من اتصال الإنترنت وحاول مرة أخرى',
         };
       }
 
       return {
         success: false,
-        message: error.response?.data?.message || error.response?.data?.data?.message || 'فشل تسجيل الدخول',
+        status,
+        message: serverMessage
+          || (status === 401
+            ? 'رقم الهاتف أو كلمة المرور غير صحيحة'
+            : status === 403
+              ? 'هذا الحساب موقوف أو غير مسموح له بالدخول'
+              : status === 404
+                ? 'خدمة تسجيل الدخول غير متاحة حاليًا'
+                : status >= 500
+                  ? 'الخدمة غير متاحة حاليًا. حاول مرة أخرى لاحقًا'
+                  : 'فشل تسجيل الدخول'),
       };
     }
   },

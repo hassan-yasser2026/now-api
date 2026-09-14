@@ -1064,10 +1064,22 @@ export const AR_EN = {
     'Could not reach the server. Check your internet connection and try again.',
   'تعذر الاتصال بالسيرفر. تأكد من تشغيل السيرفر والاتصال بالإنترنت.':
     'Could not reach the server. Make sure the server is running and you are online.',
+  'انتهت مهلة الاتصال بالخادم. حاول مرة أخرى':
+    'The server connection timed out. Please try again',
+  'تعذر الاتصال بالخادم. تحقق من اتصال الإنترنت وحاول مرة أخرى':
+    'Could not reach the server. Check your internet connection and try again',
   'استجابة الخادم غير صحيحة': 'Invalid server response',
   'استجابة الطلب غير صحيحة': 'Invalid order response',
   'تغيير حالة الطلب غير مسموح': 'Changing the order status is not allowed',
   'حدث خطأ غير متوقع، حاول مرة أخرى': 'An unexpected error occurred, please try again',
+  'حدث خطأ أثناء تسجيل الدخول. حاول مرة أخرى':
+    'An error occurred while logging in. Please try again',
+  'خدمة تسجيل الدخول غير متاحة حاليًا':
+    'The login service is currently unavailable',
+  'رقم الهاتف أو كلمة المرور غير صحيحة':
+    'The phone number or password is incorrect',
+  'هذا الحساب موقوف أو غير مسموح له بالدخول':
+    'This account is suspended or not allowed to log in',
 
   // ------------------------------------------------------------ auth screens
   'أهلاً بيك 👋': 'Welcome 👋',
