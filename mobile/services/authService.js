@@ -27,9 +27,9 @@ export const authService = {
   },
 
   // تسجيل الدخول
-  login: async (phone, password, role) => {
+  login: async (phone, password) => {
     try {
-      const response = await api.post('/auth/login', { phone, password, ...(role ? { role } : {}) });
+      const response = await api.post('/auth/login', { phone, password });
       const payload = response.data?.data ?? response.data;
       const { user, token } = payload || {};
 

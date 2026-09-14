@@ -12,8 +12,9 @@ import {
   View,
 } from 'react-native';
 import useAppStore from '../../store/appStore';
-import storeService from '../../services/storeService';
+import { storeService } from '../../services/storeService';
 import { orderService } from '../../services/orderService';
+import { CONFIG } from '../../constants/config';
 
 const ORDER_STATUS_LABELS = {
   PENDING: 'جديد',
@@ -64,7 +65,7 @@ const VendorDashboard = ({ navigation }) => {
   const [languageModalVisible, setLanguageModalVisible] = useState(false);
   const [orders, setOrders] = useState([]);
   const [ordersLoading, setOrdersLoading] = useState(true);
-  const displayName = user?.name && !user.name.includes('?') ? user.name : 'المهندس حسن';
+  const displayName = user?.name && !user.name.includes('?') ? user.name : '—';
 
   useEffect(() => {
     if (!user?.id) return;
@@ -126,7 +127,7 @@ const VendorDashboard = ({ navigation }) => {
     }
 
     if (item.supportPhone) {
-      const whatsappNumber = item.supportPhone.replace(/^0/, '20');
+      const whatsappNumber = CONFIG.SUPPORT_WHATSAPP.replace(/\D/g, '');
       Linking.openURL(`https://wa.me/${whatsappNumber}`);
       return;
     }

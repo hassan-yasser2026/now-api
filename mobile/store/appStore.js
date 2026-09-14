@@ -222,14 +222,25 @@ const useAppStore = create((set, get) => ({
 
       if (token && userStr) {
         try {
-          const savedUser = JSON.parse(userStr);
-          updates.user = savedUser;
+          JSON.parse(userStr);
+          const { default: api } = await import('../services/api');
+          const response = await api.get('/auth/me');
+          const currentUser = response.data?.data ?? response.data;
+
+          if (!currentUser?.id || !currentUser?.role) {
+            throw new Error('Invalid session user payload');
+          }
+
+          updates.user = currentUser;
           updates.token = token;
-          updates.role = (savedUser.role || 'customer').toLowerCase();
+          updates.role = String(currentUser.role).toLowerCase();
           updates.isAuthenticated = true;
           updates.isGuest = false;
+          await AsyncStorage.setItem('user', JSON.stringify(currentUser));
         } catch (e) {
-          console.error('Failed to parse saved user JSON:', e);
+          console.error('Session validation failed:', e);
+          await removeAuthToken();
+          await AsyncStorage.removeItem('user');
         }
       }
 

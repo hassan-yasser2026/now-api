@@ -3,6 +3,7 @@ import { Alert, Linking, ScrollView, StyleSheet, Text, TouchableOpacity, View } 
 import { Ionicons } from '@expo/vector-icons';
 import { COLORS } from '../../constants/colors';
 import useAppStore from '../../store/appStore';
+import { CONFIG } from '../../constants/config';
 
 const DeliveryMore = ({ navigation }) => {
   const { logout } = useAppStore();
@@ -20,9 +21,10 @@ const DeliveryMore = ({ navigation }) => {
 
   const openSupport = async () => {
     try {
-      await Linking.openURL('https://wa.me/201067254988?text=%D9%85%D8%B1%D8%AD%D8%A8%D8%A7%D8%8C%20%D8%A3%D8%AD%D8%AA%D8%A7%D8%AC%20%D9%85%D8%B3%D8%A7%D8%B9%D8%AF%D8%A9');
+      const number = CONFIG.SUPPORT_WHATSAPP.replace(/\D/g, '');
+      await Linking.openURL(`https://wa.me/${number}?text=%D9%85%D8%B1%D8%AD%D8%A8%D8%A7`);
     } catch {
-      Alert.alert('الدعم', 'رقم الدعم: 01067254988');
+      Alert.alert('الدعم', `رقم الدعم: ${CONFIG.SUPPORT_PHONE}`);
     }
   };
 

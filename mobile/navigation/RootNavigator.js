@@ -5,6 +5,7 @@ import CustomerNavigator from './CustomerNavigator';
 import VendorNavigator from './VendorNavigator';
 import DeliveryNavigator from './DeliveryNavigator';
 import AdminNavigator from './AdminNavigator';
+import SubAdminNavigator from './SubAdminNavigator';
 import Loading from '../components/Loading';
 
 const RootNavigator = () => {
@@ -30,8 +31,12 @@ const RootNavigator = () => {
     return <Loading text="جاري تحميل التطبيق..." />;
   }
 
-  if (isAuthenticated && (role === 'admin' || role === 'sub_admin')) {
+  if (isAuthenticated && role === 'admin') {
     return <AdminNavigator />;
+  }
+
+  if (isAuthenticated && role === 'sub_admin') {
+    return <SubAdminNavigator />;
   }
 
   const getNavigator = () => {

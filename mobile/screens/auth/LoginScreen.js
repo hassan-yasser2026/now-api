@@ -19,6 +19,7 @@ import { Ionicons } from '@expo/vector-icons';
 
 import { COLORS } from '../../constants/colors';
 import { authService } from '../../services/authService';
+import useAppStore from '../../store/appStore';
 import PhoneInput from '../../components/PhoneInput';
 import { toE164 } from '../../utils/validation';
 
@@ -94,9 +95,9 @@ const LoginScreen = ({ navigation, route }) => {
       // store local numbers without the country prefix.
       const loginPhone =
         country === 'EG' && !phone.startsWith('0') ? `0${phone}` : phone;
-      let result = await authService.login(loginPhone, password, partnerRole);
+      let result = await authService.login(loginPhone, password);
       if (!result?.success && phoneE164 && phoneE164 !== loginPhone) {
-        result = await authService.login(phoneE164, password, partnerRole);
+        result = await authService.login(phoneE164, password);
       }
 
       if (!result?.success) {

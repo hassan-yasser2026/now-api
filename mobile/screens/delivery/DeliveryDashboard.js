@@ -28,6 +28,7 @@ import { COLORS } from '../../constants/colors';
 import useAppStore from '../../store/appStore';
 import { authService } from '../../services/authService';
 import deliveryService from '../../services/deliveryService';
+import { CONFIG } from '../../constants/config';
 
 
 /* =========================================================
@@ -91,7 +92,7 @@ const getOrderCustomerName = (order) => {
     order?.customer?.name ||
     order?.user?.name ||
     order?.customerName ||
-    'Railway Customer'
+    '—'
   );
 };
 
@@ -857,9 +858,10 @@ const DeliveryDashboard = ({ navigation }) => {
   );
 
   const callSupport = useCallback(async () => {
-    const phone = '+201067254988';
+    const phone = CONFIG.SUPPORT_PHONE;
+    const whatsapp = CONFIG.SUPPORT_WHATSAPP.replace(/\D/g, '');
     const url = Platform.OS === 'web'
-      ? 'https://wa.me/201067254988?text=%D9%85%D8%B1%D8%AD%D8%A8%D8%A7%D8%8C%20%D8%A3%D8%AD%D8%AA%D8%A7%D8%AC%20%D9%85%D8%B3%D8%A7%D8%B9%D8%AF%D8%A9'
+      ? `https://wa.me/${whatsapp}`
       : `tel:${phone}`;
 
     try {
@@ -867,12 +869,12 @@ const DeliveryDashboard = ({ navigation }) => {
     } catch (_error) {
       Alert.alert(
         'الدعم',
-        'تعذر فتح الاتصال. يمكنك التواصل عبر واتساب على 01067254988.',
+        `تعذر فتح الاتصال. يمكنك التواصل عبر واتساب على ${CONFIG.SUPPORT_PHONE}.`,
         [
           { text: 'إلغاء', style: 'cancel' },
           {
             text: 'فتح واتساب',
-            onPress: () => Linking.openURL('https://wa.me/201067254988'),
+            onPress: () => Linking.openURL(`https://wa.me/${whatsapp}`),
           },
         ]
       );

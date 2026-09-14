@@ -29,7 +29,6 @@ const WEB_DIST_PATH = [
   path.join(__dirname, 'dist'),
   path.join(__dirname, 'mobile', 'dist'),
 ].find((candidate) => fs.existsSync(candidate)) || path.join(__dirname, 'dist');
-const ADMIN_WEB_PATH = path.join(__dirname, 'admin-web');
 
 const JWT_SECRET = process.env.JWT_SECRET;
 
@@ -135,10 +134,13 @@ app.use(createRateLimiter({
 
 const defaultOrigins = [
   'https://now-api-production-ca56.up.railway.app',
-  'https://admin-now-wzto.vercel.app',
-  'http://localhost:8081',
-  'http://localhost:19006',
-  'http://127.0.0.1:8081',
+  ...(NODE_ENV === 'production'
+    ? []
+    : [
+        'http://localhost:8081',
+        'http://localhost:19006',
+        'http://127.0.0.1:8081',
+      ]),
 ];
 
 const allowedOrigins = (() => {
@@ -148,7 +150,7 @@ const allowedOrigins = (() => {
     return defaultOrigins;
   }
 
-  if (corsOrigin === '*' && process.env.ALLOW_ALL_CORS !== 'true') {
+  if (corsOrigin === '*' && (NODE_ENV === 'production' || process.env.ALLOW_ALL_CORS !== 'true')) {
     return defaultOrigins;
   }
 
@@ -167,9 +169,11 @@ const isAllowedOrigin = (origin) => {
   if (!origin) return true;
   if (allowedOrigins === '*') return true;
   if (allowedOrigins.includes(origin)) return true;
-  return /https:\/\/.*\.vercel\.app$/i.test(origin)
-    || /^http:\/\/localhost(?::\d+)?$/i.test(origin)
-    || /^http:\/\/127\.0\.0\.1(?::\d+)?$/i.test(origin);
+  return NODE_ENV !== 'production'
+    && (
+      /^http:\/\/localhost(?::\d+)?$/i.test(origin)
+      || /^http:\/\/127\.0\.0\.1(?::\d+)?$/i.test(origin)
+    );
 };
 
 console.info('[CORS CONFIG]', {
@@ -877,8 +881,6 @@ app.post('/api/auth/login', authRateLimiter, async (req, res) => {
 
   const phone = normalizePhone(req.body.phone);
   const password = req.body.password;
-  const requestedRole = normalizeString(req.body.role).toLowerCase();
-
   if (!phone || !password) {
     return errorResponse(
       res,
@@ -892,13 +894,6 @@ app.post('/api/auth/login', authRateLimiter, async (req, res) => {
       where: {
         // Accept E.164 and the legacy national forms of the same number.
         phone: { in: phoneVariants(phone) },
-        ...(requestedRole
-          ? {
-              role: {
-                name: requestedRole,
-              },
-            }
-          : {}),
       },
       include: {
         role: true,
@@ -913,9 +908,7 @@ app.post('/api/auth/login', authRateLimiter, async (req, res) => {
     if (!user) {
       return errorResponse(
         res,
-        requestedRole
-          ? 'رقم الهاتف أو الدور غير صحيح'
-          : 'رقم الهاتف أو كلمة المرور غير صحيحة',
+        'رقم الهاتف أو كلمة المرور غير صحيحة',
         401
       );
     }
@@ -4458,18 +4451,28 @@ app.get(
 app.get(
   '/api/admin/dashboard',
   authMiddleware,
-  isAdmin,
+  adminPermissionMiddleware('reports.read'),
   async (req, res) => {
     try {
       const activeUserWhere = { deletedAt: null };
       const roleCount = (name) => prisma.user.count({ where: { ...activeUserWhere, role: { name } } });
       const monthStart = new Date();
       monthStart.setDate(monthStart.getDate() - 30);
-      const [users, vendors, deliveries, orders, sales, commissions, recentOrders, recentUsers, recentActivities, orderHistory] = await Promise.all([
+      const [users, customers, admins, subAdmins, vendors, deliveries, orders, pendingOrders, activeOrders, completedOrders, cancelledOrders, stores, openStores, products, sales, commissions, recentOrders, recentUsers, recentActivities, orderHistory] = await Promise.all([
         prisma.user.count({ where: activeUserWhere }),
+        roleCount(ROLES.CUSTOMER),
+        roleCount(ROLES.ADMIN),
+        roleCount(ROLES.SUB_ADMIN),
         roleCount(ROLES.VENDOR),
         roleCount(ROLES.DELIVERY),
         prisma.order.count(),
+        prisma.order.count({ where: { status: ORDER_STATUS.PENDING } }),
+        prisma.order.count({ where: { status: { in: [ORDER_STATUS.ACCEPTED, ORDER_STATUS.PREPARING, ORDER_STATUS.READY, ORDER_STATUS.PICKED_UP, ORDER_STATUS.ON_THE_WAY] } } }),
+        prisma.order.count({ where: { status: ORDER_STATUS.DELIVERED } }),
+        prisma.order.count({ where: { status: ORDER_STATUS.CANCELLED } }),
+        prisma.store.count(),
+        prisma.store.count({ where: { isOpen: true, isActive: true } }),
+        prisma.menuItem.count(),
         prisma.order.aggregate({ where: { status: ORDER_STATUS.DELIVERED }, _sum: { totalPrice: true } }),
         prisma.order.aggregate({ where: { status: ORDER_STATUS.DELIVERED }, _sum: { platformCommission: true } }),
         prisma.order.findMany({ take: 5, orderBy: { createdAt: 'desc' }, select: { id: true, status: true, totalPrice: true, createdAt: true, customer: { select: { name: true } }, store: { select: { name: true } } } }),
@@ -4489,9 +4492,18 @@ app.get(
 
       return successResponse(res, {
         users,
+        customers,
+        admins,
+        subAdmins,
         vendors,
-        stores: await prisma.store.count(),
+        stores,
+        openStores,
+        products,
         orders,
+        pendingOrders,
+        activeOrders,
+        completedOrders,
+        cancelledOrders,
         deliveries,
         sales: Number(sales._sum.totalPrice || 0),
         profits: null,
@@ -4518,9 +4530,33 @@ app.get(
   adminPermissionMiddleware('users.read'),
   async (req, res) => {
     try {
+      const search = normalizeString(req.query.search);
+      const role = normalizeString(req.query.role).toLowerCase();
+      const active = normalizeString(req.query.active).toLowerCase();
+      const allowedRoles = Object.values(ROLES);
+      if (role && !allowedRoles.includes(role)) {
+        return errorResponse(res, 'الدور غير صالح', 400);
+      }
+      if (active && !['true', 'false'].includes(active)) {
+        return errorResponse(res, 'حالة الحساب غير صالحة', 400);
+      }
+
       const users =
         await prisma.user.findMany({
-          where: { deletedAt: null },
+          where: {
+            deletedAt: null,
+            ...(role ? { role: { name: role } } : {}),
+            ...(active ? { isActive: active === 'true' } : {}),
+            ...(search
+              ? {
+                  OR: [
+                    { name: { contains: search, mode: 'insensitive' } },
+                    { phone: { contains: search } },
+                    ...(Number.isInteger(Number(search)) ? [{ id: Number(search) }] : []),
+                  ],
+                }
+              : {}),
+          },
           select: {
             id: true,
             name: true,
@@ -4605,6 +4641,40 @@ app.patch(
       return successResponse(res, {
         ...user,
         ...privateContactFields(req, user),
+      });
+    } catch (error) {
+      return handlePrismaError(error, res);
+    }
+  }
+);
+
+app.post(
+  '/api/admin/users/:id/reset-password',
+  authMiddleware,
+  adminPermissionMiddleware('users.update'),
+  async (req, res) => {
+    const userId = normalizeId(req.params.id);
+    const newPassword = typeof req.body.newPassword === 'string'
+      ? req.body.newPassword
+      : '';
+
+    if (!userId || !isValidPassword(newPassword)) {
+      return errorResponse(res, 'رقم المستخدم وكلمة المرور الجديدة (8 أحرف على الأقل) مطلوبة', 422);
+    }
+
+    try {
+      const updated = await prisma.user.update({
+        where: { id: userId, deletedAt: null },
+        data: { password: await bcrypt.hash(newPassword, 12) },
+        select: { id: true, name: true, isActive: true, role: { select: { name: true } } },
+      });
+
+      return successResponse(res, {
+        id: updated.id,
+        name: updated.name,
+        isActive: updated.isActive,
+        role: updated.role.name,
+        passwordReset: true,
       });
     } catch (error) {
       return handlePrismaError(error, res);
@@ -5714,11 +5784,6 @@ app.delete(
 // ============================================================
 // 404
 // ============================================================
-
-// Serve the standalone admin center from the same API deployment.
-if (fs.existsSync(ADMIN_WEB_PATH)) {
-  app.use('/admin', express.static(ADMIN_WEB_PATH));
-}
 
 if (fs.existsSync(WEB_DIST_PATH)) {
   app.use(express.static(WEB_DIST_PATH));
