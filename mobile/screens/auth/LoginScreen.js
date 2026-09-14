@@ -20,7 +20,6 @@ import { Ionicons } from '@expo/vector-icons';
 import { COLORS } from '../../constants/colors';
 import { authService } from '../../services/authService';
 import PhoneInput from '../../components/PhoneInput';
-import useAppStore from '../../store/appStore';
 import { toE164 } from '../../utils/validation';
 
 const LoginScreen = ({ navigation, route }) => {
@@ -106,16 +105,6 @@ const LoginScreen = ({ navigation, route }) => {
           result?.message || 'بيانات الدخول غير صحيحة'
         );
 
-        return;
-      }
-
-      if (result.user?.role === 'admin' || result.user?.role === 'sub_admin') {
-        await useAppStore.getState().logout();
-        Alert.alert(
-          'تسجيل دخول الإدارة',
-          'استخدم موقع NOW Admin الجديد لتسجيل دخول الإدارة.'
-        );
-        navigation.replace('GuestHome');
         return;
       }
 

@@ -11,6 +11,12 @@
 // Exact phrase matches. Longest keys win when a fallback segment pass runs.
 
 const MISSING_ARABIC_FALLBACKS = [
+  "المستخدمون",
+  "المندوبون",
+  "تحديث البيانات",
+  "تعذر تحميل لوحة الإدارة",
+  "خروج",
+  "مدير النظام",
   "،",
   "أدخل الرمز المرسل إلى بريدك الإلكتروني",
   "أدخل رمز التحقق المكون من 6 أرقام",
