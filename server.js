@@ -2590,8 +2590,14 @@ app.post(
 
       const customerPoint = parseLatLng(req.body.latitude, req.body.longitude);
       const storePoint = parseLatLng(store.latitude, store.longitude);
-      if (!storePoint || !isWithinDeliveryRadius(customerPoint, storePoint)) {
-        return errorResponse(res, `المتجر خارج نطاق التوصيل (${DELIVERY_RADIUS_KM} كم)`, 422);
+      const outOfRange = !storePoint || !isWithinDeliveryRadius(customerPoint, storePoint);
+      if (outOfRange && req.body.allowOutOfRange !== true) {
+        return errorResponse(
+          res,
+          `موقع التوصيل خارج نطاق المتجر (${DELIVERY_RADIUS_KM} كم)`,
+          422,
+          { code: 'OUT_OF_DELIVERY_RANGE', requiresConfirmation: true }
+        );
       }
 
       let parsedScheduledAt = null;

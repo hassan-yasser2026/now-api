@@ -298,17 +298,24 @@ const OrderConfirmation = ({ route, navigation }) => {
       totalPrice: Number(finalTotal.toFixed(2)),
     };
 
-    setLoading(true);
-
-    try {
-      const result = await orderService.createOrder(orderData);
+    const submitOrder = async (allowOutOfRange = false) => {
+      setLoading(true);
+      const result = await orderService.createOrder({ ...orderData, allowOutOfRange });
 
       if (!result?.success) {
-        Alert.alert(
-          'لم يتم إنشاء الطلب',
-          result?.message ||
-            'تعذر إنشاء الطلب، حاول مرة أخرى'
-        );
+        setLoading(false);
+        if (result?.code === 'OUT_OF_DELIVERY_RANGE' || result?.message?.includes('خارج نطاق')) {
+          Alert.alert(
+            'الموقع خارج نطاق التوصيل',
+            `${result.message || 'موقع التوصيل بعيد عن المتجر'}\n\nيمكنك المتابعة وسيتم إرسال الطلب للمتجر للمراجعة والقبول أو الرفض.`,
+            [
+              { text: 'إلغاء الطلب', style: 'cancel' },
+              { text: 'متابعة وإرسال للمراجعة', onPress: () => submitOrder(true) },
+            ]
+          );
+        } else {
+          Alert.alert('لم يتم إنشاء الطلب', result?.message || 'تعذر إنشاء الطلب، حاول مرة أخرى');
+        }
         return;
       }
 
@@ -360,7 +367,12 @@ const OrderConfirmation = ({ route, navigation }) => {
           cancelable: false,
         }
       );
+    };
+
+    try {
+      await submitOrder();
     } catch (error) {
+      setLoading(false);
       console.error(
         'ORDER CONFIRMATION ERROR:',
         error
@@ -380,8 +392,6 @@ const OrderConfirmation = ({ route, navigation }) => {
       }
 
       Alert.alert('خطأ', message);
-    } finally {
-      setLoading(false);
     }
   }, [
     loading,

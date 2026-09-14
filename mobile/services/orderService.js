@@ -36,6 +36,7 @@ export const orderService = {
     longitude,
     scheduledAt,
     paymentMethod = 'CASH_ON_DELIVERY',
+    allowOutOfRange = false,
   }) => {
     try {
       if (!storeId) return { success: false, message: 'يجب اختيار المتجر' };
@@ -66,6 +67,7 @@ export const orderService = {
           ? { scheduledAt: scheduledDate.toISOString() }
           : {}),
         paymentMethod,
+        ...(allowOutOfRange ? { allowOutOfRange: true } : {}),
         items: items.map((item) => ({
           menuItemId: item.menuItemId || item.id,
           quantity: Number(item.quantity) || 1,
@@ -80,7 +82,11 @@ export const orderService = {
       };
     } catch (error) {
       console.error('CREATE ORDER ERROR:', error?.response?.data || error.message);
-      return { success: false, message: getErrorMessage(error, 'فشل إنشاء الطلب') };
+      return {
+        success: false,
+        message: getErrorMessage(error, 'فشل إنشاء الطلب'),
+        code: error?.response?.data?.code,
+      };
     }
   },
 
