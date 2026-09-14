@@ -1,4 +1,16 @@
-const API_URL = 'https://now-api-production-ca56.up.railway.app/api';
+const API_URL = (() => {
+  if (typeof window !== 'undefined' && /^https?:$/.test(window.location.protocol)) {
+    const localHosts = new Set(['localhost', '127.0.0.1']);
+    const isApiHost = localHosts.has(window.location.hostname)
+      || window.location.hostname === 'now-api-production-ca56.up.railway.app';
+
+    if (isApiHost) {
+      return `${window.location.origin}/api`;
+    }
+  }
+
+  return 'https://now-api-production-ca56.up.railway.app/api';
+})();
 const app = document.querySelector('#app');
 
 const state = {
