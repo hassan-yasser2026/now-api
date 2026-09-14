@@ -130,14 +130,16 @@ app.use(createRateLimiter({
   max: Number(process.env.RATE_LIMIT_MAX) || 300,
 }));
 
+const defaultOrigins = [
+  'https://now-api-production-ca56.up.railway.app',
+  'https://admin-now-wzto.vercel.app',
+  'http://localhost:8081',
+  'http://localhost:19006',
+  'http://127.0.0.1:8081',
+];
+
 const allowedOrigins = (() => {
   const corsOrigin = (process.env.CORS_ORIGIN || '').trim();
-  const defaultOrigins = [
-    'https://now-api-production-ca56.up.railway.app',
-    'http://localhost:8081',
-    'http://localhost:19006',
-    'http://127.0.0.1:8081',
-  ];
 
   if (!corsOrigin || corsOrigin === 'undefined') {
     return defaultOrigins;
@@ -154,12 +156,23 @@ const allowedOrigins = (() => {
   return corsOrigin
     .split(',')
     .map((origin) => origin.trim())
-    .filter(Boolean);
+    .filter(Boolean)
+    .concat(defaultOrigins.filter((origin) => !corsOrigin.includes(origin)));
 })();
+
+const isAllowedOrigin = (origin) => {
+  if (!origin) return true;
+  if (allowedOrigins === '*') return true;
+  if (allowedOrigins.includes(origin)) return true;
+  return /https:\/\/.*\.vercel\.app$/i.test(origin)
+    || /^http:\/\/localhost(?::\d+)?$/i.test(origin)
+    || /^http:\/\/127\.0\.0\.1(?::\d+)?$/i.test(origin);
+};
 
 console.info('[CORS CONFIG]', {
   allowedOrigins,
   credentials: false,
+  vercelPatternAllowed: true,
 });
 
 const adminTraceMiddleware = (req, res, next) => {
@@ -184,7 +197,13 @@ const adminTraceMiddleware = (req, res, next) => {
 
 app.use(
   cors({
-    origin: allowedOrigins,
+    origin: (origin, callback) => {
+      if (isAllowedOrigin(origin)) {
+        callback(null, true);
+        return;
+      }
+      callback(new Error(`Origin not allowed by CORS: ${origin || 'unknown'}`));
+    },
     methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
     allowedHeaders: ['Content-Type', 'Authorization'],
     credentials: false,
@@ -192,7 +211,13 @@ app.use(
 );
 
 app.options('*', cors({
-  origin: allowedOrigins,
+  origin: (origin, callback) => {
+    if (isAllowedOrigin(origin)) {
+      callback(null, true);
+      return;
+    }
+    callback(new Error(`Origin not allowed by CORS: ${origin || 'unknown'}`));
+  },
   methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
   allowedHeaders: ['Content-Type', 'Authorization'],
   credentials: false,
