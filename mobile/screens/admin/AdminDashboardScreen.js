@@ -564,7 +564,7 @@ const AdminDashboardScreen = () => {
       )}
       {subAdminForm && (
         <View style={styles.modalOverlay}>
-          <ScrollView contentContainerStyle={styles.modalScroll}>
+          <ScrollView style={styles.modalScrollView} contentContainerStyle={styles.modalScroll}>
             <View style={styles.modalCard}>
               <Text style={styles.modalTitle}>{subAdminForm.id ? 'تعديل مشرف' : 'إضافة مشرف جديد'}</Text>
               {[
@@ -587,7 +587,8 @@ const AdminDashboardScreen = () => {
               <Text style={styles.permissionTitle}>الصلاحيات المتاحة</Text>
               <View style={styles.permissionGrid}>
                 {permissionOptions.map(([value, label]) => {
-                  const selected = subAdminForm.permissions.includes(value);
+                  const selected = Array.isArray(subAdminForm.permissions)
+                    && subAdminForm.permissions.includes(value);
                   return (
                     <TouchableOpacity
                       key={value}
@@ -596,7 +597,7 @@ const AdminDashboardScreen = () => {
                         ...current,
                         permissions: selected
                           ? current.permissions.filter((permission) => permission !== value)
-                          : [...current.permissions, value],
+                          : [...(Array.isArray(current.permissions) ? current.permissions : []), value],
                       }))}
                     >
                       <Text style={selected ? styles.filterChipTextActive : styles.filterChipText}>{label}</Text>
@@ -705,7 +706,8 @@ const styles = StyleSheet.create({
   permissionGrid: { flexDirection: 'row-reverse', flexWrap: 'wrap', gap: 8 },
   permissionChip: { borderRadius: 10, backgroundColor: '#E8EEF3', paddingHorizontal: 10, paddingVertical: 9 },
   permissionChipActive: { backgroundColor: '#0B8FA3' },
-  modalScroll: { flexGrow: 1, justifyContent: 'center' },
+  modalScrollView: { flex: 1, width: '100%' },
+  modalScroll: { flexGrow: 1, justifyContent: 'center', paddingVertical: 20 },
 });
 
 export default AdminDashboardScreen;
