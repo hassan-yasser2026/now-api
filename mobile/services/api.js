@@ -1,53 +1,25 @@
-﻿import axios from 'axios';
+import axios from 'axios';
 import { Platform } from 'react-native';
-import Constants from 'expo-constants';
 import useAppStore from '../store/appStore';
 import { getAuthToken } from '../utils/authStorage';
 
 const PRODUCTION_API_URL = 'https://now-api-production-ca56.up.railway.app/api';
-
-const getLocalNetworkHost = () => {
-  const hostUri =
-    Constants?.expoConfig?.hostUri ||
-    Constants?.manifest?.debuggerHost ||
-    Constants?.manifest2?.extra?.expoGo?.debuggerHost;
-
-  if (!hostUri) {
-    return null;
-  }
-
-  const match = String(hostUri).match(/^([^:]+):/);
-  const host = match?.[1];
-
-  if (!host || host === 'localhost' || host === '127.0.0.1') {
-    return null;
-  }
-
-  return host;
-};
 
 const getApiBaseUrl = () => {
   const configuredUrl = process.env.EXPO_PUBLIC_API_URL?.trim();
 
   if (configuredUrl) {
     const isLocalUrl = /^https?:\/\/(localhost|127\.0\.0\.1)(?::\d+)?\b/i.test(configuredUrl);
-    if (Platform.OS === 'web' && process.env.NODE_ENV === 'production' && isLocalUrl) {
+    if (isLocalUrl) {
       return PRODUCTION_API_URL;
     }
     return configuredUrl.replace(/\/+$/, '');
   }
 
+  // A missing Expo URL must never send the installed mobile app to an
+  // unreachable emulator/LAN address. The online app uses Railway by default.
   if (Platform.OS === 'android' || Platform.OS === 'ios') {
-    const host = getLocalNetworkHost();
-    if (host) {
-      return `http://${host}:5000/api`;
-    }
-
-    if (Platform.OS === 'android') {
-      return 'http://10.0.2.2:5000/api';
-    }
-
-    return 'http://192.168.100.40:5000/api';
+    return PRODUCTION_API_URL;
   }
 
   if (Platform.OS === 'web' && !configuredUrl) {
