@@ -11,6 +11,7 @@
 // Exact phrase matches. Longest keys win when a fallback segment pass runs.
 
 const MISSING_ARABIC_FALLBACKS = [
+  "تعذر تحميل الصلاحيات",
   "إلغاء الطلب",
   "الموقع خارج نطاق التوصيل",
   "خارج نطاق",

@@ -35,22 +35,7 @@ const AdminDashboardScreen = () => {
   const [productForm, setProductForm] = useState(null);
   const [subAdminForm, setSubAdminForm] = useState(null);
   const [loading, setLoading] = useState(true);
-
-  const permissionOptions = [
-    ['users.read', 'عرض المستخدمين'],
-    ['users.update', 'تعديل المستخدمين'],
-    ['users.suspend', 'تفعيل وتعطيل المستخدمين'],
-    ['stores.read', 'عرض المتاجر'],
-    ['stores.update', 'إدارة المتاجر والمنتجات'],
-    ['stores.suspend', 'تفعيل وتعطيل المتاجر'],
-    ['orders.read', 'عرض الطلبات'],
-    ['delivery.read', 'إدارة التوصيل'],
-    ['finance.read', 'عرض المالية'],
-    ['notifications.read', 'عرض الإشعارات'],
-    ['notifications.write', 'إرسال الإشعارات'],
-    ['reports.read', 'عرض التقارير'],
-    ['audit.read', 'عرض سجل العمليات'],
-  ];
+  const [permissionOptions, setPermissionOptions] = useState([]);
 
   const loadDashboard = useCallback(async () => {
     setLoading(true);
@@ -61,6 +46,18 @@ const AdminDashboardScreen = () => {
       Alert.alert('تعذر تحميل لوحة الإدارة', error.response?.data?.message || 'حاول مرة أخرى');
     } finally {
       setLoading(false);
+    }
+  }, []);
+
+  const loadPermissions = useCallback(async () => {
+    try {
+      const response = await api.get('/admin/permissions');
+      const permissions = getPayload(response);
+      setPermissionOptions(Array.isArray(permissions)
+        ? permissions.map((permission) => [permission.name, permission.label])
+        : []);
+    } catch (error) {
+      Alert.alert('تعذر تحميل الصلاحيات', error.response?.data?.message || 'حاول مرة أخرى');
     }
   }, []);
 
@@ -116,6 +113,7 @@ const AdminDashboardScreen = () => {
   const loadSection = useCallback(async (name, params = {}) => {
     setSection(name);
     if (name === 'dashboard') return;
+    if (name === 'sub-admins') await loadPermissions();
     setSectionLoading(true);
     try {
       const response = await api.get(`/admin/${name}`, { params });
@@ -133,7 +131,7 @@ const AdminDashboardScreen = () => {
     } finally {
       setSectionLoading(false);
     }
-  }, []);
+  }, [loadPermissions]);
 
   const loadUsers = () => loadSection('users', {
     ...(userSearch.trim() ? { search: userSearch.trim() } : {}),
@@ -585,6 +583,23 @@ const AdminDashboardScreen = () => {
                 />
               ))}
               <Text style={styles.permissionTitle}>الصلاحيات المتاحة</Text>
+              <View style={styles.permissionActions}>
+                <TouchableOpacity
+                  style={styles.permissionAction}
+                  onPress={() => setSubAdminForm((current) => ({
+                    ...current,
+                    permissions: permissionOptions.map(([value]) => value),
+                  }))}
+                >
+                  <Text style={styles.permissionActionText}>تحديد الكل</Text>
+                </TouchableOpacity>
+                <TouchableOpacity
+                  style={styles.permissionAction}
+                  onPress={() => setSubAdminForm((current) => ({ ...current, permissions: [] }))}
+                >
+                  <Text style={styles.permissionActionText}>مسح الكل</Text>
+                </TouchableOpacity>
+              </View>
               <View style={styles.permissionGrid}>
                 {permissionOptions.map(([value, label]) => {
                   const selected = Array.isArray(subAdminForm.permissions)
@@ -703,6 +718,9 @@ const styles = StyleSheet.create({
   adminCardInfo: { flex: 1, alignItems: 'flex-end', marginLeft: 12 },
   permissionSummary: { color: '#0B8FA3', fontSize: 12, fontWeight: '700', marginTop: 5 },
   permissionTitle: { color: '#102A43', fontWeight: '800', textAlign: 'right', marginTop: 16, marginBottom: 8 },
+  permissionActions: { flexDirection: 'row-reverse', gap: 8, marginBottom: 8 },
+  permissionAction: { backgroundColor: '#E8EEF3', borderRadius: 8, paddingHorizontal: 10, paddingVertical: 7 },
+  permissionActionText: { color: '#0B8FA3', fontSize: 12, fontWeight: '800' },
   permissionGrid: { flexDirection: 'row-reverse', flexWrap: 'wrap', gap: 8 },
   permissionChip: { borderRadius: 10, backgroundColor: '#E8EEF3', paddingHorizontal: 10, paddingVertical: 9 },
   permissionChipActive: { backgroundColor: '#0B8FA3' },

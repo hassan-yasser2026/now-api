@@ -5716,6 +5716,30 @@ const serializeSubAdmin = (user) => ({
   ),
 });
 
+const ADMIN_PERMISSION_CATALOG = [
+  { name: 'users.read', label: 'عرض المستخدمين' },
+  { name: 'users.update', label: 'تعديل المستخدمين' },
+  { name: 'users.suspend', label: 'تفعيل وتعطيل المستخدمين' },
+  { name: 'stores.read', label: 'عرض المتاجر' },
+  { name: 'stores.update', label: 'إدارة المتاجر والمنتجات' },
+  { name: 'stores.suspend', label: 'تفعيل وتعطيل المتاجر' },
+  { name: 'orders.read', label: 'عرض الطلبات' },
+  { name: 'delivery.read', label: 'إدارة التوصيل' },
+  { name: 'finance.read', label: 'عرض المالية' },
+  { name: 'notifications.read', label: 'عرض الإشعارات' },
+  { name: 'notifications.write', label: 'إرسال الإشعارات' },
+  { name: 'reports.read', label: 'عرض التقارير' },
+  { name: 'audit.read', label: 'عرض سجل العمليات' },
+];
+const ADMIN_PERMISSION_NAMES = new Set(ADMIN_PERMISSION_CATALOG.map((permission) => permission.name));
+
+app.get(
+  '/api/admin/permissions',
+  authMiddleware,
+  roleMiddleware(ROLES.ADMIN),
+  (req, res) => successResponse(res, ADMIN_PERMISSION_CATALOG)
+);
+
 app.get(
   '/api/admin/sub-admins',
   authMiddleware,
@@ -5760,6 +5784,9 @@ app.post(
 
     if (permissions.length === 0) {
       return errorResponse(res, 'يجب اختيار صلاحية واحدة على الأقل', 422);
+    }
+    if (permissions.some((permission) => !ADMIN_PERMISSION_NAMES.has(permission))) {
+      return errorResponse(res, 'توجد صلاحية غير مدعومة في النظام', 422);
     }
 
     try {
@@ -5853,6 +5880,9 @@ app.patch(
 
     if (!userId || !name || !phone || permissions.length === 0) {
       return errorResponse(res, 'بيانات المشرف والصلاحيات غير مكتملة', 422);
+    }
+    if (permissions.some((permission) => !ADMIN_PERMISSION_NAMES.has(permission))) {
+      return errorResponse(res, 'توجد صلاحية غير مدعومة في النظام', 422);
     }
 
     if (password && !isValidPassword(password)) {
