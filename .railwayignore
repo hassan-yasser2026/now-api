@@ -2,9 +2,6 @@
 vercel.json
 .vercelignore
 
-# تجاهل المشروع mobile - نحن نشغل الـ API فقط
-/mobile
-
 # تجاهل الملفات الأخرى غير المهمة
 README.md
 *.md
