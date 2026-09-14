@@ -32,6 +32,7 @@ const AdminDashboardScreen = () => {
   const [notificationTitle, setNotificationTitle] = useState('');
   const [notificationBody, setNotificationBody] = useState('');
   const [notificationRole, setNotificationRole] = useState('');
+  const [productForm, setProductForm] = useState(null);
   const [loading, setLoading] = useState(true);
 
   const loadDashboard = useCallback(async () => {
@@ -64,6 +65,8 @@ const AdminDashboardScreen = () => {
         await api.patch(`/admin/stores/${item.id}`, { isOpen: action === 'store-open' });
       } else if (action === 'store-activate' || action === 'store-suspend') {
         await api.patch(`/admin/stores/${item.id}/${action === 'store-activate' ? 'activate' : 'suspend'}`);
+      } else if (action === 'product-toggle') {
+        await api.patch(`/admin/products/${item.id}`, { isAvailable: item.isAvailable === false });
       }
       Alert.alert('تم بنجاح', 'تم تنفيذ العملية بنجاح');
       await loadSection(section);
@@ -143,6 +146,36 @@ const AdminDashboardScreen = () => {
     }
   };
 
+  const saveProduct = async () => {
+    if (!productForm?.name?.trim() || !productForm?.storeId || !productForm?.originalPrice) {
+      Alert.alert('بيانات غير صالحة', 'اسم المنتج والمتجر والسعر الأصلي مطلوبة');
+      return;
+    }
+    setActionId('product-save');
+    try {
+      const payload = {
+        ...productForm,
+        name: productForm.name.trim(),
+        originalPrice: Number(productForm.originalPrice),
+        discountValue: Number(productForm.discountValue || 0),
+        storeId: Number(productForm.storeId),
+        isDemo: productForm.isDemo === true,
+      };
+      if (productForm.id) {
+        await api.patch(`/admin/products/${productForm.id}`, payload);
+      } else {
+        await api.post('/admin/products', payload);
+      }
+      setProductForm(null);
+      Alert.alert('تم بنجاح', 'تم حفظ المنتج');
+      await loadSection('products');
+    } catch (error) {
+      Alert.alert('تعذر حفظ المنتج', error.response?.data?.message || 'حدث خطأ');
+    } finally {
+      setActionId(null);
+    }
+  };
+
   useEffect(() => {
     loadDashboard();
   }, [loadDashboard]);
@@ -175,6 +208,7 @@ const AdminDashboardScreen = () => {
                 ['dashboard', 'الرئيسية'],
                 ['users', 'المستخدمون'],
                 ['stores', 'المتاجر'],
+                ['products', 'المنتجات'],
                 ['orders', 'الطلبات'],
                 ['delivery', 'التوصيل'],
                 ['reports', 'التقارير'],
@@ -212,6 +246,28 @@ const AdminDashboardScreen = () => {
               </>
             ) : sectionLoading ? (
               <ActivityIndicator size="large" color="#0B8FA3" style={styles.loader} />
+            ) : section === 'products' ? (
+              <View>
+                <TouchableOpacity style={styles.refreshButton} onPress={() => setProductForm({ name: '', storeId: '', originalPrice: '', discountValue: '', discountType: 'PERCENTAGE', isAvailable: true, isDemo: false })}>
+                  <Text style={styles.refreshText}>إضافة منتج</Text>
+                </TouchableOpacity>
+                {sectionData.map((item) => (
+                  <View key={item.id} style={styles.row}>
+                    <View style={styles.rowActions}>
+                      <TouchableOpacity style={styles.smallButton} onPress={() => setProductForm({ ...item, storeId: item.storeId || item.store?.id })}>
+                        <Text style={styles.smallButtonText}>تعديل</Text>
+                      </TouchableOpacity>
+                      <TouchableOpacity style={styles.resetButton} onPress={() => runAction(item, 'product-toggle')}>
+                        <Text style={styles.resetButtonText}>{item.isAvailable === false ? 'تفعيل' : 'تعطيل'}</Text>
+                      </TouchableOpacity>
+                    </View>
+                    <View>
+                      <Text style={styles.rowMeta}>{item.store?.name || `متجر #${item.storeId}`} {item.isDemo ? '• تجريبي' : ''}</Text>
+                      <Text style={styles.rowTitle}>{item.name}</Text>
+                    </View>
+                  </View>
+                ))}
+              </View>
             ) : section === 'notifications' ? (
               <View style={styles.notificationCard}>
                 <Text style={styles.modalTitle}>إرسال إشعار حقيقي</Text>
@@ -345,6 +401,43 @@ const AdminDashboardScreen = () => {
               </TouchableOpacity>
               <TouchableOpacity style={styles.smallButton} onPress={resetPassword} disabled={Boolean(actionId)}>
                 {actionId === `reset-${resetUser.id}` ? <ActivityIndicator color="#FFF" /> : <Text style={styles.smallButtonText}>حفظ</Text>}
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+      )}
+      {productForm && (
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalCard}>
+            <Text style={styles.modalTitle}>{productForm.id ? 'تعديل المنتج' : 'إضافة منتج'}</Text>
+            {[
+              ['name', 'اسم المنتج'],
+              ['storeId', 'رقم المتجر'],
+              ['originalPrice', 'السعر الأصلي'],
+              ['discountValue', 'قيمة الخصم'],
+              ['image', 'رابط الصورة'],
+            ].map(([key, placeholder]) => (
+              <TextInput
+                key={key}
+                style={styles.passwordInput}
+                value={String(productForm[key] ?? '')}
+                onChangeText={(value) => setProductForm((current) => ({ ...current, [key]: value }))}
+                placeholder={placeholder}
+                keyboardType={['storeId', 'originalPrice', 'discountValue'].includes(key) ? 'numeric' : 'default'}
+                textAlign="right"
+              />
+            ))}
+            <View style={styles.filterRow}>
+              <TouchableOpacity style={[styles.filterChip, productForm.isDemo && styles.filterChipActive]} onPress={() => setProductForm((current) => ({ ...current, isDemo: !current.isDemo }))}>
+                <Text style={productForm.isDemo ? styles.filterChipTextActive : styles.filterChipText}>منتج تجريبي</Text>
+              </TouchableOpacity>
+            </View>
+            <View style={styles.modalActions}>
+              <TouchableOpacity style={styles.cancelButton} onPress={() => setProductForm(null)}>
+                <Text>إلغاء</Text>
+              </TouchableOpacity>
+              <TouchableOpacity style={styles.smallButton} onPress={saveProduct} disabled={Boolean(actionId)}>
+                {actionId === 'product-save' ? <ActivityIndicator color="#FFF" /> : <Text style={styles.smallButtonText}>حفظ</Text>}
               </TouchableOpacity>
             </View>
           </View>

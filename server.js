@@ -1893,10 +1893,22 @@ app.get(
         },
       });
 
-      return successResponse(
-        res,
-        items
-      );
+      return successResponse(res, items.map((item) => {
+        const originalPrice = Number(item.originalPrice || item.price);
+        const discountValue = Number(item.discountValue || 0);
+        const effectivePrice = item.discountType === 'FIXED'
+          ? Math.max(0, originalPrice - discountValue)
+          : Math.max(0, originalPrice - (originalPrice * discountValue / 100));
+        return {
+          ...item,
+          price: Number(item.price),
+          originalPrice,
+          discountValue,
+          effectivePrice: Number(effectivePrice.toFixed(2)),
+          ratingAverage: item.demoRating ? Number(item.demoRating) : 0,
+          ratingCount: item.demoRating ? item.demoRatingCount : 0,
+        };
+      }));
     } catch (error) {
       return handlePrismaError(error, res);
     }
@@ -4402,7 +4414,7 @@ app.get(
       const roleCount = (name) => prisma.user.count({ where: { ...activeUserWhere, role: { name } } });
       const monthStart = new Date();
       monthStart.setDate(monthStart.getDate() - 30);
-      const [users, customers, admins, subAdmins, vendors, deliveries, orders, pendingOrders, activeOrders, completedOrders, cancelledOrders, stores, openStores, products, sales, commissions, recentOrders, recentUsers, recentActivities, orderHistory] = await Promise.all([
+      const [users, customers, admins, subAdmins, vendors, deliveries, orders, pendingOrders, activeOrders, completedOrders, cancelledOrders, stores, openStores, products, ratings, discounts, sales, commissions, recentOrders, recentUsers, recentActivities, orderHistory] = await Promise.all([
         prisma.user.count({ where: activeUserWhere }),
         roleCount(ROLES.CUSTOMER),
         roleCount(ROLES.ADMIN),
@@ -4416,7 +4428,9 @@ app.get(
         prisma.order.count({ where: { status: ORDER_STATUS.CANCELLED } }),
         prisma.store.count(),
         prisma.store.count({ where: { isOpen: true, isActive: true } }),
-        prisma.menuItem.count(),
+        prisma.menuItem.count({ where: { isDemo: false } }),
+        prisma.rating.count(),
+        prisma.offer.count({ where: { isActive: true } }),
         prisma.order.aggregate({ where: { status: ORDER_STATUS.DELIVERED }, _sum: { totalPrice: true } }),
         prisma.order.aggregate({ where: { status: ORDER_STATUS.DELIVERED }, _sum: { platformCommission: true } }),
         prisma.order.findMany({ take: 5, orderBy: { createdAt: 'desc' }, select: { id: true, status: true, totalPrice: true, createdAt: true, customer: { select: { name: true } }, store: { select: { name: true } } } }),
@@ -4443,6 +4457,8 @@ app.get(
         stores,
         openStores,
         products,
+        ratings,
+        discounts,
         orders,
         pendingOrders,
         activeOrders,
@@ -4929,6 +4945,157 @@ app.delete(
 // ============================================================
 // ADMIN ORDERS
 // ============================================================
+
+app.get(
+  '/api/admin/products',
+  authMiddleware,
+  adminPermissionMiddleware('stores.read'),
+  async (req, res) => {
+    try {
+      const products = await prisma.menuItem.findMany({
+        include: { store: { select: { id: true, name: true } } },
+        orderBy: [{ sortOrder: 'asc' }, { createdAt: 'desc' }],
+      });
+      return successResponse(res, products.map((item) => ({
+        ...item,
+        price: Number(item.price),
+        originalPrice: item.originalPrice === null ? null : Number(item.originalPrice),
+        discountValue: item.discountValue === null ? null : Number(item.discountValue),
+        demoRating: item.demoRating === null ? null : Number(item.demoRating),
+      })));
+    } catch (error) {
+      return handlePrismaError(error, res);
+    }
+  }
+);
+
+const normalizeProductPricing = (body) => {
+  const originalPrice = parsePositiveNumber(body.originalPrice ?? body.price);
+  if (originalPrice === null) return { error: 'السعر الأصلي غير صالح' };
+  const discountType = body.discountType === 'FIXED' ? 'FIXED' : 'PERCENTAGE';
+  const discountValue = body.discountValue === undefined || body.discountValue === ''
+    ? 0
+    : Number(body.discountValue);
+  if (!Number.isFinite(discountValue) || discountValue < 0) {
+    return { error: 'قيمة الخصم غير صالحة' };
+  }
+  if (discountType === 'PERCENTAGE' && discountValue > 100) {
+    return { error: 'نسبة الخصم لا يمكن أن تتجاوز 100%' };
+  }
+  if (discountType === 'FIXED' && discountValue > originalPrice) {
+    return { error: 'الخصم الثابت لا يمكن أن يتجاوز السعر' };
+  }
+  const price = discountType === 'FIXED'
+    ? originalPrice - discountValue
+    : originalPrice - (originalPrice * discountValue / 100);
+  return {
+    originalPrice,
+    discountType,
+    discountValue,
+    price: Number(price.toFixed(2)),
+  };
+};
+
+app.post(
+  '/api/admin/products',
+  authMiddleware,
+  adminPermissionMiddleware('stores.update'),
+  async (req, res) => {
+    const storeId = normalizeId(req.body.storeId);
+    const name = normalizeString(req.body.name);
+    const pricing = normalizeProductPricing(req.body);
+    if (!storeId || !name || pricing.error) {
+      return errorResponse(res, pricing.error || 'اسم المنتج والمتجر والسعر مطلوبة', 422);
+    }
+    const isDemo = req.body.isDemo === true;
+    const demoRating = isDemo ? Number(req.body.demoRating || 0) : null;
+    const demoRatingCount = isDemo ? Number(req.body.demoRatingCount || 0) : 0;
+    if (demoRating !== null && (!Number.isFinite(demoRating) || demoRating < 0 || demoRating > 5)) {
+      return errorResponse(res, 'التقييم التجريبي يجب أن يكون بين 0 و5', 422);
+    }
+    try {
+      const store = await prisma.store.findUnique({ where: { id: storeId }, select: { id: true } });
+      if (!store) return errorResponse(res, 'المتجر غير موجود', 404);
+      const item = await prisma.menuItem.create({
+        data: {
+          storeId,
+          name,
+          nameAr: normalizeString(req.body.nameAr) || null,
+          description: normalizeString(req.body.description) || null,
+          image: normalizeString(req.body.image) || null,
+          categoryId: normalizeId(req.body.categoryId) || null,
+          isAvailable: req.body.isAvailable !== false,
+          isDemo,
+          sortOrder: Number.isInteger(Number(req.body.sortOrder)) ? Number(req.body.sortOrder) : 0,
+          originalPrice: pricing.originalPrice,
+          price: pricing.price,
+          discountType: pricing.discountValue > 0 ? pricing.discountType : null,
+          discountValue: pricing.discountValue,
+          demoRating,
+          demoRatingCount,
+          approvalStatus: SUBMISSION_STATUS.APPROVED,
+        },
+      });
+      return successResponse(res, item, 201);
+    } catch (error) {
+      return handlePrismaError(error, res);
+    }
+  }
+);
+
+app.patch(
+  '/api/admin/products/:id',
+  authMiddleware,
+  adminPermissionMiddleware('stores.update'),
+  async (req, res) => {
+    const id = normalizeId(req.params.id);
+    if (!id) return errorResponse(res, 'رقم المنتج غير صالح', 422);
+    try {
+      const existing = await prisma.menuItem.findUnique({ where: { id } });
+      if (!existing) return errorResponse(res, 'المنتج غير موجود', 404);
+      const pricing = normalizeProductPricing({
+        originalPrice: req.body.originalPrice ?? existing.originalPrice ?? existing.price,
+        discountType: req.body.discountType ?? existing.discountType,
+        discountValue: req.body.discountValue ?? existing.discountValue ?? 0,
+      });
+      if (pricing.error) return errorResponse(res, pricing.error, 422);
+      const data = {
+        ...(req.body.name !== undefined ? { name: normalizeString(req.body.name) } : {}),
+        ...(req.body.nameAr !== undefined ? { nameAr: normalizeString(req.body.nameAr) || null } : {}),
+        ...(req.body.description !== undefined ? { description: normalizeString(req.body.description) || null } : {}),
+        ...(req.body.image !== undefined ? { image: normalizeString(req.body.image) || null } : {}),
+        ...(req.body.storeId !== undefined ? { storeId: normalizeId(req.body.storeId) } : {}),
+        ...(typeof req.body.isAvailable === 'boolean' ? { isAvailable: req.body.isAvailable } : {}),
+        ...(req.body.sortOrder !== undefined ? { sortOrder: Number(req.body.sortOrder) || 0 } : {}),
+        ...(req.body.isDemo !== undefined ? { isDemo: req.body.isDemo === true } : {}),
+        ...(req.body.demoRating !== undefined ? { demoRating: Number(req.body.demoRating) || null } : {}),
+        ...(req.body.demoRatingCount !== undefined ? { demoRatingCount: Number(req.body.demoRatingCount) || 0 } : {}),
+        ...pricing,
+      };
+      delete data.error;
+      const item = await prisma.menuItem.update({ where: { id }, data });
+      return successResponse(res, item);
+    } catch (error) {
+      return handlePrismaError(error, res);
+    }
+  }
+);
+
+app.delete(
+  '/api/admin/products/:id',
+  authMiddleware,
+  adminPermissionMiddleware('stores.update'),
+  async (req, res) => {
+    const id = normalizeId(req.params.id);
+    if (!id) return errorResponse(res, 'رقم المنتج غير صالح', 422);
+    try {
+      await prisma.menuItem.update({ where: { id }, data: { isAvailable: false } });
+      return successResponse(res, null, 200, { message: 'تم تعطيل المنتج' });
+    } catch (error) {
+      return handlePrismaError(error, res);
+    }
+  }
+);
 
 app.get(
   '/api/admin/orders',

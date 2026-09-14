@@ -341,6 +341,18 @@ export const AR_EN = {
   'عنوان ونص الإشعار مطلوبان': 'Notification title and body are required',
   'كل المستخدمين': 'All users',
   'نص الإشعار': 'Notification body',
+  '• تجريبي': '• Demo',
+  'اسم المنتج': 'Product name',
+  'اسم المنتج والمتجر والسعر الأصلي مطلوبة': 'Product name, store, and original price are required',
+  'إضافة منتج': 'Add product',
+  'السعر الأصلي': 'Original price',
+  'تعديل': 'Edit',
+  'تعديل المنتج': 'Edit product',
+  'تعذر حفظ المنتج': 'Failed to save product',
+  'تم حفظ المنتج': 'Product saved',
+  'رقم المتجر': 'Store ID',
+  'قيمة الخصم': 'Discount value',
+  'منتج تجريبي': 'Demo product',
   'الاسم والهاتف وكلمة مرور من 8 أحرف على الأقل مطلوبة':
     'Name, phone, and a password of at least 8 characters are required',
   'رقم الهاتف أو البريد الإلكتروني مستخدم بالفعل':
