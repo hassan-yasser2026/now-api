@@ -29,6 +29,9 @@ const AdminDashboardScreen = () => {
   const [userSearch, setUserSearch] = useState('');
   const [userRole, setUserRole] = useState('');
   const [userActive, setUserActive] = useState('');
+  const [notificationTitle, setNotificationTitle] = useState('');
+  const [notificationBody, setNotificationBody] = useState('');
+  const [notificationRole, setNotificationRole] = useState('');
   const [loading, setLoading] = useState(true);
 
   const loadDashboard = useCallback(async () => {
@@ -118,6 +121,28 @@ const AdminDashboardScreen = () => {
     ...(userActive ? { active: userActive } : {}),
   });
 
+  const sendNotification = async () => {
+    if (!notificationTitle.trim() || !notificationBody.trim()) {
+      Alert.alert('بيانات غير صالحة', 'عنوان ونص الإشعار مطلوبان');
+      return;
+    }
+    setActionId('notification');
+    try {
+      const response = await api.post('/admin/notifications/broadcast', {
+        title: notificationTitle.trim(),
+        body: notificationBody.trim(),
+        ...(notificationRole ? { role: notificationRole } : {}),
+      });
+      setNotificationTitle('');
+      setNotificationBody('');
+      Alert.alert('تم بنجاح', `تم إرسال الإشعار إلى ${getPayload(response).sent || 0} مستخدم`);
+    } catch (error) {
+      Alert.alert('تعذر الإرسال', error.response?.data?.message || 'حدث خطأ أثناء إرسال الإشعار');
+    } finally {
+      setActionId(null);
+    }
+  };
+
   useEffect(() => {
     loadDashboard();
   }, [loadDashboard]);
@@ -154,6 +179,7 @@ const AdminDashboardScreen = () => {
                 ['delivery', 'التوصيل'],
                 ['reports', 'التقارير'],
                 ['sub-admins', 'المشرفون الفرعيون'],
+                ['notifications', 'الإشعارات'],
               ].map(([name, label]) => (
                 <TouchableOpacity
                   key={name}
@@ -186,6 +212,42 @@ const AdminDashboardScreen = () => {
               </>
             ) : sectionLoading ? (
               <ActivityIndicator size="large" color="#0B8FA3" style={styles.loader} />
+            ) : section === 'notifications' ? (
+              <View style={styles.notificationCard}>
+                <Text style={styles.modalTitle}>إرسال إشعار حقيقي</Text>
+                <TextInput
+                  style={styles.filterInput}
+                  value={notificationTitle}
+                  onChangeText={setNotificationTitle}
+                  placeholder="عنوان الإشعار"
+                  textAlign="right"
+                  maxLength={120}
+                />
+                <TextInput
+                  style={[styles.filterInput, styles.notificationBody]}
+                  value={notificationBody}
+                  onChangeText={setNotificationBody}
+                  placeholder="نص الإشعار"
+                  textAlign="right"
+                  multiline
+                  maxLength={1000}
+                />
+                <View style={styles.filterRow}>
+                  {[
+                    ['', 'كل المستخدمين'],
+                    ['customer', 'العملاء'],
+                    ['vendor', 'البائعون'],
+                    ['delivery', 'المندوبون'],
+                  ].map(([value, label]) => (
+                    <TouchableOpacity key={value || 'all-notification'} style={[styles.filterChip, notificationRole === value && styles.filterChipActive]} onPress={() => setNotificationRole(value)}>
+                      <Text style={notificationRole === value ? styles.filterChipTextActive : styles.filterChipText}>{label}</Text>
+                    </TouchableOpacity>
+                  ))}
+                </View>
+                <TouchableOpacity style={styles.refreshButton} onPress={sendNotification} disabled={Boolean(actionId)}>
+                  {actionId === 'notification' ? <ActivityIndicator color="#FFF" /> : <Text style={styles.refreshText}>إرسال الإشعار</Text>}
+                </TouchableOpacity>
+              </View>
             ) : sectionData.length === 0 ? (
               <Text style={styles.empty}>لا توجد بيانات أو لا تملك الصلاحية</Text>
             ) : (
@@ -347,6 +409,8 @@ const styles = StyleSheet.create({
   filterChipActive: { backgroundColor: '#0B8FA3' },
   filterChipText: { color: '#52606D', fontSize: 12 },
   filterChipTextActive: { color: '#FFF', fontWeight: '700', fontSize: 12 },
+  notificationCard: { backgroundColor: '#FFF', borderRadius: 12, padding: 14 },
+  notificationBody: { minHeight: 100, marginTop: 10, textAlignVertical: 'top' },
 });
 
 export default AdminDashboardScreen;

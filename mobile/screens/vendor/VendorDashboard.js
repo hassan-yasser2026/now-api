@@ -46,7 +46,7 @@ const MENU_ITEMS = [
   { label: 'العروض والخصومات', icon: '🏷️', route: 'VendorOffers' },
   { label: 'المحفظة والأرباح', icon: '💰', route: 'VendorWallet' },
   { label: 'التقييمات', icon: '⭐', route: 'VendorRatings' },
-  { label: 'الدعم', icon: '💬', supportPhone: '01067254988' },
+  { label: 'الدعم', icon: '💬', support: true },
   { label: 'الإشعارات', icon: '🔔', route: 'VendorNotifications' },
   { label: 'الملف الشخصي', icon: '👤', route: 'VendorProfile' },
   { label: 'حالة المتجر', icon: '🟢', statusAction: true },
@@ -126,13 +126,13 @@ const VendorDashboard = ({ navigation }) => {
       return;
     }
 
-    if (item.supportPhone) {
+    if (item.support) {
       const whatsappNumber = CONFIG.SUPPORT_WHATSAPP.replace(/\D/g, '');
       Linking.openURL(`https://wa.me/${whatsappNumber}`);
       return;
     }
 
-    Alert.alert(item.label, 'هذا القسم سيكون متاحًا قريبًا.');
+    console.warn(`Unsupported vendor menu action: ${item.label}`);
   };
 
   const updateStoreStatus = async (isOpen) => {
