@@ -1677,6 +1677,16 @@ const DeliveryDashboard = ({ navigation }) => {
               <Ionicons name="person-circle-outline" size={30} color={COLORS.primary} />
             </TouchableOpacity>
 
+            <TouchableOpacity
+              style={styles.iconBubble}
+              onPress={handleLogout}
+              activeOpacity={0.9}
+              accessibilityRole="button"
+              accessibilityLabel="تسجيل الخروج"
+            >
+              <Ionicons name="log-out-outline" size={20} color={COLORS.primary} />
+            </TouchableOpacity>
+
             <View style={styles.userTag}>
               <Text style={styles.userTagText}>مندوب</Text>
               <Text style={styles.userName}>{user?.name || 'أحمد محمد'}</Text>

@@ -37,9 +37,17 @@ const CustomerHome = ({ navigation }) => {
     deliveryLocation,
     scheduledDate,
     setDeliveryLocation,
+    logout,
   } = useAppStore();
 
   const isRTL = language === 'ar' || I18nManager.isRTL;
+
+  const handleLogout = () => {
+    Alert.alert('تسجيل الخروج', 'هل أنت متأكد أنك تريد تسجيل الخروج؟', [
+      { text: 'إلغاء', style: 'cancel' },
+      { text: 'تسجيل الخروج', style: 'destructive', onPress: logout },
+    ]);
+  };
 
   const [stores, setStores] = useState([]);
   const [featuredItems, setFeaturedItems] = useState([]);
@@ -243,6 +251,17 @@ const CustomerHome = ({ navigation }) => {
                 activeOpacity={0.8}
               >
                 <Ionicons name="person-outline" size={20} color={HOME_ACCENT} />
+              </TouchableOpacity>
+            )}
+            {isAuthenticated && (
+              <TouchableOpacity
+                style={styles.profileButton}
+                onPress={handleLogout}
+                activeOpacity={0.8}
+                accessibilityRole="button"
+                accessibilityLabel="تسجيل الخروج"
+              >
+                <Ionicons name="log-out-outline" size={20} color={HOME_ACCENT} />
               </TouchableOpacity>
             )}
           </View>
