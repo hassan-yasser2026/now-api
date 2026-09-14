@@ -1,7 +1,6 @@
 import React, { useCallback, useMemo, useState } from 'react';
 import {
   Alert,
-  FlatList,
   Image,
   I18nManager,
   RefreshControl,
@@ -187,30 +186,6 @@ const CustomerHome = ({ navigation }) => {
     }
   }, [isGuest, navigation]);
 
-  const featuredOffers = [
-    {
-      id: 'offer-fast',
-      title: 'توصيل سريع',
-      subtitle: 'من المتاجر القريبة خلال 25 دقيقة',
-      gradient: ['#06B6D4', '#0891B2'],
-      icon: 'flash-outline',
-    },
-    {
-      id: 'offer-sale',
-      title: 'خصومات اليوم',
-      subtitle: 'وفر حتى 30% على طلباتك الأولى',
-      gradient: ['#22D3EE', '#06B6D4'],
-      icon: 'pricetag-outline',
-    },
-    {
-      id: 'offer-fresh',
-      title: 'مميز اليوم',
-      subtitle: 'أصناف طازجة ومميزة من أفضل المتاجر',
-      gradient: ['#14B8A6', '#0EA5E9'],
-      icon: 'sparkles-outline',
-    },
-  ];
-
   if (status === 'loading') {
     return <Loading text="جاري تحميل المتاجر..." />;
   }
@@ -375,33 +350,6 @@ const CustomerHome = ({ navigation }) => {
             {searchText ? 'لا توجد منتجات مطابقة للبحث' : 'المنتجات ستظهر هنا قريباً'}
           </Text>
         )}
-      </View>
-
-      <View style={styles.offersSection}>
-        <View style={styles.sectionHeader}>
-          <Text style={styles.sectionTitle}>عروض مميزة</Text>
-          <Ionicons name="sparkles-outline" size={20} color={HOME_ACCENT} />
-        </View>
-        <FlatList
-          horizontal
-          inverted={isRTL}
-          data={featuredOffers}
-          showsHorizontalScrollIndicator={false}
-          keyExtractor={(item) => item.id}
-          contentContainerStyle={styles.offersList}
-          renderItem={({ item }) => (
-            <View style={[styles.offerCard, { backgroundColor: item.gradient[0] }]}>
-              <View style={styles.offerGlow} />
-              <View style={styles.offerRow}>
-                <View style={styles.offerIconWrap}>
-                  <Ionicons name={item.icon} size={18} color="#fff" />
-                </View>
-                <Text style={styles.offerTitle}>{item.title}</Text>
-              </View>
-              <Text style={styles.offerSubtitle}>{item.subtitle}</Text>
-            </View>
-          )}
-        />
       </View>
 
       </ScrollView>

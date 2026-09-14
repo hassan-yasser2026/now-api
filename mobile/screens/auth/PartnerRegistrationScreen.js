@@ -95,8 +95,8 @@ const PartnerRegistrationScreen = ({ navigation, route }) => {
   };
 
   const handleSubmit = async () => {
-    if (!name.trim() || !phoneValid || password.length < 8 || !email.trim()) {
-      Alert.alert('تنبيه', 'كل البيانات الأساسية مطلوبة: الاسم والهاتف والبريد وكلمة مرور من 8 أحرف على الأقل');
+    if (!name.trim() || !phoneValid || password.length < 8) {
+      Alert.alert('تنبيه', 'الاسم والهاتف وكلمة مرور من 8 أحرف على الأقل مطلوبة');
       return;
     }
     if (role === 'vendor' && !storeName.trim()) {
@@ -255,7 +255,7 @@ const PartnerRegistrationScreen = ({ navigation, route }) => {
               <Ionicons name="mail-outline" size={20} color={selectedRole.color} />
               <TextInput
                 style={styles.input}
-                placeholder="البريد الإلكتروني (إجباري)"
+                placeholder="البريد الإلكتروني (اختياري)"
                 placeholderTextColor={COLORS.textLight}
                 keyboardType="email-address"
                 autoCapitalize="none"

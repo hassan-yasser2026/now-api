@@ -963,10 +963,6 @@ app.post('/api/auth/login', authRateLimiter, async (req, res) => {
       return errorResponse(res, `${suspensionMessage}.${openingMessage}`, 403);
     }
 
-    if (user.role.name === ROLES.CUSTOMER && !user.phoneVerified) {
-      return errorResponse(res, 'يجب تأكيد رقم الهاتف أولاً', 403);
-    }
-
     if (!user.isActive) {
       return errorResponse(
         res,
@@ -1154,20 +1150,6 @@ app.post('/api/auth/register', authRateLimiter, async (req, res) => {
   }
 
   const isCustomer = role === ROLES.CUSTOMER;
-  const phoneVerificationRequired = isCustomer && NODE_ENV === 'production';
-
-  if (phoneVerificationRequired && !isSmtpConfigured()) {
-    return errorResponse(
-      res,
-      'خدمة تأكيد رقم الهاتف غير متاحة حاليًا. يرجى المحاولة لاحقًا.',
-      503
-    );
-  }
-
-  if (phoneVerificationRequired && !email) {
-    return errorResponse(res, 'البريد الإلكتروني مطلوب لتأكيد رقم الهاتف', 400);
-  }
-
   const allowedRegistrationRoles = [
     ROLES.CUSTOMER,
     ROLES.VENDOR,
@@ -1265,7 +1247,7 @@ app.post('/api/auth/register', authRateLimiter, async (req, res) => {
             approvalStatus: isCustomer
               ? SUBMISSION_STATUS.APPROVED
               : SUBMISSION_STATUS.PENDING_ADMIN_REVIEW,
-            phoneVerified: !phoneVerificationRequired,
+            phoneVerified: true,
           },
         });
 
@@ -1289,48 +1271,6 @@ app.post('/api/auth/register', authRateLimiter, async (req, res) => {
         };
       }
     );
-
-    if (phoneVerificationRequired) {
-      const code = createOtp();
-      await prisma.otpVerification.create({
-        data: {
-          userId: result.user.id,
-          codeHash: await bcrypt.hash(code, 10),
-          expiresAt: new Date(Date.now() + 10 * 60 * 1000),
-        },
-      });
-      let delivered;
-      try {
-        delivered = await sendOtpEmail(email, code);
-      } catch (error) {
-        console.error('REGISTER OTP EMAIL ERROR:', {
-          code: error?.code,
-          message: error?.message,
-          responseCode: error?.responseCode,
-        });
-        await prisma.otpVerification.deleteMany({
-          where: { userId: result.user.id },
-        });
-        await prisma.user.delete({ where: { id: result.user.id } });
-        throw error;
-      }
-      return successResponse(
-        res,
-        {
-          pendingApproval: false,
-          phoneVerificationRequired: true,
-          otpDeliveryConfigured: delivered,
-          user: {
-            id: result.user.id,
-            name: result.user.name,
-            phone: result.user.phone,
-            role,
-            approvalStatus: result.user.approvalStatus,
-          },
-        },
-        201
-      );
-    }
 
     if (result.user.approvalStatus !== SUBMISSION_STATUS.APPROVED) {
       return successResponse(
