@@ -5020,6 +5020,13 @@ app.post(
     try {
       const store = await prisma.store.findUnique({ where: { id: storeId }, select: { id: true } });
       if (!store) return errorResponse(res, 'المتجر غير موجود', 404);
+      if (req.body.categoryId !== undefined && req.body.categoryId !== null && req.body.categoryId !== '') {
+        const category = await prisma.menuItemCategory.findFirst({
+          where: { id: normalizeId(req.body.categoryId), storeId },
+          select: { id: true },
+        });
+        if (!category) return errorResponse(res, 'التصنيف لا ينتمي إلى المتجر المحدد', 422);
+      }
       const item = await prisma.menuItem.create({
         data: {
           storeId,
@@ -5063,12 +5070,26 @@ app.patch(
         discountValue: req.body.discountValue ?? existing.discountValue ?? 0,
       });
       if (pricing.error) return errorResponse(res, pricing.error, 422);
+      const targetStoreId = req.body.storeId === undefined ? existing.storeId : normalizeId(req.body.storeId);
+      if (!targetStoreId) return errorResponse(res, 'المتجر غير صالح', 422);
+      if (req.body.storeId !== undefined) {
+        const store = await prisma.store.findUnique({ where: { id: targetStoreId }, select: { id: true } });
+        if (!store) return errorResponse(res, 'المتجر غير موجود', 404);
+      }
+      if (req.body.categoryId !== undefined && req.body.categoryId !== null && req.body.categoryId !== '') {
+        const category = await prisma.menuItemCategory.findFirst({
+          where: { id: normalizeId(req.body.categoryId), storeId: targetStoreId },
+          select: { id: true },
+        });
+        if (!category) return errorResponse(res, 'التصنيف لا ينتمي إلى المتجر المحدد', 422);
+      }
       const data = {
         ...(req.body.name !== undefined ? { name: normalizeString(req.body.name) } : {}),
         ...(req.body.nameAr !== undefined ? { nameAr: normalizeString(req.body.nameAr) || null } : {}),
         ...(req.body.description !== undefined ? { description: normalizeString(req.body.description) || null } : {}),
         ...(req.body.image !== undefined ? { image: normalizeString(req.body.image) || null } : {}),
         ...(req.body.storeId !== undefined ? { storeId: normalizeId(req.body.storeId) } : {}),
+        ...(req.body.categoryId !== undefined ? { categoryId: normalizeId(req.body.categoryId) || null } : {}),
         ...(typeof req.body.isAvailable === 'boolean' ? { isAvailable: req.body.isAvailable } : {}),
         ...(req.body.sortOrder !== undefined ? { sortOrder: Number(req.body.sortOrder) || 0 } : {}),
         ...(req.body.isDemo !== undefined ? { isDemo: req.body.isDemo === true } : {}),

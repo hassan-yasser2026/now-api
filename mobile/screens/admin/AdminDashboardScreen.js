@@ -316,13 +316,13 @@ const AdminDashboardScreen = () => {
               <ActivityIndicator size="large" color="#0B8FA3" style={styles.loader} />
             ) : section === 'products' ? (
               <View>
-                <TouchableOpacity style={styles.refreshButton} onPress={() => setProductForm({ name: '', storeId: '', originalPrice: '', discountValue: '', discountType: 'PERCENTAGE', isAvailable: true, isDemo: false })}>
+                <TouchableOpacity style={styles.refreshButton} onPress={() => setProductForm({ name: '', description: '', storeId: '', categoryId: '', originalPrice: '', discountValue: '', discountType: 'PERCENTAGE', image: '', isAvailable: true, isDemo: false })}>
                   <Text style={styles.refreshText}>إضافة منتج</Text>
                 </TouchableOpacity>
                 {sectionData.map((item) => (
                   <View key={item.id} style={styles.row}>
                     <View style={styles.rowActions}>
-                      <TouchableOpacity style={styles.smallButton} onPress={() => setProductForm({ ...item, storeId: item.storeId || item.store?.id })}>
+                      <TouchableOpacity style={styles.smallButton} onPress={() => setProductForm({ ...item, storeId: item.storeId || item.store?.id, categoryId: item.categoryId || '' })}>
                         <Text style={styles.smallButtonText}>تعديل</Text>
                       </TouchableOpacity>
                       <TouchableOpacity style={styles.resetButton} onPress={() => runAction(item, 'product-toggle')}>
@@ -529,7 +529,9 @@ const AdminDashboardScreen = () => {
             <Text style={styles.modalTitle}>{productForm.id ? 'تعديل المنتج' : 'إضافة منتج'}</Text>
             {[
               ['name', 'اسم المنتج'],
+              ['description', 'وصف المنتج'],
               ['storeId', 'رقم المتجر'],
+              ['categoryId', 'رقم التصنيف (اختياري)'],
               ['originalPrice', 'السعر الأصلي'],
               ['discountValue', 'قيمة الخصم'],
               ['image', 'رابط الصورة'],
