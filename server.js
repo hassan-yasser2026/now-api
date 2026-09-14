@@ -834,6 +834,10 @@ app.get('/api/health', async (req, res) => {
 // ============================================================
 
 app.get('/', (req, res) => {
+  if (fs.existsSync(path.join(WEB_DIST_PATH, 'index.html'))) {
+    return res.sendFile(path.join(WEB_DIST_PATH, 'index.html'));
+  }
+
   return successResponse(
     res,
     {
