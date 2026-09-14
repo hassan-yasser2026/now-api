@@ -33,7 +33,24 @@ const AdminDashboardScreen = () => {
   const [notificationBody, setNotificationBody] = useState('');
   const [notificationRole, setNotificationRole] = useState('');
   const [productForm, setProductForm] = useState(null);
+  const [subAdminForm, setSubAdminForm] = useState(null);
   const [loading, setLoading] = useState(true);
+
+  const permissionOptions = [
+    ['users.read', 'عرض المستخدمين'],
+    ['users.update', 'تعديل المستخدمين'],
+    ['users.suspend', 'تفعيل وتعطيل المستخدمين'],
+    ['stores.read', 'عرض المتاجر'],
+    ['stores.update', 'إدارة المتاجر والمنتجات'],
+    ['stores.suspend', 'تفعيل وتعطيل المتاجر'],
+    ['orders.read', 'عرض الطلبات'],
+    ['delivery.read', 'إدارة التوصيل'],
+    ['finance.read', 'عرض المالية'],
+    ['notifications.read', 'عرض الإشعارات'],
+    ['notifications.write', 'إرسال الإشعارات'],
+    ['reports.read', 'عرض التقارير'],
+    ['audit.read', 'عرض سجل العمليات'],
+  ];
 
   const loadDashboard = useCallback(async () => {
     setLoading(true);
@@ -161,6 +178,57 @@ const AdminDashboardScreen = () => {
         storeId: Number(productForm.storeId),
         isDemo: productForm.isDemo === true,
       };
+
+      const saveSubAdmin = async () => {
+        if (!subAdminForm?.name?.trim() || !subAdminForm?.phone?.trim()) {
+          Alert.alert('بيانات غير صالحة', 'اسم المشرف ورقم الهاتف مطلوبان');
+          return;
+        }
+        if (!subAdminForm.id && (!subAdminForm.password || subAdminForm.password.length < 8)) {
+          Alert.alert('بيانات غير صالحة', 'كلمة المرور يجب أن تكون 8 أحرف على الأقل');
+          return;
+        }
+        if (!subAdminForm.permissions?.length) {
+          Alert.alert('بيانات غير صالحة', 'اختر صلاحية واحدة على الأقل');
+          return;
+        }
+
+        setActionId('sub-admin-save');
+        try {
+          const payload = {
+            name: subAdminForm.name.trim(),
+            phone: subAdminForm.phone.trim(),
+            email: subAdminForm.email?.trim() || '',
+            permissions: subAdminForm.permissions,
+            ...(subAdminForm.password ? { password: subAdminForm.password } : {}),
+          };
+          if (subAdminForm.id) {
+            await api.patch(`/admin/sub-admins/${subAdminForm.id}`, payload);
+          } else {
+            await api.post('/admin/sub-admins', payload);
+          }
+          setSubAdminForm(null);
+          Alert.alert('تم بنجاح', 'تم حفظ بيانات المشرف والصلاحيات');
+          await loadSection('sub-admins');
+        } catch (error) {
+          Alert.alert('تعذر حفظ المشرف', error.response?.data?.message || 'حدث خطأ أثناء حفظ البيانات');
+        } finally {
+          setActionId(null);
+        }
+      };
+
+      const toggleSubAdmin = async (item) => {
+        setActionId(`sub-admin-toggle-${item.id}`);
+        try {
+          await api.patch(`/admin/sub-admins/${item.id}`, { isActive: item.isActive === false });
+          Alert.alert('تم بنجاح', item.isActive === false ? 'تم تفعيل المشرف' : 'تم تعطيل المشرف');
+          await loadSection('sub-admins');
+        } catch (error) {
+          Alert.alert('تعذر تحديث الحالة', error.response?.data?.message || 'حدث خطأ');
+        } finally {
+          setActionId(null);
+        }
+      };
       if (productForm.id) {
         await api.patch(`/admin/products/${productForm.id}`, payload);
       } else {
@@ -264,6 +332,55 @@ const AdminDashboardScreen = () => {
                     <View>
                       <Text style={styles.rowMeta}>{item.store?.name || `متجر #${item.storeId}`} {item.isDemo ? '• تجريبي' : ''}</Text>
                       <Text style={styles.rowTitle}>{item.name}</Text>
+                    </View>
+                  </View>
+                ))}
+              </View>
+            ) : section === 'sub-admins' ? (
+              <View>
+                <View style={styles.sectionHeading}>
+                  <View>
+                    <Text style={styles.sectionTitle}>إدارة المشرفين</Text>
+                    <Text style={styles.sectionDescription}>أنشئ حسابات المشرفين وحدد صلاحياتهم بدقة</Text>
+                  </View>
+                  <TouchableOpacity
+                    style={styles.primaryAction}
+                    onPress={() => setSubAdminForm({ name: '', phone: '', email: '', password: '', permissions: [] })}
+                  >
+                    <Text style={styles.primaryActionText}>إضافة مشرف</Text>
+                  </TouchableOpacity>
+                </View>
+                {sectionData.map((item) => (
+                  <View key={item.id} style={styles.adminCard}>
+                    <View style={styles.rowActions}>
+                      <TouchableOpacity
+                        style={styles.smallButton}
+                        onPress={() => setSubAdminForm({
+                          ...item,
+                          password: '',
+                          permissions: item.permissions || [],
+                        })}
+                      >
+                        <Text style={styles.smallButtonText}>تعديل</Text>
+                      </TouchableOpacity>
+                      <TouchableOpacity
+                        style={styles.resetButton}
+                        onPress={() => toggleSubAdmin(item)}
+                        disabled={Boolean(actionId)}
+                      >
+                        {actionId === `sub-admin-toggle-${item.id}` ? (
+                          <ActivityIndicator size="small" color="#52606D" />
+                        ) : (
+                          <Text style={styles.resetButtonText}>{item.isActive === false ? 'تفعيل' : 'تعطيل'}</Text>
+                        )}
+                      </TouchableOpacity>
+                    </View>
+                    <View style={styles.adminCardInfo}>
+                      <Text style={styles.rowTitle}>{item.name}</Text>
+                      <Text style={styles.rowMeta}>{item.phone}{item.email ? ` • ${item.email}` : ''}</Text>
+                      <Text style={styles.permissionSummary}>
+                        {item.isActive === false ? 'غير نشط' : 'نشط'} • {item.permissions?.length || 0} صلاحيات
+                      </Text>
                     </View>
                   </View>
                 ))}
@@ -443,6 +560,60 @@ const AdminDashboardScreen = () => {
           </View>
         </View>
       )}
+      {subAdminForm && (
+        <View style={styles.modalOverlay}>
+          <ScrollView contentContainerStyle={styles.modalScroll}>
+            <View style={styles.modalCard}>
+              <Text style={styles.modalTitle}>{subAdminForm.id ? 'تعديل مشرف' : 'إضافة مشرف جديد'}</Text>
+              {[
+                ['name', 'اسم المشرف'],
+                ['phone', 'رقم الهاتف'],
+                ['email', 'البريد الإلكتروني (اختياري)'],
+                ...(!subAdminForm.id ? [['password', 'كلمة المرور']] : []),
+              ].map(([key, placeholder]) => (
+                <TextInput
+                  key={key}
+                  style={styles.passwordInput}
+                  value={String(subAdminForm[key] ?? '')}
+                  onChangeText={(value) => setSubAdminForm((current) => ({ ...current, [key]: value }))}
+                  placeholder={placeholder}
+                  secureTextEntry={key === 'password'}
+                  keyboardType={key === 'phone' ? 'phone-pad' : 'default'}
+                  textAlign="right"
+                />
+              ))}
+              <Text style={styles.permissionTitle}>الصلاحيات المتاحة</Text>
+              <View style={styles.permissionGrid}>
+                {permissionOptions.map(([value, label]) => {
+                  const selected = subAdminForm.permissions.includes(value);
+                  return (
+                    <TouchableOpacity
+                      key={value}
+                      style={[styles.permissionChip, selected && styles.permissionChipActive]}
+                      onPress={() => setSubAdminForm((current) => ({
+                        ...current,
+                        permissions: selected
+                          ? current.permissions.filter((permission) => permission !== value)
+                          : [...current.permissions, value],
+                      }))}
+                    >
+                      <Text style={selected ? styles.filterChipTextActive : styles.filterChipText}>{label}</Text>
+                    </TouchableOpacity>
+                  );
+                })}
+              </View>
+              <View style={styles.modalActions}>
+                <TouchableOpacity style={styles.cancelButton} onPress={() => setSubAdminForm(null)}>
+                  <Text>إلغاء</Text>
+                </TouchableOpacity>
+                <TouchableOpacity style={styles.smallButton} onPress={saveSubAdmin} disabled={Boolean(actionId)}>
+                  {actionId === 'sub-admin-save' ? <ActivityIndicator color="#FFF" /> : <Text style={styles.smallButtonText}>حفظ المشرف</Text>}
+                </TouchableOpacity>
+              </View>
+            </View>
+          </ScrollView>
+        </View>
+      )}
     </SafeAreaView>
   );
 };
@@ -504,6 +675,35 @@ const styles = StyleSheet.create({
   filterChipTextActive: { color: '#FFF', fontWeight: '700', fontSize: 12 },
   notificationCard: { backgroundColor: '#FFF', borderRadius: 12, padding: 14 },
   notificationBody: { minHeight: 100, marginTop: 10, textAlignVertical: 'top' },
+  sectionHeading: {
+    flexDirection: 'row-reverse',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    backgroundColor: '#FFF',
+    borderRadius: 16,
+    padding: 16,
+    marginBottom: 12,
+  },
+  sectionTitle: { color: '#102A43', fontSize: 18, fontWeight: '800', textAlign: 'right' },
+  sectionDescription: { color: '#6B7C93', fontSize: 12, marginTop: 5, textAlign: 'right' },
+  primaryAction: { backgroundColor: '#0B8FA3', borderRadius: 10, paddingHorizontal: 12, paddingVertical: 10 },
+  primaryActionText: { color: '#FFF', fontWeight: '800', fontSize: 12 },
+  adminCard: {
+    flexDirection: 'row-reverse',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    backgroundColor: '#FFF',
+    borderRadius: 14,
+    padding: 14,
+    marginBottom: 8,
+  },
+  adminCardInfo: { flex: 1, alignItems: 'flex-end', marginLeft: 12 },
+  permissionSummary: { color: '#0B8FA3', fontSize: 12, fontWeight: '700', marginTop: 5 },
+  permissionTitle: { color: '#102A43', fontWeight: '800', textAlign: 'right', marginTop: 16, marginBottom: 8 },
+  permissionGrid: { flexDirection: 'row-reverse', flexWrap: 'wrap', gap: 8 },
+  permissionChip: { borderRadius: 10, backgroundColor: '#E8EEF3', paddingHorizontal: 10, paddingVertical: 9 },
+  permissionChipActive: { backgroundColor: '#0B8FA3' },
+  modalScroll: { flexGrow: 1, justifyContent: 'center' },
 });
 
 export default AdminDashboardScreen;
