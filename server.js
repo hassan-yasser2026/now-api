@@ -3050,6 +3050,7 @@ app.post(
   roleMiddleware(ROLES.CUSTOMER),
   async (req, res) => {
     const orderId = normalizeId(req.params.orderId);
+    const menuItemId = req.body?.menuItemId === undefined ? null : normalizeId(req.body.menuItemId);
     const stars = Number(req.body?.stars);
     const comment = typeof req.body?.comment === 'string' ? req.body.comment.trim() : null;
     if (!orderId || !Number.isInteger(stars) || stars < 1 || stars > 5) {
@@ -3059,14 +3060,17 @@ app.post(
     try {
       const order = await prisma.order.findFirst({
         where: { id: orderId, customerId: req.user.userId },
-        select: { storeId: true, status: true },
+        select: { storeId: true, status: true, items: { select: { menuItemId: true } } },
       });
       if (!order) return errorResponse(res, 'الطلب غير موجود', 404);
       if (order.status !== ORDER_STATUS.DELIVERED) {
         return errorResponse(res, 'يمكن تقييم الطلبات التي تم توصيلها فقط', 400);
       }
+      if (menuItemId && !order.items.some((item) => item.menuItemId === menuItemId)) {
+        return errorResponse(res, 'المنتج غير موجود في هذا الطلب', 403);
+      }
       const rating = await prisma.rating.create({
-        data: { orderId, customerId: req.user.userId, storeId: order.storeId, stars, comment: comment || null },
+        data: { orderId, customerId: req.user.userId, storeId: order.storeId, menuItemId, stars, comment: comment || null },
       });
       return successResponse(res, rating, 201, { message: 'تم إرسال تقييمك بنجاح' });
     } catch (error) {
@@ -5319,10 +5323,27 @@ app.get(
         include: {
           customer: { select: { id: true, name: true, phone: true } },
           store: { select: { id: true, name: true } },
+          menuItem: { select: { id: true, name: true } },
           order: { select: { id: true, status: true } },
         },
       });
       return successResponse(res, ratings);
+    } catch (error) {
+      return handlePrismaError(error, res);
+    }
+  }
+);
+
+app.delete(
+  '/api/admin/ratings/:id',
+  authMiddleware,
+  adminPermissionMiddleware('reports.read'),
+  async (req, res) => {
+    const id = normalizeId(req.params.id);
+    if (!id) return errorResponse(res, 'رقم التقييم غير صالح', 422);
+    try {
+      await prisma.rating.delete({ where: { id } });
+      return successResponse(res, null, 200, { message: 'تم حذف التقييم' });
     } catch (error) {
       return handlePrismaError(error, res);
     }
