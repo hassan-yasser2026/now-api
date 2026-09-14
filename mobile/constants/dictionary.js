@@ -11,6 +11,7 @@
 // Exact phrase matches. Longest keys win when a fallback segment pass runs.
 
 const MISSING_ARABIC_FALLBACKS = [
+  "اكتب عنوان التوصيل بالتفصيل",
   "رقم التصنيف (اختياري)",
   "وصف المنتج",
   "اختر صلاحية واحدة على الأقل",

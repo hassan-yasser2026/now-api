@@ -918,8 +918,12 @@ const OrderConfirmation = ({ route, navigation }) => {
         visible={mapPickerVisible}
         title="تحديد موقع التوصيل"
         initial={deliveryPoint}
+        initialAddress={address}
         showSchedule={false}
-        onConfirm={setDeliveryPoint}
+        onConfirm={(point, selectedAddress) => {
+          setDeliveryPoint(point);
+          if (selectedAddress) setAddress(selectedAddress);
+        }}
         onClose={() => setMapPickerVisible(false)}
       />
 

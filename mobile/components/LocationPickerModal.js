@@ -1,10 +1,11 @@
-import React, { useRef, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import {
   ActivityIndicator,
   Alert,
   Modal,
   StyleSheet,
   Text,
+  TextInput,
   TouchableOpacity,
   View,
 } from 'react-native';
@@ -26,6 +27,7 @@ const LocationPickerModal = ({
   visible,
   title = 'تحديد الموقع على الخريطة',
   initial,
+  initialAddress = '',
   onConfirm,
   onClose,
   showSchedule = true,
@@ -35,10 +37,15 @@ const LocationPickerModal = ({
   const setScheduledDate = useAppStore((state) => state.setScheduledDate);
 
   const [picked, setPicked] = useState(null);
+  const [address, setAddress] = useState(initialAddress);
   const [locating, setLocating] = useState(false);
   const [dateText, setDateText] = useState('');
   const [timeText, setTimeText] = useState('');
   const [activePicker, setActivePicker] = useState(null);
+
+  useEffect(() => {
+    if (visible) setAddress(initialAddress);
+  }, [initialAddress, visible]);
 
   const initialPoint =
     initial &&
@@ -107,7 +114,7 @@ const LocationPickerModal = ({
       setScheduledDate(selectedDate.toISOString());
     }
 
-    onConfirm?.(current);
+    onConfirm?.(current, address.trim());
     setPicked(null);
     onClose?.();
   };
@@ -135,6 +142,19 @@ const LocationPickerModal = ({
         <Text style={styles.hint}>
           اضغط على الخريطة أو اسحب العلامة لتحديد الموقع بدقة
         </Text>
+
+        <TextInput
+          style={styles.addressInput}
+          value={address}
+          onChangeText={setAddress}
+          placeholder="اكتب عنوان التوصيل بالتفصيل"
+          placeholderTextColor={COLORS.textSecondary}
+          multiline
+          maxLength={500}
+          textAlign="right"
+          textAlignVertical="top"
+          editable={!locating}
+        />
 
         <LocationMap
           picker
@@ -246,6 +266,18 @@ const styles = StyleSheet.create({
     color: COLORS.textSecondary,
     marginBottom: 8,
     paddingHorizontal: 16,
+  },
+  addressInput: {
+    minHeight: 74,
+    marginHorizontal: 16,
+    marginBottom: 10,
+    padding: 12,
+    borderWidth: 1,
+    borderColor: COLORS.border,
+    borderRadius: 12,
+    backgroundColor: COLORS.surface,
+    color: COLORS.textPrimary,
+    fontSize: 15,
   },
   map: { flex: 1, marginHorizontal: 12, height: undefined },
   footer: {
