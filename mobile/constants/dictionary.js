@@ -309,6 +309,12 @@ const MISSING_ARABIC_FALLBACKS = [
   "مرفوض",
   "مرفوض من الإدارة",
   "مستخدم NOW",
+  "إرسال إشعار حقيقي",
+  "إرسال الإشعار",
+  "حدث خطأ أثناء إرسال الإشعار",
+  "عنوان الإشعار",
+  "عنوان ونص الإشعار مطلوبان",
+  "كل المستخدمين",
   "منتج",
   "منتجات مقترحة",
   "موعد الطلب",
@@ -328,6 +334,13 @@ export const AR_EN = {
   'الخدمة غير متاحة حاليًا. حاول مرة أخرى لاحقًا':
     'The service is currently unavailable. Please try again later',
   'بيانات التسجيل غير صحيحة': 'The registration data is invalid',
+  'إرسال إشعار حقيقي': 'Send a real notification',
+  'إرسال الإشعار': 'Send notification',
+  'حدث خطأ أثناء إرسال الإشعار': 'Failed to send notification',
+  'عنوان الإشعار': 'Notification title',
+  'عنوان ونص الإشعار مطلوبان': 'Notification title and body are required',
+  'كل المستخدمين': 'All users',
+  'نص الإشعار': 'Notification body',
   'رقم الهاتف أو البريد الإلكتروني مستخدم بالفعل':
     'The phone number or email is already in use',
   // ---------------------------------------------------------------- branding
