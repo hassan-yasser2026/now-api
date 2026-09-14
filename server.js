@@ -25,7 +25,10 @@ const prisma = new PrismaClient();
 
 const PORT = Number.parseInt(process.env.PORT, 10) || 5000;
 const NODE_ENV = process.env.NODE_ENV || 'development';
-const WEB_DIST_PATH = path.join(__dirname, 'dist');
+const WEB_DIST_PATH = [
+  path.join(__dirname, 'dist'),
+  path.join(__dirname, 'mobile', 'dist'),
+].find((candidate) => fs.existsSync(candidate)) || path.join(__dirname, 'dist');
 const ADMIN_WEB_PATH = path.join(__dirname, 'admin-web');
 
 const JWT_SECRET = process.env.JWT_SECRET;
