@@ -7,6 +7,7 @@ import PartnerEntryScreen from '../screens/auth/PartnerEntryScreen';
 import AboutScreen from '../screens/auth/AboutScreen';
 import CustomerHome from '../screens/customer/CustomerHome';
 import StoreMenu from '../screens/customer/StoreMenu';
+import ProductDetails from '../screens/customer/ProductDetails';
 import SearchScreen from '../screens/customer/SearchScreen';
 import SettingsScreen from '../screens/customer/SettingsScreen';
 import DeliverySchedule from '../screens/customer/DeliverySchedule';
@@ -29,6 +30,7 @@ const AuthNavigator = () => {
       <Stack.Screen name="About" component={AboutScreen} />
       <Stack.Screen name="GuestHome" component={CustomerHome} />
       <Stack.Screen name="StoreMenu" component={StoreMenu} />
+      <Stack.Screen name="ProductDetails" component={ProductDetails} />
       <Stack.Screen name="Search" component={SearchScreen} />
       <Stack.Screen name="Settings" component={SettingsScreen} />
       <Stack.Screen name="DeliverySchedule" component={DeliverySchedule} />

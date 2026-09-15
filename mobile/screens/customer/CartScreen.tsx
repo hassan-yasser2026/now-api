@@ -59,6 +59,9 @@ const CartScreen: React.FC<CartScreenProps> = ({ navigation }) => {
       <View style={styles.itemInfo}>
         <Text style={styles.itemName}>{item.name}</Text>
         <Text style={styles.itemPrice}>{Number(item.price).toFixed(2)} ج.م</Text>
+        {Number(item.discountValue || 0) > 0 && Number(item.originalPrice) > Number(item.price) ? (
+          <Text style={styles.itemOriginalPrice}>{Number(item.originalPrice).toFixed(2)} ج.م</Text>
+        ) : null}
       </View>
 
       <View style={styles.itemActions}>
@@ -213,6 +216,11 @@ const styles = StyleSheet.create({
     fontSize: 15,
     fontWeight: '700',
     color: COLORS.primary,
+  },
+  itemOriginalPrice: {
+    fontSize: 12,
+    color: COLORS.textSecondary,
+    textDecorationLine: 'line-through',
   },
   itemActions: {
     flexDirection: 'row',

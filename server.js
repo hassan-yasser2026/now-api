@@ -361,6 +361,17 @@ const SUBMISSION_STATUS = {
 
 const OFFER_DISCOUNT_TYPES = ['PERCENTAGE', 'FIXED'];
 
+const ADMIN_PERMISSION_ALIASES = {
+  'products.read': ['stores.read'],
+  'products.write': ['stores.update'],
+  'ratings.read': ['reports.read'],
+  'ratings.delete': ['ratings.write', 'reports.read'],
+  'complaints.read': ['reports.read'],
+  'support.read': ['complaints.read', 'reports.read'],
+  'support.reply': ['complaints.write', 'complaints.read', 'reports.read'],
+  'support.status': ['complaints.write', 'complaints.read', 'reports.read'],
+};
+
 // ============================================================
 // Helpers
 // ============================================================
@@ -381,6 +392,20 @@ const normalizeString = (value) => {
   }
 
   return value.trim();
+};
+
+const notificationRequests = new Map();
+const auditAdminAction = async (req, action, entity, entityId, metadata = undefined) => {
+  await prisma.auditLog.create({
+    data: {
+      actorId: req.user?.userId || null,
+      action,
+      entity,
+      entityId: entityId == null ? null : String(entityId),
+      metadata,
+      ipAddress: req.ip || null,
+    },
+  });
 };
 
 // Accepts a latitude or longitude value and returns a bounded number or null.
@@ -709,10 +734,16 @@ const adminPermissionMiddleware = (permissionName) => {
     }
 
     try {
+      // Keep the original store/report permissions backwards compatible while
+      // allowing the Admin API to expose independent section permissions.
+      const acceptedPermissionNames = [
+        permissionName,
+        ...(ADMIN_PERMISSION_ALIASES[permissionName] || []),
+      ];
       const permission = await prisma.subAdminPermission.findFirst({
         where: {
           subAdminId: req.user.userId,
-          permission: { name: permissionName },
+          permission: { name: { in: acceptedPermissionNames } },
         },
         select: { subAdminId: true },
       });
@@ -1643,6 +1674,17 @@ app.get(
           },
           menuItems: {
             where: { approvalStatus: SUBMISSION_STATUS.APPROVED },
+            include: {
+              ratings: {
+                select: {
+                  stars: true,
+                  comment: true,
+                  createdAt: true,
+                  customer: { select: { name: true } },
+                },
+                orderBy: { createdAt: 'desc' },
+              },
+            },
           },
           offers: {
             where: {
@@ -1665,8 +1707,40 @@ app.get(
 
       const totalRating = store.ratings.reduce((sum, rating) => sum + rating.stars, 0);
       const { ratings, ...storeData } = store;
+      const menuItems = storeData.menuItems.map((item) => {
+        const itemRatings = item.ratings || [];
+        const originalPrice = Number(item.originalPrice ?? item.price);
+        const discountValue = Number(item.discountValue || 0);
+        const effectivePrice = Number(item.price);
+        const { ratings: ignoredRatings, ...itemData } = item;
+        return {
+          ...itemData,
+          price: effectivePrice,
+          originalPrice,
+          discountValue,
+          discountPercentage: item.discountType === 'PERCENTAGE' ? discountValue : (
+            originalPrice > 0 ? Number(((discountValue / originalPrice) * 100).toFixed(2)) : 0
+          ),
+          discount: discountValue > 0 ? {
+            type: item.discountType || 'PERCENTAGE',
+            value: discountValue,
+          } : null,
+          averageRating: itemRatings.length
+            ? Number((itemRatings.reduce((sum, rating) => sum + rating.stars, 0) / itemRatings.length).toFixed(1))
+            : 0,
+          ratingsCount: itemRatings.length,
+          ratingDetails: itemRatings.map((rating) => ({
+            stars: rating.stars,
+            comment: rating.comment,
+            createdAt: rating.createdAt,
+            customerName: rating.customer?.name || null,
+          })),
+          isAvailable: Boolean(item.isAvailable),
+        };
+      });
       return successResponse(res, {
         ...storeData,
+        menuItems,
         ratingAverage: ratings.length ? Number((totalRating / ratings.length).toFixed(1)) : 0,
         ratingCount: ratings.length,
       });
@@ -1888,6 +1962,17 @@ app.get(
           storeId,
           approvalStatus: SUBMISSION_STATUS.APPROVED,
         },
+        include: {
+          ratings: {
+            select: {
+              stars: true,
+              comment: true,
+              createdAt: true,
+              customer: { select: { name: true } },
+            },
+            orderBy: { createdAt: 'desc' },
+          },
+        },
         orderBy: {
           id: 'desc',
         },
@@ -1896,17 +1981,33 @@ app.get(
       return successResponse(res, items.map((item) => {
         const originalPrice = Number(item.originalPrice || item.price);
         const discountValue = Number(item.discountValue || 0);
-        const effectivePrice = item.discountType === 'FIXED'
-          ? Math.max(0, originalPrice - discountValue)
-          : Math.max(0, originalPrice - (originalPrice * discountValue / 100));
+        const effectivePrice = Number(item.price);
+        const itemRatings = item.ratings || [];
+        const { ratings, ...itemData } = item;
         return {
-          ...item,
-          price: Number(item.price),
+          ...itemData,
+          price: effectivePrice,
           originalPrice,
           discountValue,
-          effectivePrice: Number(effectivePrice.toFixed(2)),
-          ratingAverage: item.demoRating ? Number(item.demoRating) : 0,
-          ratingCount: item.demoRating ? item.demoRatingCount : 0,
+          effectivePrice,
+          discountPercentage: item.discountType === 'PERCENTAGE' ? discountValue : (
+            originalPrice > 0 ? Number(((discountValue / originalPrice) * 100).toFixed(2)) : 0
+          ),
+          discount: discountValue > 0 ? {
+            type: item.discountType || 'PERCENTAGE',
+            value: discountValue,
+          } : null,
+          averageRating: itemRatings.length
+            ? Number((itemRatings.reduce((sum, rating) => sum + rating.stars, 0) / itemRatings.length).toFixed(1))
+            : 0,
+          ratingsCount: itemRatings.length,
+          ratingDetails: itemRatings.map((rating) => ({
+            stars: rating.stars,
+            comment: rating.comment,
+            createdAt: rating.createdAt,
+            customerName: rating.customer?.name || null,
+          })),
+          isAvailable: Boolean(item.isAvailable),
         };
       }));
     } catch (error) {
@@ -3164,6 +3265,174 @@ app.post(
   }
 );
 
+const supportStatusToDb = (status) => ({
+  OPEN: 'OPEN',
+  IN_PROGRESS: 'ESCALATED',
+  CLOSED: 'RESOLVED',
+}[normalizeString(status).toUpperCase()]);
+
+const supportStatusFromDb = (status) => ({
+  OPEN: 'OPEN',
+  ESCALATED: 'IN_PROGRESS',
+  RESOLVED: 'CLOSED',
+}[status] || status);
+
+const formatSupportSession = (session) => ({
+  ...session,
+  status: supportStatusFromDb(session.status),
+  messages: (session.messages || []).map((item) => ({
+    ...item,
+    sender: item.sender === 'USER' ? 'CUSTOMER' : 'ADMIN',
+  })),
+});
+
+app.get('/api/support/sessions', authMiddleware, async (req, res) => {
+  try {
+    const sessions = await prisma.chatSession.findMany({
+      where: { userId: req.user.userId },
+      orderBy: { updatedAt: 'desc' },
+      include: {
+        order: { select: { id: true, status: true } },
+        messages: { orderBy: { createdAt: 'asc' } },
+      },
+    });
+    return successResponse(res, sessions.map(formatSupportSession));
+  } catch (error) {
+    return handlePrismaError(error, res);
+  }
+});
+
+app.post('/api/support/sessions', authMiddleware, async (req, res) => {
+  const message = normalizeString(req.body?.message);
+  const orderId = req.body?.orderId ? normalizeId(req.body.orderId) : null;
+  if (message.length < 5 || message.length > 2000) {
+    return errorResponse(res, 'الرسالة مطلوبة وبطول صالح', 422);
+  }
+  try {
+    if (orderId) {
+      const order = await prisma.order.findFirst({
+        where: { id: orderId, customerId: req.user.userId },
+        select: { id: true },
+      });
+      if (!order) return errorResponse(res, 'الطلب غير موجود أو غير تابع لحسابك', 404);
+    }
+    const session = await prisma.chatSession.create({
+      data: {
+        userId: req.user.userId,
+        orderId,
+        status: 'OPEN',
+        messages: { create: { sender: 'USER', message } },
+      },
+      include: { order: { select: { id: true, status: true } }, messages: { orderBy: { createdAt: 'asc' } } },
+    });
+    return successResponse(res, formatSupportSession(session), 201);
+  } catch (error) {
+    return handlePrismaError(error, res);
+  }
+});
+
+app.get('/api/support/sessions/:id', authMiddleware, async (req, res) => {
+  const id = normalizeId(req.params.id);
+  if (!id) return errorResponse(res, 'رقم المحادثة غير صالح', 422);
+  try {
+    const session = await prisma.chatSession.findFirst({
+      where: { id, userId: req.user.userId },
+      include: { order: { select: { id: true, status: true } }, messages: { orderBy: { createdAt: 'asc' } } },
+    });
+    if (!session) return errorResponse(res, 'المحادثة غير موجودة', 404);
+    return successResponse(res, formatSupportSession(session));
+  } catch (error) {
+    return handlePrismaError(error, res);
+  }
+});
+
+app.post('/api/support/sessions/:id/messages', authMiddleware, async (req, res) => {
+  const id = normalizeId(req.params.id);
+  const message = normalizeString(req.body?.message);
+  if (!id || message.length < 1 || message.length > 2000) {
+    return errorResponse(res, 'المحادثة والرسالة مطلوبتان', 422);
+  }
+  try {
+    const session = await prisma.chatSession.findFirst({ where: { id, userId: req.user.userId }, select: { id: true, status: true } });
+    if (!session) return errorResponse(res, 'المحادثة غير موجودة', 404);
+    if (session.status === 'RESOLVED') return errorResponse(res, 'لا يمكن الإرسال بعد إغلاق المحادثة', 409);
+    const created = await prisma.chatMessage.create({ data: { sessionId: id, sender: 'USER', message } });
+    return successResponse(res, { ...created, sender: 'CUSTOMER' }, 201);
+  } catch (error) {
+    return handlePrismaError(error, res);
+  }
+});
+
+app.get('/api/admin/support/sessions', authMiddleware, adminPermissionMiddleware('support.read'), async (req, res) => {
+  const requestedStatus = normalizeString(req.query.status).toUpperCase();
+  const dbStatus = requestedStatus ? supportStatusToDb(requestedStatus) : undefined;
+  if (requestedStatus && !dbStatus) return errorResponse(res, 'حالة المحادثة غير صالحة', 422);
+  try {
+    const sessions = await prisma.chatSession.findMany({
+      where: dbStatus ? { status: dbStatus } : undefined,
+      orderBy: { updatedAt: 'desc' },
+      take: 200,
+      include: {
+        user: { select: { id: true, name: true, role: { select: { name: true } } } },
+        order: { select: { id: true, status: true } },
+        messages: { orderBy: { createdAt: 'asc' } },
+      },
+    });
+    return successResponse(res, sessions.map(formatSupportSession));
+  } catch (error) {
+    return handlePrismaError(error, res);
+  }
+});
+
+app.get('/api/admin/support/sessions/:id', authMiddleware, adminPermissionMiddleware('support.read'), async (req, res) => {
+  const id = normalizeId(req.params.id);
+  if (!id) return errorResponse(res, 'رقم المحادثة غير صالح', 422);
+  try {
+    const session = await prisma.chatSession.findUnique({
+      where: { id },
+      include: {
+        user: { select: { id: true, name: true, role: { select: { name: true } } } },
+        order: { select: { id: true, status: true } },
+        messages: { orderBy: { createdAt: 'asc' } },
+      },
+    });
+    if (!session) return errorResponse(res, 'المحادثة غير موجودة', 404);
+    return successResponse(res, formatSupportSession(session));
+  } catch (error) {
+    return handlePrismaError(error, res);
+  }
+});
+
+app.post('/api/admin/support/sessions/:id/messages', authMiddleware, adminPermissionMiddleware('support.reply'), async (req, res) => {
+  const id = normalizeId(req.params.id);
+  const message = normalizeString(req.body?.message);
+  if (!id || message.length < 1 || message.length > 2000) return errorResponse(res, 'الرسالة مطلوبة', 422);
+  try {
+    const session = await prisma.chatSession.findUnique({ where: { id }, select: { id: true, status: true } });
+    if (!session) return errorResponse(res, 'المحادثة غير موجودة', 404);
+    if (session.status === 'RESOLVED') return errorResponse(res, 'المحادثة مغلقة', 409);
+    const created = await prisma.chatMessage.create({ data: { sessionId: id, sender: 'ADMIN', message } });
+    await prisma.chatSession.update({ where: { id }, data: { status: 'ESCALATED' } });
+    await auditAdminAction(req, 'SUPPORT_REPLY', 'ChatSession', id);
+    return successResponse(res, { ...created, sender: req.user.role === ROLES.SUB_ADMIN ? 'SUBADMIN' : 'ADMIN' }, 201);
+  } catch (error) {
+    return handlePrismaError(error, res);
+  }
+});
+
+app.patch('/api/admin/support/sessions/:id/status', authMiddleware, adminPermissionMiddleware('support.status'), async (req, res) => {
+  const id = normalizeId(req.params.id);
+  const status = supportStatusToDb(req.body?.status);
+  if (!id || !status) return errorResponse(res, 'حالة المحادثة غير صالحة', 422);
+  try {
+    const session = await prisma.chatSession.update({ where: { id }, data: { status }, include: { messages: { orderBy: { createdAt: 'asc' } } } });
+    await auditAdminAction(req, 'SUPPORT_STATUS_UPDATE', 'ChatSession', id, { status: supportStatusFromDb(status) });
+    return successResponse(res, formatSupportSession(session));
+  } catch (error) {
+    return handlePrismaError(error, res);
+  }
+});
+
 app.get(
   '/api/vendor/ratings',
   authMiddleware,
@@ -3722,7 +3991,7 @@ app.get(
 app.get(
   '/api/orders',
   authMiddleware,
-  roleMiddleware(ROLES.ADMIN),
+  adminPermissionMiddleware('orders.read'),
   async (req, res) => {
     try {
       const orders =
@@ -4424,7 +4693,8 @@ app.get(
       const roleCount = (name) => prisma.user.count({ where: { ...activeUserWhere, role: { name } } });
       const monthStart = new Date();
       monthStart.setDate(monthStart.getDate() - 30);
-      const [users, customers, admins, subAdmins, vendors, deliveries, orders, pendingOrders, activeOrders, completedOrders, cancelledOrders, stores, openStores, products, ratings, discounts, sales, commissions, recentOrders, recentUsers, recentActivities, orderHistory] = await Promise.all([
+      monthStart.setHours(0, 0, 0, 0);
+      const [users, customers, admins, subAdmins, vendors, deliveries, orders, pendingOrders, activeOrders, completedOrders, cancelledOrders, stores, openStores, products, ratings, discounts, sales, commissions, withdrawals, recentOrders, recentUsers, recentActivities, orderHistory] = await Promise.all([
         prisma.user.count({ where: activeUserWhere }),
         roleCount(ROLES.CUSTOMER),
         roleCount(ROLES.ADMIN),
@@ -4443,10 +4713,14 @@ app.get(
         prisma.offer.count({ where: { isActive: true } }),
         prisma.order.aggregate({ where: { status: ORDER_STATUS.DELIVERED }, _sum: { totalPrice: true } }),
         prisma.order.aggregate({ where: { status: ORDER_STATUS.DELIVERED }, _sum: { platformCommission: true } }),
+        prisma.walletTransaction.aggregate({
+          where: { type: { in: ['WITHDRAWAL', 'WITHDRAW', 'PAYOUT'] } },
+          _sum: { amount: true },
+        }),
         prisma.order.findMany({ take: 5, orderBy: { createdAt: 'desc' }, select: { id: true, status: true, totalPrice: true, createdAt: true, customer: { select: { name: true } }, store: { select: { name: true } } } }),
         prisma.user.findMany({ where: activeUserWhere, take: 5, orderBy: { createdAt: 'desc' }, select: { id: true, name: true, phone: true, createdAt: true, role: { select: { name: true } } } }),
         prisma.auditLog.findMany({ take: 6, orderBy: { createdAt: 'desc' }, select: { id: true, action: true, entity: true, createdAt: true, actor: { select: { name: true } } } }),
-        prisma.order.findMany({ where: { createdAt: { gte: monthStart } }, select: { createdAt: true, totalPrice: true } }),
+        prisma.order.findMany({ where: { createdAt: { gte: monthStart } }, select: { createdAt: true, status: true, totalPrice: true } }),
       ]);
 
       const monthly = Array.from({ length: 30 }, (_, index) => {
@@ -4455,7 +4729,12 @@ app.get(
         const nextDay = new Date(day);
         nextDay.setDate(day.getDate() + 1);
         const ordersForDay = orderHistory.filter((item) => item.createdAt >= day && item.createdAt < nextDay);
-        return { label: day.toISOString().slice(5, 10), orders: ordersForDay.length, sales: ordersForDay.reduce((sum, item) => sum + Number(item.totalPrice || 0), 0) };
+        const deliveredOrdersForDay = ordersForDay.filter((item) => item.status === ORDER_STATUS.DELIVERED);
+        return {
+          label: day.toISOString().slice(5, 10),
+          orders: ordersForDay.length,
+          sales: deliveredOrdersForDay.reduce((sum, item) => sum + Number(item.totalPrice || 0), 0),
+        };
       });
 
       return successResponse(res, {
@@ -4476,12 +4755,15 @@ app.get(
         cancelledOrders,
         deliveries,
         sales: Number(sales._sum.totalPrice || 0),
-        profits: null,
+        profits: Number(commissions._sum.platformCommission || 0),
         commissions: Number(commissions._sum.platformCommission || 0),
-        withdrawals: null,
+        withdrawals: Math.abs(Number(withdrawals._sum.amount || 0)),
         monthly,
         recentOrders: recentOrders.map((item) => ({ ...item, totalPrice: Number(item.totalPrice) })),
-        recentUsers,
+        recentUsers: recentUsers.map((item) => ({
+          ...item,
+          ...privateContactFields(req, item),
+        })),
         recentActivities,
       });
     } catch (error) {
@@ -4590,7 +4872,11 @@ app.patch(
       }
 
       if (req.body.email !== undefined) {
-        data.email = normalizeString(req.body.email) || null;
+        const email = normalizeString(req.body.email);
+        if (email && !isValidEmail(email)) {
+          return errorResponse(res, 'البريد الإلكتروني غير صالح', 422);
+        }
+        data.email = email || null;
       }
 
       const user = await prisma.user.update({
@@ -4638,6 +4924,7 @@ app.post(
         data: { password: await bcrypt.hash(newPassword, 12) },
         select: { id: true, name: true, isActive: true, role: { select: { name: true } } },
       });
+      await auditAdminAction(req, 'RESET_PASSWORD', 'User', userId);
 
       return successResponse(res, {
         id: updated.id,
@@ -4718,9 +5005,22 @@ const setAdminManagedUserActive = async (req, res, isActive) => {
             rejectionReason: null,
           },
         });
+      } else if (!isActive && updatedUser.role.name === ROLES.VENDOR) {
+        await tx.store.updateMany({
+          where: { vendorId: userId },
+          data: {
+            isActive: false,
+            isOpen: false,
+          },
+        });
       }
 
       return updatedUser;
+    });
+
+    await auditAdminAction(req, isActive ? 'ACTIVATE_USER' : 'SUSPEND_USER', 'User', userId, {
+      reason: suspensionReason,
+      suspendedUntil,
     });
 
     return successResponse(res, user);
@@ -4782,6 +5082,7 @@ app.delete(
           deletedAt: true,
         },
       });
+      await auditAdminAction(req, 'DELETE_USER', 'User', userId);
 
       return successResponse(res, deletedUser);
     } catch (error) {
@@ -4876,6 +5177,10 @@ app.patch(
       const store = await prisma.store.update({
         where: { id: storeId },
         data,
+        include: {
+          vendor: { select: { name: true, phone: true } },
+          _count: { select: { orders: true } },
+        },
       });
 
       return successResponse(res, {
@@ -4956,23 +5261,25 @@ app.delete(
 // ADMIN ORDERS
 // ============================================================
 
+const serializeAdminProduct = (item) => ({
+  ...item,
+  price: Number(item.price),
+  originalPrice: item.originalPrice === null ? null : Number(item.originalPrice),
+  discountValue: item.discountValue === null ? null : Number(item.discountValue),
+  demoRating: item.demoRating === null ? null : Number(item.demoRating),
+});
+
 app.get(
   '/api/admin/products',
   authMiddleware,
-  adminPermissionMiddleware('stores.read'),
+  adminPermissionMiddleware('products.read'),
   async (req, res) => {
     try {
       const products = await prisma.menuItem.findMany({
         include: { store: { select: { id: true, name: true } } },
         orderBy: [{ sortOrder: 'asc' }, { createdAt: 'desc' }],
       });
-      return successResponse(res, products.map((item) => ({
-        ...item,
-        price: Number(item.price),
-        originalPrice: item.originalPrice === null ? null : Number(item.originalPrice),
-        discountValue: item.discountValue === null ? null : Number(item.discountValue),
-        demoRating: item.demoRating === null ? null : Number(item.demoRating),
-      })));
+      return successResponse(res, products.map(serializeAdminProduct));
     } catch (error) {
       return handlePrismaError(error, res);
     }
@@ -5009,7 +5316,7 @@ const normalizeProductPricing = (body) => {
 app.post(
   '/api/admin/products',
   authMiddleware,
-  adminPermissionMiddleware('stores.update'),
+  adminPermissionMiddleware('products.write'),
   async (req, res) => {
     const storeId = normalizeId(req.body.storeId);
     const name = normalizeString(req.body.name);
@@ -5053,7 +5360,7 @@ app.post(
           approvalStatus: SUBMISSION_STATUS.APPROVED,
         },
       });
-      return successResponse(res, item, 201);
+      return successResponse(res, serializeAdminProduct(item), 201);
     } catch (error) {
       return handlePrismaError(error, res);
     }
@@ -5063,7 +5370,7 @@ app.post(
 app.patch(
   '/api/admin/products/:id',
   authMiddleware,
-  adminPermissionMiddleware('stores.update'),
+  adminPermissionMiddleware('products.write'),
   async (req, res) => {
     const id = normalizeId(req.params.id);
     if (!id) return errorResponse(res, 'رقم المنتج غير صالح', 422);
@@ -5105,7 +5412,7 @@ app.patch(
       };
       delete data.error;
       const item = await prisma.menuItem.update({ where: { id }, data });
-      return successResponse(res, item);
+      return successResponse(res, serializeAdminProduct(item));
     } catch (error) {
       return handlePrismaError(error, res);
     }
@@ -5115,7 +5422,7 @@ app.patch(
 app.delete(
   '/api/admin/products/:id',
   authMiddleware,
-  adminPermissionMiddleware('stores.update'),
+  adminPermissionMiddleware('products.write'),
   async (req, res) => {
     const id = normalizeId(req.params.id);
     if (!id) return errorResponse(res, 'رقم المنتج غير صالح', 422);
@@ -5323,15 +5630,52 @@ app.post(
       return errorResponse(res, 'الدور المستهدف غير صالح', 422);
     }
     try {
-      const users = await prisma.user.findMany({
-        where: { isActive: true, deletedAt: null, ...(role ? { role: { name: role } } : {}) },
-        select: { id: true },
-      });
-      if (!users.length) return successResponse(res, { sent: 0 });
-      const result = await prisma.notification.createMany({
-        data: users.map(({ id }) => ({ userId: id, type: 'SYSTEM', title, body })),
-      });
-      return successResponse(res, { sent: result.count }, 201);
+      const idempotencyKey = normalizeString(req.headers['idempotency-key']);
+      const createBroadcast = async (client) => {
+        const users = await client.user.findMany({
+          where: { isActive: true, deletedAt: null, ...(role ? { role: { name: role } } : {}) },
+          select: { id: true },
+        });
+        const result = users.length
+          ? await client.notification.createMany({
+              data: users.map(({ id }) => ({ userId: id, type: 'SYSTEM', title, body })),
+            })
+          : { count: 0 };
+        await client.auditLog.create({
+          data: {
+            actorId: req.user.userId,
+            action: 'BROADCAST_NOTIFICATION',
+            entity: 'Notification',
+            entityId: idempotencyKey || null,
+            metadata: { role: role || null, sent: result.count },
+            ipAddress: req.ip || null,
+          },
+        });
+        return { sent: result.count };
+      };
+
+      if (idempotencyKey) {
+        const cacheKey = `${req.user.userId}:${idempotencyKey}`;
+        const previous = notificationRequests.get(cacheKey);
+        if (previous) return successResponse(res, previous.body, previous.status);
+        const responseBody = await prisma.$transaction(async (tx) => {
+          await tx.$executeRaw`SELECT pg_advisory_xact_lock(hashtext(${cacheKey}))`;
+          const previousAudit = await tx.auditLog.findFirst({
+            where: { actorId: req.user.userId, action: 'BROADCAST_NOTIFICATION', entityId: idempotencyKey },
+            orderBy: { createdAt: 'desc' },
+            select: { metadata: true },
+          });
+          if (previousAudit?.metadata && typeof previousAudit.metadata.sent === 'number') {
+            return { sent: previousAudit.metadata.sent };
+          }
+          return createBroadcast(tx);
+        });
+        notificationRequests.set(cacheKey, { body: responseBody, status: 201 });
+        return successResponse(res, responseBody, 201);
+      }
+
+      const responseBody = await createBroadcast(prisma);
+      return successResponse(res, responseBody, 201);
     } catch (error) {
       return handlePrismaError(error, res);
     }
@@ -5341,7 +5685,7 @@ app.post(
 app.get(
   '/api/admin/ratings',
   authMiddleware,
-  adminPermissionMiddleware('reports.read'),
+  adminPermissionMiddleware('ratings.read'),
   async (req, res) => {
     try {
       const ratings = await prisma.rating.findMany({
@@ -5354,7 +5698,15 @@ app.get(
           order: { select: { id: true, status: true } },
         },
       });
-      return successResponse(res, ratings);
+      return successResponse(res, ratings.map((rating) => ({
+        ...rating,
+        customer: rating.customer
+          ? {
+              ...rating.customer,
+              phone: canViewUserContacts(req) ? rating.customer.phone : null,
+            }
+          : rating.customer,
+      })));
     } catch (error) {
       return handlePrismaError(error, res);
     }
@@ -5364,12 +5716,13 @@ app.get(
 app.delete(
   '/api/admin/ratings/:id',
   authMiddleware,
-  adminPermissionMiddleware('reports.read'),
+  adminPermissionMiddleware('ratings.delete'),
   async (req, res) => {
     const id = normalizeId(req.params.id);
     if (!id) return errorResponse(res, 'رقم التقييم غير صالح', 422);
     try {
       await prisma.rating.delete({ where: { id } });
+      await auditAdminAction(req, 'DELETE_RATING', 'Rating', id);
       return successResponse(res, null, 200, { message: 'تم حذف التقييم' });
     } catch (error) {
       return handlePrismaError(error, res);
@@ -5380,7 +5733,7 @@ app.delete(
 app.get(
   '/api/admin/complaints',
   authMiddleware,
-  adminPermissionMiddleware('reports.read'),
+  adminPermissionMiddleware('complaints.read'),
   async (req, res) => {
     const role = normalizeString(req.query.role).toLowerCase();
     const roleFilter = ['customer', 'vendor', 'delivery'].includes(role)
@@ -5401,7 +5754,15 @@ app.get(
           messages: { orderBy: { createdAt: 'desc' }, take: 1 },
         },
       });
-      return successResponse(res, complaints);
+      return successResponse(res, complaints.map((complaint) => ({
+        ...complaint,
+        user: complaint.user
+          ? {
+              ...complaint.user,
+              phone: canViewUserContacts(req) ? complaint.user.phone : null,
+            }
+          : complaint.user,
+      })));
     } catch (error) {
       return handlePrismaError(error, res);
     }
@@ -5635,8 +5996,8 @@ app.get(
 
       return successResponse(res, {
         totalOrders,
-        revenue: revenue._sum.totalPrice || 0,
-        commissions: commissions._sum.platformCommission || 0,
+        revenue: Number(revenue._sum.totalPrice || 0),
+        commissions: Number(commissions._sum.platformCommission || 0),
         newUsers,
         activeStores,
         topStores: storeGroups.map((item) => ({
@@ -5723,11 +6084,19 @@ const ADMIN_PERMISSION_CATALOG = [
   { name: 'stores.read', label: 'عرض المتاجر' },
   { name: 'stores.update', label: 'إدارة المتاجر والمنتجات' },
   { name: 'stores.suspend', label: 'تفعيل وتعطيل المتاجر' },
+  { name: 'products.read', label: 'عرض المنتجات' },
+  { name: 'products.write', label: 'إدارة المنتجات' },
   { name: 'orders.read', label: 'عرض الطلبات' },
   { name: 'delivery.read', label: 'إدارة التوصيل' },
   { name: 'finance.read', label: 'عرض المالية' },
   { name: 'notifications.read', label: 'عرض الإشعارات' },
   { name: 'notifications.write', label: 'إرسال الإشعارات' },
+  { name: 'ratings.read', label: 'عرض التقييمات' },
+  { name: 'ratings.delete', label: 'حذف التقييمات' },
+  { name: 'complaints.read', label: 'عرض الشكاوى' },
+  { name: 'support.read', label: 'عرض محادثات الدعم' },
+  { name: 'support.reply', label: 'الرد في محادثات الدعم' },
+  { name: 'support.status', label: 'تغيير حالة محادثات الدعم' },
   { name: 'reports.read', label: 'عرض التقارير' },
   { name: 'audit.read', label: 'عرض سجل العمليات' },
 ];
@@ -5747,7 +6116,7 @@ app.get(
   async (req, res) => {
     try {
       const users = await prisma.user.findMany({
-        where: { role: { name: ROLES.SUB_ADMIN } },
+        where: { deletedAt: null, role: { name: ROLES.SUB_ADMIN } },
         select: subAdminSelect,
         orderBy: { id: 'desc' },
       });
@@ -5774,12 +6143,15 @@ app.post(
         : []
     )];
 
-    if (!name || !phone || !isValidPassword(password)) {
+    if (!name || !phone || !isValidPhone(phone) || !isValidPassword(password)) {
       return errorResponse(
         res,
         'الاسم والهاتف وكلمة مرور من 8 أحرف مطلوبة',
         422
       );
+    }
+    if (email && !isValidEmail(email)) {
+      return errorResponse(res, 'البريد الإلكتروني غير صالح', 422);
     }
 
     if (permissions.length === 0) {
@@ -5826,6 +6198,7 @@ app.post(
         });
       });
 
+      await auditAdminAction(req, 'CREATE_SUBADMIN', 'User', user.id, { permissions });
       return successResponse(res, serializeSubAdmin(user), 201);
     } catch (error) {
       return handlePrismaError(error, res);
@@ -5839,102 +6212,110 @@ app.patch(
   roleMiddleware(ROLES.ADMIN),
   async (req, res) => {
     const userId = normalizeId(req.params.id);
-    const statusOnly =
-      typeof req.body?.isActive === 'boolean' &&
-      req.body.name === undefined &&
-      req.body.phone === undefined &&
-      req.body.email === undefined &&
-      req.body.password === undefined &&
-      req.body.permissions === undefined;
-
-    if (statusOnly) {
-      try {
-        const result = await prisma.user.updateMany({
-          where: { id: userId, role: { name: ROLES.SUB_ADMIN } },
-          data: { isActive: req.body.isActive },
-        });
-
-        if (result.count === 0) {
-          return errorResponse(res, 'المشرف الفرعي غير موجود', 404);
-        }
-
-        return successResponse(res, null, 200, {
-          message: req.body.isActive
-            ? 'تم تفعيل المشرف الفرعي'
-            : 'تم تعطيل المشرف الفرعي',
-        });
-      } catch (error) {
-        return handlePrismaError(error, res);
-      }
-    }
-
-    const name = normalizeString(req.body.name);
-    const phone = normalizePhone(req.body.phone);
-    const email = normalizeString(req.body.email) || null;
-    const password = req.body.password;
-    const permissions = [...new Set(
-      Array.isArray(req.body.permissions)
-        ? req.body.permissions.map(normalizeString).filter(Boolean)
-        : []
-    )];
-
-    if (!userId || !name || !phone || permissions.length === 0) {
-      return errorResponse(res, 'بيانات المشرف والصلاحيات غير مكتملة', 422);
-    }
-    if (permissions.some((permission) => !ADMIN_PERMISSION_NAMES.has(permission))) {
-      return errorResponse(res, 'توجد صلاحية غير مدعومة في النظام', 422);
-    }
-
-    if (password && !isValidPassword(password)) {
-      return errorResponse(res, 'كلمة المرور يجب أن تكون 8 أحرف على الأقل', 422);
+    if (!userId) {
+      return errorResponse(res, 'رقم المشرف غير صالح', 400);
     }
 
     try {
-      const user = await prisma.$transaction(async (tx) => {
-        const existing = await tx.user.findFirst({
-          where: { id: userId, role: { name: ROLES.SUB_ADMIN } },
-          select: { id: true },
-        });
+      const existing = await prisma.user.findFirst({
+        where: { id: userId, deletedAt: null, role: { name: ROLES.SUB_ADMIN } },
+        select: {
+          id: true,
+          name: true,
+          phone: true,
+          email: true,
+          isActive: true,
+          subAdminPermissions: { select: { permission: { select: { name: true } } } },
+        },
+      });
 
-        if (!existing) {
-          throw new Error('SUB_ADMIN_NOT_FOUND');
+      if (!existing) {
+        return errorResponse(res, 'المشرف الفرعي غير موجود', 404);
+      }
+
+      const data = {};
+      if (req.body.name !== undefined) {
+        const name = normalizeString(req.body.name);
+        if (!name) return errorResponse(res, 'اسم المشرف غير صالح', 422);
+        data.name = name;
+      }
+      if (req.body.phone !== undefined) {
+        const phone = normalizePhone(req.body.phone);
+        if (!phone || !isValidPhone(phone)) {
+          return errorResponse(res, 'رقم الهاتف غير صالح', 422);
         }
+        data.phone = phone;
+      }
+      if (req.body.email !== undefined) {
+        const email = normalizeString(req.body.email);
+        if (email && !isValidEmail(email)) {
+          return errorResponse(res, 'البريد الإلكتروني غير صالح', 422);
+        }
+        data.email = email || null;
+      }
+      if (req.body.password !== undefined && req.body.password !== '') {
+        if (!isValidPassword(req.body.password)) {
+          return errorResponse(res, 'كلمة المرور يجب أن تكون 8 أحرف على الأقل', 422);
+        }
+        data.password = await bcrypt.hash(req.body.password, 12);
+      }
+      if (req.body.isActive !== undefined) {
+        if (typeof req.body.isActive !== 'boolean') {
+          return errorResponse(res, 'حالة المشرف غير صالحة', 422);
+        }
+        data.isActive = req.body.isActive;
+      }
 
-        const permissionRecords = await Promise.all(
-          permissions.map((permission) => tx.permission.upsert({
-            where: { name: permission },
-            update: {},
-            create: { name: permission },
-          }))
-        );
+      let permissions;
+      if (req.body.permissions !== undefined) {
+        if (!Array.isArray(req.body.permissions)) {
+          return errorResponse(res, 'قائمة الصلاحيات غير صالحة', 422);
+        }
+        permissions = [...new Set(req.body.permissions.map(normalizeString).filter(Boolean))];
+        if (!permissions.length) {
+          return errorResponse(res, 'يجب اختيار صلاحية واحدة على الأقل', 422);
+        }
+        if (permissions.some((permission) => !ADMIN_PERMISSION_NAMES.has(permission))) {
+          return errorResponse(res, 'توجد صلاحية غير مدعومة في النظام', 422);
+        }
+      }
 
-        await tx.subAdminPermission.deleteMany({
-          where: { subAdminId: userId },
-        });
+      if (!Object.keys(data).length && permissions === undefined) {
+        return errorResponse(res, 'لا توجد بيانات لتحديثها', 422);
+      }
+
+      const user = await prisma.$transaction(async (tx) => {
+        if (permissions !== undefined) {
+          const permissionRecords = await Promise.all(
+            permissions.map((permission) => tx.permission.upsert({
+              where: { name: permission },
+              update: {},
+              create: { name: permission },
+            }))
+          );
+
+          await tx.subAdminPermission.deleteMany({ where: { subAdminId: userId } });
+          data.subAdminPermissions = {
+            create: permissionRecords.map((permission) => ({
+              permissionId: permission.id,
+              grantedById: req.user.userId,
+            })),
+          };
+        }
 
         return tx.user.update({
           where: { id: userId },
-          data: {
-            name,
-            phone,
-            email,
-            ...(password && { password: await bcrypt.hash(password, 12) }),
-            subAdminPermissions: {
-              create: permissionRecords.map((permission) => ({
-                permissionId: permission.id,
-                grantedById: req.user.userId,
-              })),
-            },
-          },
+          data,
           select: subAdminSelect,
         });
       });
 
+      await auditAdminAction(req, permissions !== undefined ? 'UPDATE_SUBADMIN_PERMISSIONS' : 'UPDATE_SUBADMIN', 'User', userId, {
+        changedFields: Object.keys(data).filter((key) => key !== 'password'),
+        permissionsChanged: permissions !== undefined,
+      });
       return successResponse(res, serializeSubAdmin(user));
     } catch (error) {
-      if (error.message === 'SUB_ADMIN_NOT_FOUND') {
-        return errorResponse(res, 'المشرف الفرعي غير موجود', 404);
-      }
       return handlePrismaError(error, res);
     }
   }
@@ -5952,17 +6333,32 @@ app.delete(
     }
 
     try {
-      const result = await prisma.user.updateMany({
-        where: { id: userId, role: { name: ROLES.SUB_ADMIN } },
-        data: { isActive: false },
+      const result = await prisma.$transaction(async (tx) => {
+        const updated = await tx.user.updateMany({
+          where: { id: userId, deletedAt: null, role: { name: ROLES.SUB_ADMIN } },
+          data: {
+            phone: `deleted:sub-admin:${userId}:${Date.now()}`,
+            email: null,
+            name: `حساب مشرف محذوف #${userId}`,
+            password: await bcrypt.hash(crypto.randomBytes(32).toString('hex'), 12),
+            isActive: false,
+            deletedAt: new Date(),
+          },
+        });
+
+        if (updated.count) {
+          await tx.subAdminPermission.deleteMany({ where: { subAdminId: userId } });
+        }
+        return updated;
       });
 
       if (result.count === 0) {
         return errorResponse(res, 'المشرف الفرعي غير موجود', 404);
       }
 
+      await auditAdminAction(req, 'DELETE_SUBADMIN', 'User', userId);
       return successResponse(res, null, 200, {
-        message: 'تم تعطيل المشرف الفرعي',
+        message: 'تم حذف المشرف الفرعي',
       });
     } catch (error) {
       return handlePrismaError(error, res);

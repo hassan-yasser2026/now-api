@@ -123,6 +123,7 @@ const StoreMenu = ({ route, navigation }) => {
             quantity={getCartQuantity(item.id)}
             onAdd={() => handleAddToCart(item)}
             onRemove={() => handleRemoveFromCart(item.id)}
+            onPress={() => navigation.navigate('ProductDetails', { item })}
           />
         )}
         keyExtractor={(item) => item.id.toString()}

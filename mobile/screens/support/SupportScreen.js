@@ -21,6 +21,7 @@ export default function SupportScreen({ navigation, route }) {
   const [message, setMessage] = useState('');
   const [orderId, setOrderId] = useState(route?.params?.orderId ? String(route.params.orderId) : '');
   const [complaints, setComplaints] = useState([]);
+  const [selectedSession, setSelectedSession] = useState(null);
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
 
@@ -28,22 +29,26 @@ export default function SupportScreen({ navigation, route }) {
     setLoading(true);
     const result = await supportService.getComplaints();
     if (result.success) setComplaints(result.complaints);
+    const sessions = await supportService.getSessions();
+    if (sessions.success) setComplaints(sessions.sessions);
     setLoading(false);
   }, []);
 
   useFocusEffect(useCallback(() => { loadComplaints(); }, [loadComplaints]));
 
   const submit = async () => {
+    if (selectedSession?.status === 'CLOSED' || selectedSession?.status === 'RESOLVED') {
+      Alert.alert('المحادثة مغلقة', 'لا يمكن إرسال رسائل جديدة بعد إغلاق المحادثة');
+      return;
+    }
     if (message.trim().length < 5) {
       Alert.alert('الشكوى قصيرة', 'اكتب تفاصيل المشكلة أولاً');
       return;
     }
     setSubmitting(true);
-    const result = await supportService.createComplaint({
-      category,
-      message: message.trim(),
-      orderId: orderId.trim() || undefined,
-    });
+    const result = selectedSession
+      ? await supportService.sendMessage(selectedSession.id, message.trim())
+      : await supportService.createSession({ message: `[${category}] ${message.trim()}`, orderId: orderId.trim() || undefined });
     setSubmitting(false);
     if (!result.success) {
       Alert.alert('تعذر الإرسال', result.message);
@@ -51,7 +56,7 @@ export default function SupportScreen({ navigation, route }) {
     }
     setMessage('');
     setOrderId('');
-    Alert.alert('تم الإرسال', 'تم إرسال شكواك وسيتم الرد عليها من فريق الدعم');
+    Alert.alert('تم الإرسال', selectedSession ? 'تم إرسال رسالتك' : 'تم فتح محادثة دعم جديدة');
     loadComplaints();
   };
 
@@ -71,7 +76,7 @@ export default function SupportScreen({ navigation, route }) {
         contentContainerStyle={styles.content}
         ListHeaderComponent={(
           <View style={styles.form}>
-            <Text style={styles.sectionTitle}>إرسال شكوى أو استفسار</Text>
+            <Text style={styles.sectionTitle}>{selectedSession ? `المحادثة #${selectedSession.id}` : 'فتح محادثة دعم'}</Text>
             <View style={styles.categories}>
               {categories.map((item) => (
                 <TouchableOpacity
@@ -95,12 +100,12 @@ export default function SupportScreen({ navigation, route }) {
               style={styles.messageInput}
               value={message}
               onChangeText={setMessage}
-              placeholder="اكتب تفاصيل المشكلة..."
+              placeholder={selectedSession ? 'اكتب رسالة متابعة...' : 'اكتب تفاصيل المشكلة...'}
               multiline
               textAlign="right"
             />
             <TouchableOpacity style={styles.submit} onPress={submit} disabled={submitting}>
-              {submitting ? <ActivityIndicator color="#fff" /> : <Text style={styles.submitText}>إرسال الشكوى</Text>}
+              {submitting ? <ActivityIndicator color="#fff" /> : <Text style={styles.submitText}>{selectedSession ? 'إرسال الرسالة' : 'فتح المحادثة'}</Text>}
             </TouchableOpacity>
             <Text style={styles.historyTitle}>الشكاوى السابقة</Text>
           </View>
@@ -110,12 +115,14 @@ export default function SupportScreen({ navigation, route }) {
           const lastMessage = item.messages?.[item.messages.length - 1];
           return (
             <View style={styles.card}>
+              <TouchableOpacity onPress={() => setSelectedSession(item)}>
               <View style={styles.cardRow}>
-                <Text style={styles.status}>{item.status === 'RESOLVED' ? 'تم الحل' : 'مفتوحة'}</Text>
-                <Text style={styles.cardTitle}>شكوى #{item.id}</Text>
+                <Text style={styles.status}>{item.status === 'CLOSED' || item.status === 'RESOLVED' ? 'مغلقة' : item.status === 'IN_PROGRESS' ? 'قيد المتابعة' : 'مفتوحة'}</Text>
+                <Text style={styles.cardTitle}>محادثة #{item.id}</Text>
               </View>
-              <Text style={styles.cardMessage}>{lastMessage?.message || 'بدون رسالة'}</Text>
+              {item.messages?.map((entry) => <Text key={entry.id} style={styles.cardMessage}>{entry.sender === 'CUSTOMER' || entry.sender === 'USER' ? 'أنت: ' : 'الدعم: '}{entry.message}</Text>) || <Text style={styles.cardMessage}>{lastMessage?.message || 'بدون رسائل'}</Text>}
               {item.order?.id ? <Text style={styles.order}>الطلب #{item.order.id}</Text> : null}
+              </TouchableOpacity>
             </View>
           );
         }}

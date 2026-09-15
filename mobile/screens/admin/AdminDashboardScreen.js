@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import {
   ActivityIndicator,
   Alert,
@@ -7,59 +7,213 @@ import {
   ScrollView,
   StyleSheet,
   Text,
-  TouchableOpacity,
   TextInput,
+  TouchableOpacity,
   View,
 } from 'react-native';
 import api from '../../services/api';
 import useAppStore from '../../store/appStore';
+import { COLORS } from '../../constants/colors';
 
-const getPayload = (response) => response.data?.data ?? response.data ?? {};
+/*
+ * This screen deliberately uses the contracts in server.js.  In particular,
+ * products use products.read/products.write on the server (these permissions
+ * are not currently in the server permission catalogue), so they are not
+ * shown to a sub-admin until the backend exposes those permissions.
+ */
+const SECTIONS = [
+  { key: 'dashboard', label: 'الرئيسية', permission: 'reports.read' },
+  { key: 'users', label: 'المستخدمون', permission: 'users.read' },
+  { key: 'stores', label: 'المتاجر', permission: 'stores.read' },
+  { key: 'products', label: 'المنتجات', permission: 'products.read' },
+  { key: 'orders', label: 'الطلبات', permission: 'orders.read' },
+  { key: 'payments', label: 'المدفوعات', permission: 'orders.read' },
+  { key: 'offers', label: 'العروض', permission: 'stores.read' },
+  { key: 'wallets', label: 'المحافظ', permission: 'finance.read' },
+  { key: 'invoices', label: 'الفواتير', permission: 'finance.read' },
+  { key: 'notifications', label: 'الإشعارات', permission: 'notifications.read' },
+  { key: 'ratings', label: 'التقييمات', permission: 'reports.read' },
+  { key: 'support', label: 'الدعم والمحادثات', permission: 'support.read' },
+  { key: 'submissions', label: 'طلبات الشركاء', permission: 'stores.read' },
+  { key: 'delivery', label: 'التوصيل', permission: 'delivery.read' },
+  { key: 'reports', label: 'التقارير', permission: 'reports.read' },
+  { key: 'audit-log', label: 'سجل العمليات', permission: 'audit.read' },
+  { key: 'sub-admins', label: 'المشرفون', adminOnly: true },
+];
+
+const DASHBOARD_CARD_KEYS = [
+  ['المستخدمون', 'users'],
+  ['العملاء', 'customers'],
+  ['البائعون', 'vendors'],
+  ['المندوبون', 'deliveries'],
+  ['الطلبات', 'orders'],
+  ['قيد التنفيذ', 'activeOrders'],
+  ['المكتملة', 'completedOrders'],
+  ['المتاجر المفتوحة', 'openStores'],
+  ['المنتجات', 'products'],
+  ['الإيرادات', 'sales'],
+];
+
+const getPayload = (response) => response?.data?.data ?? response?.data ?? null;
+
+const getErrorMessage = (error, fallback = 'حدث خطأ. حاول مرة أخرى.') => (
+  error?.response?.data?.message || error?.message || fallback
+);
+
+const listFromPayload = (payload, key) => {
+  if (Array.isArray(payload)) return payload;
+  if (Array.isArray(payload?.[key])) return payload[key];
+  return [];
+};
+
+const valueOrDash = (value) => (
+  value === null || value === undefined || value === '' ? '—' : String(value)
+);
+
+const formatMoney = (value) => {
+  const number = Number(value);
+  return Number.isFinite(number) ? `${number.toFixed(2)} ر.س` : '—';
+};
+
+const normalizePermissions = (user) => {
+  if (Array.isArray(user?.permissions)) return user.permissions;
+  if (Array.isArray(user?.subAdminPermissions)) {
+    return user.subAdminPermissions.map((item) => item?.permission?.name || item).filter(Boolean);
+  }
+  return [];
+};
 
 const AdminDashboardScreen = () => {
   const user = useAppStore((state) => state.user);
+  const role = useAppStore((state) => state.role);
   const logout = useAppStore((state) => state.logout);
-  const [dashboard, setDashboard] = useState(null);
-  const [section, setSection] = useState('dashboard');
-  const [sectionData, setSectionData] = useState([]);
-  const [sectionLoading, setSectionLoading] = useState(false);
+  const [activeSection, setActiveSection] = useState('dashboard');
+  const [dashboard, setDashboard] = useState({ data: null, loading: true, error: null });
+  const [sectionStates, setSectionStates] = useState({});
   const [actionId, setActionId] = useState(null);
   const [resetUser, setResetUser] = useState(null);
   const [newPassword, setNewPassword] = useState('');
-  const [userSearch, setUserSearch] = useState('');
-  const [userRole, setUserRole] = useState('');
-  const [userActive, setUserActive] = useState('');
-  const [notificationTitle, setNotificationTitle] = useState('');
-  const [notificationBody, setNotificationBody] = useState('');
-  const [notificationRole, setNotificationRole] = useState('');
+  const [userFilters, setUserFilters] = useState({ search: '', role: '', active: '' });
+  const [notification, setNotification] = useState({ title: '', body: '', role: '' });
   const [productForm, setProductForm] = useState(null);
   const [subAdminForm, setSubAdminForm] = useState(null);
-  const [loading, setLoading] = useState(true);
   const [permissionOptions, setPermissionOptions] = useState([]);
+  const [supportSession, setSupportSession] = useState(null);
+  const [supportReply, setSupportReply] = useState('');
+
+  const permissions = useMemo(() => normalizePermissions(user), [user]);
+  const isAdmin = role === 'admin' || user?.role === 'admin';
+  const can = useCallback((permission) => isAdmin || permissions.includes(permission), [isAdmin, permissions]);
+
+  const visibleSections = useMemo(
+    () => SECTIONS.filter((section) => !section.adminOnly ? can(section.permission) : isAdmin),
+    [can, isAdmin],
+  );
+
+  const setSectionState = useCallback((name, updates) => {
+    setSectionStates((current) => ({
+      ...current,
+      [name]: { ...(current[name] || { data: [], loading: false, error: null }), ...updates },
+    }));
+  }, []);
 
   const loadDashboard = useCallback(async () => {
-    setLoading(true);
+    setDashboard((current) => ({ ...current, loading: true, error: null }));
     try {
       const response = await api.get('/admin/dashboard');
-      setDashboard(getPayload(response));
+      setDashboard({ data: getPayload(response) || {}, loading: false, error: null });
     } catch (error) {
-      Alert.alert('تعذر تحميل لوحة الإدارة', error.response?.data?.message || 'حاول مرة أخرى');
-    } finally {
-      setLoading(false);
+      setDashboard((current) => ({ ...current, loading: false, error: getErrorMessage(error, 'تعذر تحميل لوحة الإدارة.') }));
     }
   }, []);
 
+  const loadSection = useCallback(async (name, params = {}) => {
+    if (name === 'dashboard') return loadDashboard();
+    const definition = SECTIONS.find((section) => section.key === name);
+    if (!definition || (definition.adminOnly && !isAdmin) || (!definition.adminOnly && !can(definition.permission))) {
+      setSectionState(name, { data: [], loading: false, error: 'لا تملك الصلاحية لعرض هذا القسم.' });
+      return;
+    }
+    setSectionState(name, { data: [], loading: true, error: null });
+    try {
+      const endpoint = name === 'support' ? '/admin/support/sessions' : `/admin/${name}`;
+      const response = await api.get(endpoint, { params });
+      setSectionState(name, { data: getPayload(response), loading: false, error: null });
+    } catch (error) {
+      setSectionState(name, { data: [], loading: false, error: getErrorMessage(error, 'تعذر تحميل بيانات القسم.') });
+    }
+  }, [can, isAdmin, loadDashboard, setSectionState]);
+
+  const sendSupportReply = async () => {
+    if (!supportSession || supportReply.trim().length < 1 || !can('support.reply')) return;
+    setActionId(`support-reply-${supportSession.id}`);
+    try {
+      await api.post(`/admin/support/sessions/${supportSession.id}/messages`, { message: supportReply.trim() });
+      setSupportReply('');
+      await loadSection('support');
+      const refreshed = await api.get(`/admin/support/sessions/${supportSession.id}`);
+      setSupportSession(getPayload(refreshed));
+    } catch (error) {
+      Alert.alert('تعذر الرد', getErrorMessage(error));
+    } finally {
+      setActionId(null);
+    }
+  };
+
+  const updateSupportStatus = async (status) => {
+    if (!supportSession || !can('support.status')) return;
+    setActionId(`support-status-${supportSession.id}`);
+    try {
+      const response = await api.patch(`/admin/support/sessions/${supportSession.id}/status`, { status });
+      setSupportSession(getPayload(response));
+      await loadSection('support');
+    } catch (error) {
+      Alert.alert('تعذر تغيير الحالة', getErrorMessage(error));
+    } finally {
+      setActionId(null);
+    }
+  };
+
   const loadPermissions = useCallback(async () => {
+    if (!isAdmin) return;
     try {
       const response = await api.get('/admin/permissions');
-      const permissions = getPayload(response);
-      setPermissionOptions(Array.isArray(permissions)
-        ? permissions.map((permission) => [permission.name, permission.label])
-        : []);
-    } catch (error) {
-      Alert.alert('تعذر تحميل الصلاحيات', error.response?.data?.message || 'حاول مرة أخرى');
+      const payload = getPayload(response);
+      setPermissionOptions(Array.isArray(payload) ? payload : []);
+    } catch {
+      // The form remains usable and displays the same backend error state as other sections.
+      setPermissionOptions([]);
     }
-  }, []);
+  }, [isAdmin]);
+
+  useEffect(() => {
+    loadDashboard();
+  }, [loadDashboard]);
+
+  useEffect(() => {
+    if (!visibleSections.some((section) => section.key === activeSection)) {
+      setActiveSection('dashboard');
+    }
+  }, [activeSection, visibleSections]);
+
+  useEffect(() => {
+    if (activeSection !== 'dashboard') loadSection(activeSection);
+  }, [activeSection, loadSection]);
+
+  const selectSection = (name) => {
+    setActiveSection(name);
+    if (name === 'sub-admins') loadPermissions();
+  };
+
+  const refreshActive = () => {
+    if (activeSection === 'dashboard') return loadDashboard();
+    if (activeSection === 'users') {
+      return loadSection('users', Object.fromEntries(
+        Object.entries(userFilters).filter(([, value]) => value),
+      ));
+    }
+    return loadSection(activeSection);
+  };
 
   const confirm = (title, message) => new Promise((resolve) => {
     Alert.alert(title, message, [
@@ -69,32 +223,37 @@ const AdminDashboardScreen = () => {
   });
 
   const runAction = async (item, action) => {
-    const confirmed = await confirm('تأكيد العملية', 'هل تريد تنفيذ هذه العملية؟');
-    if (!confirmed) return;
+    const requiredPermission = action.startsWith('user-')
+      ? (action === 'user-reset' ? 'users.update' : 'users.suspend')
+      : action.startsWith('store-')
+        ? (action === 'store-open' || action === 'store-close' ? 'stores.update' : 'stores.suspend')
+        : 'products.write';
+    if (!can(requiredPermission)) return;
+    if (!(await confirm('تأكيد العملية', 'هل تريد تنفيذ هذه العملية؟'))) return;
     setActionId(`${action}-${item.id}`);
     try {
-      if (action === 'activate' || action === 'suspend') {
-        await api.patch(`/admin/users/${item.id}/${action}`, action === 'suspend' ? { reason: 'إجراء إداري' } : {});
+      if (action === 'user-suspend' || action === 'user-activate') {
+        await api.patch(`/admin/users/${item.id}/${action === 'user-suspend' ? 'suspend' : 'activate'}`,
+          action === 'user-suspend' ? { reason: 'إجراء إداري' } : {});
       } else if (action === 'store-open' || action === 'store-close') {
         await api.patch(`/admin/stores/${item.id}`, { isOpen: action === 'store-open' });
-      } else if (action === 'store-activate' || action === 'store-suspend') {
-        await api.patch(`/admin/stores/${item.id}/${action === 'store-activate' ? 'activate' : 'suspend'}`);
+      } else if (action === 'store-suspend' || action === 'store-activate') {
+        await api.patch(`/admin/stores/${item.id}/${action === 'store-suspend' ? 'suspend' : 'activate'}`);
       } else if (action === 'product-toggle') {
         await api.patch(`/admin/products/${item.id}`, { isAvailable: item.isAvailable === false });
       }
-      Alert.alert('تم بنجاح', 'تم تنفيذ العملية بنجاح');
-      await loadSection(section);
-      if (section === 'dashboard') await loadDashboard();
+      await loadSection(activeSection);
+      Alert.alert('تم بنجاح', 'تم تنفيذ العملية بنجاح.');
     } catch (error) {
-      Alert.alert('تعذر التنفيذ', error.response?.data?.message || 'حدث خطأ أثناء تنفيذ العملية');
+      Alert.alert('تعذر التنفيذ', getErrorMessage(error));
     } finally {
       setActionId(null);
     }
   };
 
   const resetPassword = async () => {
-    if (!resetUser || newPassword.length < 8) {
-      Alert.alert('بيانات غير صالحة', 'كلمة المرور الجديدة يجب أن تكون 8 أحرف على الأقل');
+    if (!resetUser || !can('users.update') || newPassword.length < 8) {
+      Alert.alert('بيانات غير صالحة', 'كلمة المرور الجديدة يجب أن تكون 8 أحرف على الأقل.');
       return;
     }
     setActionId(`reset-${resetUser.id}`);
@@ -102,630 +261,503 @@ const AdminDashboardScreen = () => {
       await api.post(`/admin/users/${resetUser.id}/reset-password`, { newPassword });
       setResetUser(null);
       setNewPassword('');
-      Alert.alert('تم بنجاح', 'تم تغيير كلمة المرور');
+      Alert.alert('تم بنجاح', 'تم تغيير كلمة المرور.');
     } catch (error) {
-      Alert.alert('تعذر تغيير كلمة المرور', error.response?.data?.message || 'حدث خطأ');
-    } finally {
-      setActionId(null);
-    }
-  };
-
-  const loadSection = useCallback(async (name, params = {}) => {
-    setSection(name);
-    if (name === 'dashboard') return;
-    if (name === 'sub-admins') await loadPermissions();
-    setSectionLoading(true);
-    try {
-      const response = await api.get(`/admin/${name}`, { params });
-      const payload = getPayload(response);
-      setSectionData(
-        Array.isArray(payload)
-          ? payload
-          : Array.isArray(payload[name])
-            ? payload[name]
-            : Object.entries(payload).map(([key, value]) => ({ id: key, name: key, value }))
-      );
-    } catch (error) {
-      setSectionData([]);
-      Alert.alert('تعذر تحميل البيانات', error.response?.data?.message || 'لا تملك الصلاحية أو حدث خطأ');
-    } finally {
-      setSectionLoading(false);
-    }
-  }, [loadPermissions]);
-
-  const loadUsers = () => loadSection('users', {
-    ...(userSearch.trim() ? { search: userSearch.trim() } : {}),
-    ...(userRole ? { role: userRole } : {}),
-    ...(userActive ? { active: userActive } : {}),
-  });
-
-  const sendNotification = async () => {
-    if (!notificationTitle.trim() || !notificationBody.trim()) {
-      Alert.alert('بيانات غير صالحة', 'عنوان ونص الإشعار مطلوبان');
-      return;
-    }
-    setActionId('notification');
-    try {
-      const response = await api.post('/admin/notifications/broadcast', {
-        title: notificationTitle.trim(),
-        body: notificationBody.trim(),
-        ...(notificationRole ? { role: notificationRole } : {}),
-      });
-      setNotificationTitle('');
-      setNotificationBody('');
-      Alert.alert('تم بنجاح', `تم إرسال الإشعار إلى ${getPayload(response).sent || 0} مستخدم`);
-    } catch (error) {
-      Alert.alert('تعذر الإرسال', error.response?.data?.message || 'حدث خطأ أثناء إرسال الإشعار');
+      Alert.alert('تعذر تغيير كلمة المرور', getErrorMessage(error));
     } finally {
       setActionId(null);
     }
   };
 
   const saveProduct = async () => {
-    if (!productForm?.name?.trim() || !productForm?.storeId || !productForm?.originalPrice) {
-      Alert.alert('بيانات غير صالحة', 'اسم المنتج والمتجر والسعر الأصلي مطلوبة');
+    if (!productForm?.name?.trim() || !productForm?.storeId || !productForm?.originalPrice || !can('products.write')) {
+      Alert.alert('بيانات غير صالحة', 'اسم المنتج والمتجر والسعر الأصلي مطلوبة.');
       return;
     }
     setActionId('product-save');
+    const payload = {
+      ...productForm,
+      name: productForm.name.trim(),
+      storeId: Number(productForm.storeId),
+      categoryId: productForm.categoryId ? Number(productForm.categoryId) : null,
+      originalPrice: Number(productForm.originalPrice),
+      discountValue: Number(productForm.discountValue || 0),
+      isDemo: productForm.isDemo === true,
+      isAvailable: productForm.isAvailable !== false,
+    };
     try {
-      const payload = {
-        ...productForm,
-        name: productForm.name.trim(),
-        originalPrice: Number(productForm.originalPrice),
-        discountValue: Number(productForm.discountValue || 0),
-        storeId: Number(productForm.storeId),
-        isDemo: productForm.isDemo === true,
-      };
-
-      const saveSubAdmin = async () => {
-        if (!subAdminForm?.name?.trim() || !subAdminForm?.phone?.trim()) {
-          Alert.alert('بيانات غير صالحة', 'اسم المشرف ورقم الهاتف مطلوبان');
-          return;
-        }
-        if (!subAdminForm.id && (!subAdminForm.password || subAdminForm.password.length < 8)) {
-          Alert.alert('بيانات غير صالحة', 'كلمة المرور يجب أن تكون 8 أحرف على الأقل');
-          return;
-        }
-        if (!subAdminForm.permissions?.length) {
-          Alert.alert('بيانات غير صالحة', 'اختر صلاحية واحدة على الأقل');
-          return;
-        }
-
-        setActionId('sub-admin-save');
-        try {
-          const payload = {
-            name: subAdminForm.name.trim(),
-            phone: subAdminForm.phone.trim(),
-            email: subAdminForm.email?.trim() || '',
-            permissions: subAdminForm.permissions,
-            ...(subAdminForm.password ? { password: subAdminForm.password } : {}),
-          };
-          if (subAdminForm.id) {
-            await api.patch(`/admin/sub-admins/${subAdminForm.id}`, payload);
-          } else {
-            await api.post('/admin/sub-admins', payload);
-          }
-          setSubAdminForm(null);
-          Alert.alert('تم بنجاح', 'تم حفظ بيانات المشرف والصلاحيات');
-          await loadSection('sub-admins');
-        } catch (error) {
-          Alert.alert('تعذر حفظ المشرف', error.response?.data?.message || 'حدث خطأ أثناء حفظ البيانات');
-        } finally {
-          setActionId(null);
-        }
-      };
-
-      const toggleSubAdmin = async (item) => {
-        setActionId(`sub-admin-toggle-${item.id}`);
-        try {
-          await api.patch(`/admin/sub-admins/${item.id}`, { isActive: item.isActive === false });
-          Alert.alert('تم بنجاح', item.isActive === false ? 'تم تفعيل المشرف' : 'تم تعطيل المشرف');
-          await loadSection('sub-admins');
-        } catch (error) {
-          Alert.alert('تعذر تحديث الحالة', error.response?.data?.message || 'حدث خطأ');
-        } finally {
-          setActionId(null);
-        }
-      };
-      if (productForm.id) {
-        await api.patch(`/admin/products/${productForm.id}`, payload);
-      } else {
-        await api.post('/admin/products', payload);
-      }
+      if (productForm.id) await api.patch(`/admin/products/${productForm.id}`, payload);
+      else await api.post('/admin/products', payload);
       setProductForm(null);
-      Alert.alert('تم بنجاح', 'تم حفظ المنتج');
       await loadSection('products');
+      Alert.alert('تم بنجاح', 'تم حفظ المنتج.');
     } catch (error) {
-      Alert.alert('تعذر حفظ المنتج', error.response?.data?.message || 'حدث خطأ');
+      Alert.alert('تعذر حفظ المنتج', getErrorMessage(error));
     } finally {
       setActionId(null);
     }
   };
 
-  useEffect(() => {
-    loadDashboard();
-  }, [loadDashboard]);
+  const saveSubAdmin = async () => {
+    // Keep this handler in component scope. The previous implementation nested
+    // it inside saveProduct, so the modal's onPress referenced an undefined name.
+    if (!subAdminForm?.name?.trim() || !subAdminForm?.phone?.trim()
+      || (!subAdminForm.id && (subAdminForm.password || '').length < 8)
+      || !subAdminForm.permissions?.length) {
+      Alert.alert('بيانات غير صالحة', 'الاسم والهاتف والصلاحيات مطلوبة، وكلمة المرور 8 أحرف على الأقل للمشرف الجديد.');
+      return;
+    }
+    setActionId('sub-admin-save');
+    const payload = {
+      name: subAdminForm.name.trim(),
+      phone: subAdminForm.phone.trim(),
+      email: subAdminForm.email?.trim() || '',
+      permissions: [...new Set(subAdminForm.permissions)],
+      ...(subAdminForm.password ? { password: subAdminForm.password } : {}),
+    };
+    try {
+      if (subAdminForm.id) await api.patch(`/admin/sub-admins/${subAdminForm.id}`, payload);
+      else await api.post('/admin/sub-admins', payload);
+      setSubAdminForm(null);
+      await loadSection('sub-admins');
+      Alert.alert('تم بنجاح', 'تم حفظ بيانات المشرف والصلاحيات.');
+    } catch (error) {
+      Alert.alert('تعذر حفظ المشرف', getErrorMessage(error));
+    } finally {
+      setActionId(null);
+    }
+  };
 
-  const stats = dashboard?.stats || dashboard || {};
+  const toggleSubAdmin = async (item) => {
+    if (!isAdmin) return;
+    setActionId(`sub-admin-toggle-${item.id}`);
+    try {
+      await api.patch(`/admin/sub-admins/${item.id}`, { isActive: item.isActive === false });
+      await loadSection('sub-admins');
+    } catch (error) {
+      Alert.alert('تعذر تحديث الحالة', getErrorMessage(error));
+    } finally {
+      setActionId(null);
+    }
+  };
+
+  const sendNotification = async () => {
+    if (!notification.title.trim() || !notification.body.trim() || !can('notifications.write')) {
+      Alert.alert('بيانات غير صالحة', 'عنوان ونص الإشعار مطلوبان.');
+      return;
+    }
+    setActionId('notification');
+    try {
+      const idempotencyKey = `broadcast-${Date.now()}-${Math.random().toString(36).slice(2, 10)}`;
+      await api.post('/admin/notifications/broadcast', {
+        title: notification.title.trim(),
+        body: notification.body.trim(),
+        ...(notification.role ? { role: notification.role } : {}),
+      }, { headers: { 'Idempotency-Key': idempotencyKey } });
+      setNotification({ title: '', body: '', role: '' });
+      Alert.alert('تم بنجاح', 'تم إرسال الإشعار.');
+    } catch (error) {
+      Alert.alert('تعذر الإرسال', getErrorMessage(error));
+    } finally {
+      setActionId(null);
+    }
+  };
+
+  const stats = dashboard.data || {};
+  const sectionState = sectionStates[activeSection] || { data: [], loading: false, error: null };
 
   return (
     <SafeAreaView style={styles.container}>
       <ScrollView
         contentContainerStyle={styles.content}
-        refreshControl={<RefreshControl refreshing={loading} onRefresh={loadDashboard} />}
+        refreshControl={<RefreshControl refreshing={dashboard.loading || sectionState.loading} onRefresh={refreshActive} />}
       >
         <View style={styles.header}>
-          <View>
+          <View style={styles.headerText}>
             <Text style={styles.brand}>NOW</Text>
             <Text style={styles.title}>لوحة الإدارة</Text>
             <Text style={styles.subtitle}>مرحبًا {user?.name || 'مدير النظام'}</Text>
+            {!isAdmin && <Text style={styles.roleBadge}>مشرف بصلاحيات محددة</Text>}
           </View>
           <TouchableOpacity style={styles.logoutButton} onPress={logout}>
             <Text style={styles.logoutText}>خروج</Text>
           </TouchableOpacity>
         </View>
 
-        {loading ? (
-          <ActivityIndicator size="large" color="#0B8FA3" style={styles.loader} />
+        <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.sections}>
+          {visibleSections.map((section) => (
+            <TouchableOpacity
+              key={section.key}
+              style={[styles.sectionButton, activeSection === section.key && styles.sectionButtonActive]}
+              onPress={() => selectSection(section.key)}
+            >
+              <Text style={[styles.sectionButtonText, activeSection === section.key && styles.sectionButtonTextActive]}>
+                {section.label}
+              </Text>
+            </TouchableOpacity>
+          ))}
+        </ScrollView>
+
+        {activeSection === 'dashboard' ? (
+          <DashboardContent
+            dashboard={dashboard}
+            stats={stats}
+            onRetry={loadDashboard}
+          />
         ) : (
-          <>
-            <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.sections}>
-              {[
-                ['dashboard', 'الرئيسية'],
-                ['users', 'المستخدمون'],
-                ['stores', 'المتاجر'],
-                ['products', 'المنتجات'],
-                ['orders', 'الطلبات'],
-                ['delivery', 'التوصيل'],
-                ['reports', 'التقارير'],
-                ['sub-admins', 'المشرفون الفرعيون'],
-                ['notifications', 'الإشعارات'],
-              ].map(([name, label]) => (
-                <TouchableOpacity
-                  key={name}
-                  style={[styles.sectionButton, section === name && styles.sectionButtonActive]}
-                  onPress={() => loadSection(name)}
-                >
-                  <Text style={[styles.sectionButtonText, section === name && styles.sectionButtonTextActive]}>
-                    {label}
-                  </Text>
-                </TouchableOpacity>
-              ))}
-            </ScrollView>
-            {section === 'dashboard' ? (
-              <>
-                <View style={styles.grid}>
-                  <Stat label="المستخدمون" value={stats.users} />
-                  <Stat label="العملاء" value={stats.customers} />
-                  <Stat label="البائعون" value={stats.vendors} />
-                  <Stat label="المندوبون" value={stats.deliveries} />
-                  <Stat label="الطلبات" value={stats.orders} />
-                  <Stat label="قيد التنفيذ" value={stats.activeOrders} />
-                  <Stat label="المكتملة" value={stats.completedOrders} />
-                  <Stat label="المتاجر المفتوحة" value={stats.openStores} />
-                  <Stat label="المنتجات" value={stats.products} />
-                  <Stat label="الإيرادات" value={stats.sales} />
-                </View>
-                <TouchableOpacity style={styles.refreshButton} onPress={loadDashboard}>
-                  <Text style={styles.refreshText}>تحديث البيانات</Text>
-                </TouchableOpacity>
-              </>
-            ) : sectionLoading ? (
-              <ActivityIndicator size="large" color="#0B8FA3" style={styles.loader} />
-            ) : section === 'products' ? (
-              <View>
-                <TouchableOpacity style={styles.refreshButton} onPress={() => setProductForm({ name: '', description: '', storeId: '', categoryId: '', originalPrice: '', discountValue: '', discountType: 'PERCENTAGE', image: '', isAvailable: true, isDemo: false })}>
-                  <Text style={styles.refreshText}>إضافة منتج</Text>
-                </TouchableOpacity>
-                {sectionData.map((item) => (
-                  <View key={item.id} style={styles.row}>
-                    <View style={styles.rowActions}>
-                      <TouchableOpacity style={styles.smallButton} onPress={() => setProductForm({ ...item, storeId: item.storeId || item.store?.id, categoryId: item.categoryId || '' })}>
-                        <Text style={styles.smallButtonText}>تعديل</Text>
-                      </TouchableOpacity>
-                      <TouchableOpacity style={styles.resetButton} onPress={() => runAction(item, 'product-toggle')}>
-                        <Text style={styles.resetButtonText}>{item.isAvailable === false ? 'تفعيل' : 'تعطيل'}</Text>
-                      </TouchableOpacity>
-                    </View>
-                    <View>
-                      <Text style={styles.rowMeta}>{item.store?.name || `متجر #${item.storeId}`} {item.isDemo ? '• تجريبي' : ''}</Text>
-                      <Text style={styles.rowTitle}>{item.name}</Text>
-                    </View>
-                  </View>
-                ))}
-              </View>
-            ) : section === 'sub-admins' ? (
-              <View>
-                <View style={styles.sectionHeading}>
-                  <View>
-                    <Text style={styles.sectionTitle}>إدارة المشرفين</Text>
-                    <Text style={styles.sectionDescription}>أنشئ حسابات المشرفين وحدد صلاحياتهم بدقة</Text>
-                  </View>
-                  <TouchableOpacity
-                    style={styles.primaryAction}
-                    onPress={() => setSubAdminForm({ name: '', phone: '', email: '', password: '', permissions: [] })}
-                  >
-                    <Text style={styles.primaryActionText}>إضافة مشرف</Text>
-                  </TouchableOpacity>
-                </View>
-                {sectionData.map((item) => (
-                  <View key={item.id} style={styles.adminCard}>
-                    <View style={styles.rowActions}>
-                      <TouchableOpacity
-                        style={styles.smallButton}
-                        onPress={() => setSubAdminForm({
-                          ...item,
-                          password: '',
-                          permissions: item.permissions || [],
-                        })}
-                      >
-                        <Text style={styles.smallButtonText}>تعديل</Text>
-                      </TouchableOpacity>
-                      <TouchableOpacity
-                        style={styles.resetButton}
-                        onPress={() => toggleSubAdmin(item)}
-                        disabled={Boolean(actionId)}
-                      >
-                        {actionId === `sub-admin-toggle-${item.id}` ? (
-                          <ActivityIndicator size="small" color="#52606D" />
-                        ) : (
-                          <Text style={styles.resetButtonText}>{item.isActive === false ? 'تفعيل' : 'تعطيل'}</Text>
-                        )}
-                      </TouchableOpacity>
-                    </View>
-                    <View style={styles.adminCardInfo}>
-                      <Text style={styles.rowTitle}>{item.name}</Text>
-                      <Text style={styles.rowMeta}>{item.phone}{item.email ? ` • ${item.email}` : ''}</Text>
-                      <Text style={styles.permissionSummary}>
-                        {item.isActive === false ? 'غير نشط' : 'نشط'} • {item.permissions?.length || 0} صلاحيات
-                      </Text>
-                    </View>
-                  </View>
-                ))}
-              </View>
-            ) : section === 'notifications' ? (
-              <View style={styles.notificationCard}>
-                <Text style={styles.modalTitle}>إرسال إشعار حقيقي</Text>
-                <TextInput
-                  style={styles.filterInput}
-                  value={notificationTitle}
-                  onChangeText={setNotificationTitle}
-                  placeholder="عنوان الإشعار"
-                  textAlign="right"
-                  maxLength={120}
-                />
-                <TextInput
-                  style={[styles.filterInput, styles.notificationBody]}
-                  value={notificationBody}
-                  onChangeText={setNotificationBody}
-                  placeholder="نص الإشعار"
-                  textAlign="right"
-                  multiline
-                  maxLength={1000}
-                />
-                <View style={styles.filterRow}>
-                  {[
-                    ['', 'كل المستخدمين'],
-                    ['customer', 'العملاء'],
-                    ['vendor', 'البائعون'],
-                    ['delivery', 'المندوبون'],
-                  ].map(([value, label]) => (
-                    <TouchableOpacity key={value || 'all-notification'} style={[styles.filterChip, notificationRole === value && styles.filterChipActive]} onPress={() => setNotificationRole(value)}>
-                      <Text style={notificationRole === value ? styles.filterChipTextActive : styles.filterChipText}>{label}</Text>
-                    </TouchableOpacity>
-                  ))}
-                </View>
-                <TouchableOpacity style={styles.refreshButton} onPress={sendNotification} disabled={Boolean(actionId)}>
-                  {actionId === 'notification' ? <ActivityIndicator color="#FFF" /> : <Text style={styles.refreshText}>إرسال الإشعار</Text>}
-                </TouchableOpacity>
-              </View>
-            ) : sectionData.length === 0 ? (
-              <Text style={styles.empty}>لا توجد بيانات أو لا تملك الصلاحية</Text>
-            ) : (
-              <>
-              {section === 'users' && (
-                <View style={styles.filters}>
-                  <TextInput style={styles.filterInput} value={userSearch} onChangeText={setUserSearch} placeholder="بحث بالاسم أو الهاتف أو ID" textAlign="right" />
-                  <View style={styles.filterRow}>
-                    {[
-                      ['', 'كل الأدوار'],
-                      ['customer', 'عملاء'],
-                      ['vendor', 'بائعون'],
-                      ['delivery', 'مندوبون'],
-                      ['sub_admin', 'مشرفون'],
-                    ].map(([value, label]) => (
-                      <TouchableOpacity key={value || 'all'} style={[styles.filterChip, userRole === value && styles.filterChipActive]} onPress={() => setUserRole(value)}>
-                        <Text style={userRole === value ? styles.filterChipTextActive : styles.filterChipText}>{label}</Text>
-                      </TouchableOpacity>
-                    ))}
-                  </View>
-                  <View style={styles.filterRow}>
-                    {[
-                      ['', 'كل الحالات'],
-                      ['true', 'نشط'],
-                      ['false', 'غير نشط'],
-                    ].map(([value, label]) => (
-                      <TouchableOpacity key={value || 'all-status'} style={[styles.filterChip, userActive === value && styles.filterChipActive]} onPress={() => setUserActive(value)}>
-                        <Text style={userActive === value ? styles.filterChipTextActive : styles.filterChipText}>{label}</Text>
-                      </TouchableOpacity>
-                    ))}
-                  </View>
-                  <TouchableOpacity style={styles.refreshButton} onPress={loadUsers}>
-                    <Text style={styles.refreshText}>تطبيق البحث والفلاتر</Text>
-                  </TouchableOpacity>
-                </View>
-              )}
-              {sectionData.map((item) => (
-                <View key={item.id} style={styles.row}>
-                  <View style={styles.rowActions}>
-                    {section === 'users' && (
-                      <>
-                        <TouchableOpacity
-                          style={styles.smallButton}
-                          disabled={Boolean(actionId)}
-                          onPress={() => runAction(item, item.isActive === false ? 'activate' : 'suspend')}
-                        >
-                          {actionId === `${item.isActive === false ? 'activate' : 'suspend'}-${item.id}`
-                            ? <ActivityIndicator color="#FFF" size="small" />
-                            : <Text style={styles.smallButtonText}>{item.isActive === false ? 'تفعيل' : 'تعطيل'}</Text>}
-                        </TouchableOpacity>
-                        <TouchableOpacity style={styles.resetButton} onPress={() => setResetUser(item)}>
-                          <Text style={styles.resetButtonText}>كلمة المرور</Text>
-                        </TouchableOpacity>
-                      </>
-                    )}
-                    {section === 'stores' && (
-                      <>
-                        <TouchableOpacity style={styles.smallButton} onPress={() => runAction(item, item.isOpen === false ? 'store-open' : 'store-close')}>
-                          <Text style={styles.smallButtonText}>{item.isOpen === false ? 'فتح' : 'غلق'}</Text>
-                        </TouchableOpacity>
-                        <TouchableOpacity style={styles.resetButton} onPress={() => runAction(item, item.isActive === false ? 'store-activate' : 'store-suspend')}>
-                          <Text style={styles.resetButtonText}>{item.isActive === false ? 'تفعيل' : 'تعطيل'}</Text>
-                        </TouchableOpacity>
-                      </>
-                    )}
-                  </View>
-                  <View>
-                    <Text style={styles.rowMeta}>
-                      {item.status || item.role?.name || (item.isActive === false ? 'غير نشط' : 'نشط')}
-                    </Text>
-                    <Text style={styles.rowTitle}>{item.name || `#${item.id}`}</Text>
-                  </View>
-                </View>
-              ))}
-              </>
-            )}
-          </>
+          <SectionContent
+            name={activeSection}
+            state={sectionState}
+            can={can}
+            filters={userFilters}
+            setFilters={setUserFilters}
+            onSearch={() => loadSection('users', Object.fromEntries(Object.entries(userFilters).filter(([, value]) => value)))}
+            actionId={actionId}
+            onAction={runAction}
+            onReset={(item) => { setResetUser(item); setNewPassword(''); }}
+            onProductCreate={() => setProductForm({ name: '', description: '', storeId: '', categoryId: '', originalPrice: '', discountValue: '', discountType: 'PERCENTAGE', image: '', isAvailable: true, isDemo: false })}
+            onProductEdit={(item) => setProductForm({ ...item, storeId: item.storeId || item.store?.id, categoryId: item.categoryId || '' })}
+            onSubAdminCreate={() => setSubAdminForm({ name: '', phone: '', email: '', password: '', permissions: [] })}
+            onSubAdminEdit={(item) => setSubAdminForm({ ...item, password: '', permissions: item.permissions || [] })}
+            onSubAdminToggle={toggleSubAdmin}
+            notification={notification}
+            setNotification={setNotification}
+            onSendNotification={sendNotification}
+            canWriteNotification={can('notifications.write')}
+            isAdmin={isAdmin}
+            onRetry={refreshActive}
+            onSupportOpen={async (item) => {
+              try {
+                const response = await api.get(`/admin/support/sessions/${item.id}`);
+                setSupportSession(getPayload(response));
+              } catch (error) {
+                Alert.alert('تعذر فتح المحادثة', getErrorMessage(error));
+              }
+            }}
+            supportSession={supportSession}
+            supportReply={supportReply}
+            setSupportReply={setSupportReply}
+            onSupportReply={sendSupportReply}
+            onSupportStatus={updateSupportStatus}
+            canSupportRead={can('support.read')}
+            canSupportReply={can('support.reply')}
+            canSupportStatus={can('support.status')}
+          />
         )}
       </ScrollView>
+
       {resetUser && (
-        <View style={styles.modalOverlay}>
-          <View style={styles.modalCard}>
-            <Text style={styles.modalTitle}>تغيير كلمة مرور {resetUser.name}</Text>
-            <TextInput
-              style={styles.passwordInput}
-              value={newPassword}
-              onChangeText={setNewPassword}
-              placeholder="كلمة المرور الجديدة"
-              secureTextEntry
-              textAlign="right"
-            />
-            <View style={styles.modalActions}>
-              <TouchableOpacity style={styles.cancelButton} onPress={() => setResetUser(null)}>
-                <Text>إلغاء</Text>
-              </TouchableOpacity>
-              <TouchableOpacity style={styles.smallButton} onPress={resetPassword} disabled={Boolean(actionId)}>
-                {actionId === `reset-${resetUser.id}` ? <ActivityIndicator color="#FFF" /> : <Text style={styles.smallButtonText}>حفظ</Text>}
-              </TouchableOpacity>
-            </View>
-          </View>
-        </View>
+        <ModalCard title={`تغيير كلمة مرور ${resetUser.name}`} onClose={() => setResetUser(null)}>
+          <TextInput style={styles.input} value={newPassword} onChangeText={setNewPassword} placeholder="كلمة المرور الجديدة" secureTextEntry textAlign="right" />
+          <ModalActions onCancel={() => setResetUser(null)} onSave={resetPassword} loading={actionId === `reset-${resetUser.id}`} />
+        </ModalCard>
       )}
       {productForm && (
-        <View style={styles.modalOverlay}>
-          <View style={styles.modalCard}>
-            <Text style={styles.modalTitle}>{productForm.id ? 'تعديل المنتج' : 'إضافة منتج'}</Text>
-            {[
-              ['name', 'اسم المنتج'],
-              ['description', 'وصف المنتج'],
-              ['storeId', 'رقم المتجر'],
-              ['categoryId', 'رقم التصنيف (اختياري)'],
-              ['originalPrice', 'السعر الأصلي'],
-              ['discountValue', 'قيمة الخصم'],
-              ['image', 'رابط الصورة'],
-            ].map(([key, placeholder]) => (
-              <TextInput
-                key={key}
-                style={styles.passwordInput}
-                value={String(productForm[key] ?? '')}
-                onChangeText={(value) => setProductForm((current) => ({ ...current, [key]: value }))}
-                placeholder={placeholder}
-                keyboardType={['storeId', 'originalPrice', 'discountValue'].includes(key) ? 'numeric' : 'default'}
-                textAlign="right"
-              />
-            ))}
-            <View style={styles.filterRow}>
-              <TouchableOpacity style={[styles.filterChip, productForm.isDemo && styles.filterChipActive]} onPress={() => setProductForm((current) => ({ ...current, isDemo: !current.isDemo }))}>
-                <Text style={productForm.isDemo ? styles.filterChipTextActive : styles.filterChipText}>منتج تجريبي</Text>
-              </TouchableOpacity>
-            </View>
-            <View style={styles.modalActions}>
-              <TouchableOpacity style={styles.cancelButton} onPress={() => setProductForm(null)}>
-                <Text>إلغاء</Text>
-              </TouchableOpacity>
-              <TouchableOpacity style={styles.smallButton} onPress={saveProduct} disabled={Boolean(actionId)}>
-                {actionId === 'product-save' ? <ActivityIndicator color="#FFF" /> : <Text style={styles.smallButtonText}>حفظ</Text>}
-              </TouchableOpacity>
-            </View>
-          </View>
-        </View>
+        <ModalCard title={productForm.id ? 'تعديل المنتج' : 'إضافة منتج'} onClose={() => setProductForm(null)} scroll>
+          {[
+            ['name', 'اسم المنتج'], ['description', 'الوصف'], ['storeId', 'رقم المتجر'],
+            ['categoryId', 'رقم التصنيف (اختياري)'], ['originalPrice', 'السعر الأصلي'],
+            ['discountValue', 'قيمة الخصم'], ['image', 'رابط الصورة'],
+          ].map(([key, placeholder]) => (
+            <TextInput
+              key={key}
+              style={styles.input}
+              value={String(productForm[key] ?? '')}
+              onChangeText={(value) => setProductForm((current) => ({ ...current, [key]: value }))}
+              placeholder={placeholder}
+              keyboardType={['storeId', 'categoryId', 'originalPrice', 'discountValue'].includes(key) ? 'numeric' : 'default'}
+              textAlign="right"
+            />
+          ))}
+          <Chip label="منتج تجريبي" selected={productForm.isDemo} onPress={() => setProductForm((current) => ({ ...current, isDemo: !current.isDemo }))} />
+          <ModalActions onCancel={() => setProductForm(null)} onSave={saveProduct} loading={actionId === 'product-save'} />
+        </ModalCard>
       )}
       {subAdminForm && (
-        <View style={styles.modalOverlay}>
-          <ScrollView style={styles.modalScrollView} contentContainerStyle={styles.modalScroll}>
-            <View style={styles.modalCard}>
-              <Text style={styles.modalTitle}>{subAdminForm.id ? 'تعديل مشرف' : 'إضافة مشرف جديد'}</Text>
-              {[
-                ['name', 'اسم المشرف'],
-                ['phone', 'رقم الهاتف'],
-                ['email', 'البريد الإلكتروني (اختياري)'],
-                ...(!subAdminForm.id ? [['password', 'كلمة المرور']] : []),
-              ].map(([key, placeholder]) => (
-                <TextInput
-                  key={key}
-                  style={styles.passwordInput}
-                  value={String(subAdminForm[key] ?? '')}
-                  onChangeText={(value) => setSubAdminForm((current) => ({ ...current, [key]: value }))}
-                  placeholder={placeholder}
-                  secureTextEntry={key === 'password'}
-                  keyboardType={key === 'phone' ? 'phone-pad' : 'default'}
-                  textAlign="right"
-                />
-              ))}
-              <Text style={styles.permissionTitle}>الصلاحيات المتاحة</Text>
-              <View style={styles.permissionActions}>
-                <TouchableOpacity
-                  style={styles.permissionAction}
-                  onPress={() => setSubAdminForm((current) => ({
-                    ...current,
-                    permissions: permissionOptions.map(([value]) => value),
-                  }))}
-                >
-                  <Text style={styles.permissionActionText}>تحديد الكل</Text>
-                </TouchableOpacity>
-                <TouchableOpacity
-                  style={styles.permissionAction}
-                  onPress={() => setSubAdminForm((current) => ({ ...current, permissions: [] }))}
-                >
-                  <Text style={styles.permissionActionText}>مسح الكل</Text>
-                </TouchableOpacity>
-              </View>
-              <View style={styles.permissionGrid}>
-                {permissionOptions.map(([value, label]) => {
-                  const selected = Array.isArray(subAdminForm.permissions)
-                    && subAdminForm.permissions.includes(value);
-                  return (
-                    <TouchableOpacity
-                      key={value}
-                      style={[styles.permissionChip, selected && styles.permissionChipActive]}
-                      onPress={() => setSubAdminForm((current) => ({
-                        ...current,
-                        permissions: selected
-                          ? current.permissions.filter((permission) => permission !== value)
-                          : [...(Array.isArray(current.permissions) ? current.permissions : []), value],
-                      }))}
-                    >
-                      <Text style={selected ? styles.filterChipTextActive : styles.filterChipText}>{label}</Text>
-                    </TouchableOpacity>
-                  );
-                })}
-              </View>
-              <View style={styles.modalActions}>
-                <TouchableOpacity style={styles.cancelButton} onPress={() => setSubAdminForm(null)}>
-                  <Text>إلغاء</Text>
-                </TouchableOpacity>
-                <TouchableOpacity style={styles.smallButton} onPress={saveSubAdmin} disabled={Boolean(actionId)}>
-                  {actionId === 'sub-admin-save' ? <ActivityIndicator color="#FFF" /> : <Text style={styles.smallButtonText}>حفظ المشرف</Text>}
-                </TouchableOpacity>
-              </View>
+        <ModalCard title={subAdminForm.id ? 'تعديل مشرف' : 'إضافة مشرف جديد'} onClose={() => setSubAdminForm(null)} scroll>
+          {[
+            ['name', 'اسم المشرف'], ['phone', 'رقم الهاتف'], ['email', 'البريد الإلكتروني'],
+            ...(!subAdminForm.id ? [['password', 'كلمة المرور']] : []),
+          ].map(([key, placeholder]) => (
+            <TextInput
+              key={key}
+              style={styles.input}
+              value={String(subAdminForm[key] ?? '')}
+              onChangeText={(value) => setSubAdminForm((current) => ({ ...current, [key]: value }))}
+              placeholder={placeholder}
+              secureTextEntry={key === 'password'}
+              keyboardType={key === 'phone' ? 'phone-pad' : 'default'}
+              textAlign="right"
+            />
+          ))}
+          <Text style={styles.formTitle}>الصلاحيات</Text>
+          <View style={styles.chipRow}>
+            <Chip label="تحديد الكل" onPress={() => setSubAdminForm((current) => ({ ...current, permissions: permissionOptions.map((item) => item.name) }))} />
+            <Chip label="مسح الكل" onPress={() => setSubAdminForm((current) => ({ ...current, permissions: [] }))} />
+          </View>
+          <View style={styles.chipRow}>
+            {permissionOptions.map((permission) => (
+              <Chip
+                key={permission.name}
+                label={permission.label || permission.name}
+                selected={subAdminForm.permissions.includes(permission.name)}
+                onPress={() => setSubAdminForm((current) => ({
+                  ...current,
+                  permissions: current.permissions.includes(permission.name)
+                    ? current.permissions.filter((item) => item !== permission.name)
+                    : [...current.permissions, permission.name],
+                }))}
+              />
+            ))}
+          </View>
+          <ModalActions onCancel={() => setSubAdminForm(null)} onSave={saveSubAdmin} loading={actionId === 'sub-admin-save'} />
+        </ModalCard>
+      )}
+      {supportSession && (
+        <ModalCard title={`محادثة الدعم #${supportSession.id}`} onClose={() => setSupportSession(null)} scroll>
+          <Text style={styles.muted}>
+            {supportSession.user?.name || 'عميل'} {supportSession.order?.id ? `• الطلب #${supportSession.order.id}` : ''}
+          </Text>
+          {(supportSession.messages || []).map((message) => (
+            <View key={message.id} style={styles.panel}>
+              <Text style={styles.muted}>{message.sender} • {message.createdAt ? new Date(message.createdAt).toLocaleString() : ''}</Text>
+              <Text style={styles.cardText}>{message.message}</Text>
             </View>
-          </ScrollView>
-        </View>
+          ))}
+          {canSupportReply && supportSession.status !== 'CLOSED' && (
+            <>
+              <TextInput style={[styles.input, styles.textArea]} value={supportReply} onChangeText={setSupportReply} placeholder="اكتب الرد..." multiline textAlign="right" />
+              <PrimaryButton label="إرسال الرد" onPress={sendSupportReply} loading={actionId === `support-reply-${supportSession.id}`} />
+            </>
+          )}
+          {canSupportStatus && (
+            <View style={styles.chipRow}>
+              {['OPEN', 'IN_PROGRESS', 'CLOSED'].map((status) => (
+                <Chip key={status} label={status} selected={supportSession.status === status} onPress={() => updateSupportStatus(status)} />
+              ))}
+            </View>
+          )}
+        </ModalCard>
       )}
     </SafeAreaView>
   );
 };
 
-const Stat = ({ label, value }) => (
-  <View style={styles.card}>
-    <Text style={styles.value}>{value ?? '—'}</Text>
-    <Text style={styles.label}>{label}</Text>
+const DashboardContent = ({ dashboard, stats, onRetry }) => {
+  if (dashboard.loading && !dashboard.data) return <LoadingState />;
+  if (dashboard.error && !dashboard.data) return <ErrorState message={dashboard.error} onRetry={onRetry} />;
+  return (
+    <View>
+      {dashboard.error && <InlineError message={dashboard.error} onRetry={onRetry} />}
+      <View style={styles.grid}>{DASHBOARD_CARD_KEYS.map(([label, key]) => <Stat key={label} label={label} value={key === 'sales' ? formatMoney(stats[key]) : stats[key]} />)}</View>
+      <Text style={styles.sectionTitle}>آخر الطلبات</Text>
+      {(stats.recentOrders || []).length === 0 ? <EmptyState text="لا توجد طلبات حديثة." /> : (
+        stats.recentOrders.map((order) => (
+          <InfoRow key={order.id} title={`طلب #${order.id}`} meta={`${order.customer?.name || '—'} • ${order.store?.name || '—'}`} value={formatMoney(order.totalPrice)} />
+        ))
+      )}
+      <Text style={styles.sectionTitle}>آخر المستخدمين</Text>
+      {(stats.recentUsers || []).length === 0 ? <EmptyState text="لا يوجد مستخدمون جدد." /> : (
+        stats.recentUsers.map((item) => <InfoRow key={item.id} title={item.name} meta={`${item.role?.name || '—'} • ${item.phone || '—'}`} />)
+      )}
+    </View>
+  );
+};
+
+const SectionContent = (props) => {
+  const {
+    name, state, can, filters, setFilters, onSearch, actionId, onAction, onReset,
+    onProductCreate, onProductEdit, onSubAdminCreate, onSubAdminEdit, onSubAdminToggle,
+    notification, setNotification, onSendNotification, canWriteNotification, isAdmin,
+    onRetry, onSupportOpen, supportSession, supportReply, setSupportReply,
+    onSupportReply, onSupportStatus, canSupportRead, canSupportReply, canSupportStatus,
+  } = props;
+  if (state.loading) return <LoadingState />;
+  if (state.error) return <ErrorState message={state.error} onRetry={onRetry} />;
+  if (name === 'notifications') {
+    return (
+      <View style={styles.panel}>
+        <Text style={styles.sectionTitle}>إرسال إشعار</Text>
+        {!canWriteNotification && <Text style={styles.muted}>تحتاج إلى notifications.write للإرسال.</Text>}
+        <TextInput style={styles.input} value={notification.title} onChangeText={(title) => setNotification((current) => ({ ...current, title }))} placeholder="عنوان الإشعار" textAlign="right" />
+        <TextInput style={[styles.input, styles.textArea]} value={notification.body} onChangeText={(body) => setNotification((current) => ({ ...current, body }))} placeholder="نص الإشعار" multiline textAlign="right" />
+        <View style={styles.chipRow}>
+          {['', 'customer', 'vendor', 'delivery'].map((value) => <Chip key={value || 'all'} label={value ? value : 'كل المستخدمين'} selected={notification.role === value} onPress={() => setNotification((current) => ({ ...current, role: value }))} />)}
+        </View>
+        <PrimaryButton label="إرسال الإشعار" onPress={onSendNotification} loading={actionId === 'notification'} disabled={!canWriteNotification} />
+      </View>
+    );
+  }
+  if (name === 'users') {
+    const users = listFromPayload(state.data, 'users');
+    return (
+      <View>
+        <View style={styles.panel}>
+          <TextInput style={styles.input} value={filters.search} onChangeText={(search) => setFilters((current) => ({ ...current, search }))} placeholder="بحث بالاسم أو الهاتف أو الرقم" textAlign="right" />
+          <View style={styles.chipRow}>
+            {['', 'customer', 'vendor', 'delivery', 'sub_admin'].map((value) => <Chip key={value || 'all-role'} label={value || 'كل الأدوار'} selected={filters.role === value} onPress={() => setFilters((current) => ({ ...current, role: value }))} />)}
+            {['', 'true', 'false'].map((value) => <Chip key={value || 'all-active'} label={value === 'true' ? 'نشط' : value === 'false' ? 'غير نشط' : 'كل الحالات'} selected={filters.active === value} onPress={() => setFilters((current) => ({ ...current, active: value }))} />)}
+          </View>
+          <PrimaryButton label="تطبيق الفلاتر" onPress={onSearch} />
+        </View>
+        {users.length === 0 ? <EmptyState text="لا توجد نتائج للمستخدمين." /> : users.map((item) => (
+          <InfoRow
+            key={item.id}
+            title={item.name || `#${item.id}`}
+            meta={`${item.role?.name || '—'} • ${item.isActive === false ? 'غير نشط' : 'نشط'}`}
+            actions={(
+              <>
+                {can('users.suspend') && <SmallButton label={item.isActive === false ? 'تفعيل' : 'تعطيل'} onPress={() => onAction(item, item.isActive === false ? 'user-activate' : 'user-suspend')} loading={actionId === `${item.isActive === false ? 'user-activate' : 'user-suspend'}-${item.id}`} />}
+                {can('users.update') && <SmallButton label="كلمة المرور" secondary onPress={() => onReset(item)} />}
+              </>
+            )}
+          />
+        ))}
+      </View>
+    );
+  }
+  if (name === 'support') {
+    const sessions = Array.isArray(state.data) ? state.data : listFromPayload(state.data, 'sessions');
+    if (!canSupportRead) return <EmptyState text="لا تملك صلاحية قراءة محادثات الدعم." />;
+    return (
+      <View>
+        {sessions.length === 0 ? <EmptyState text="لا توجد محادثات دعم." /> : sessions.map((item) => (
+          <InfoRow
+            key={item.id}
+            title={`محادثة #${item.id} • ${item.user?.name || 'عميل'}`}
+            meta={`${item.status || 'OPEN'}${item.order?.id ? ` • الطلب #${item.order.id}` : ''}`}
+            value={item.messages?.[item.messages.length - 1]?.message || 'بدون رسائل'}
+            actions={<SmallButton label="فتح المحادثة" onPress={() => onSupportOpen(item)} />}
+          />
+        ))}
+        {supportSession && <Text style={styles.muted}>المحادثة المحددة: #{supportSession.id}</Text>}
+        {!canSupportReply && !canSupportStatus && <Text style={styles.muted}>صلاحية القراءة فقط.</Text>}
+      </View>
+    );
+  }
+  if (name === 'products') {
+    const products = listFromPayload(state.data, 'products');
+    return (
+      <View>
+        {can('products.write') && <PrimaryButton label="إضافة منتج" onPress={onProductCreate} />}
+        {products.length === 0 ? <EmptyState text="لا توجد منتجات." /> : products.map((item) => (
+          <InfoRow key={item.id} title={item.name || `#${item.id}`} meta={`${item.store?.name || 'متجر #' + item.storeId} • ${item.isAvailable === false ? 'غير متاح' : 'متاح'}`} value={formatMoney(item.price)} actions={can('products.write') ? <><SmallButton label="تعديل" onPress={() => onProductEdit(item)} /><SmallButton label={item.isAvailable === false ? 'تفعيل' : 'تعطيل'} secondary onPress={() => onAction(item, 'product-toggle')} /></> : null} />
+        ))}
+      </View>
+    );
+  }
+  if (name === 'stores') {
+    const stores = listFromPayload(state.data, 'stores');
+    return stores.length === 0 ? <EmptyState text="لا توجد متاجر." /> : stores.map((item) => (
+      <InfoRow key={item.id} title={item.name || `#${item.id}`} meta={`${item.vendor?.name || '—'} • ${item.isActive === false ? 'غير نشط' : 'نشط'}`} value={item.isOpen ? 'مفتوح' : 'مغلق'} actions={(
+        <>
+          {can('stores.update') && <SmallButton label={item.isOpen ? 'غلق' : 'فتح'} onPress={() => onAction(item, item.isOpen ? 'store-close' : 'store-open')} />}
+          {can('stores.suspend') && <SmallButton label={item.isActive === false ? 'تفعيل' : 'تعطيل'} secondary onPress={() => onAction(item, item.isActive === false ? 'store-activate' : 'store-suspend')} />}
+        </>
+      )} />
+    ));
+  }
+  if (name === 'sub-admins') {
+    const admins = listFromPayload(state.data, 'sub-admins');
+    return (
+      <View>
+        {isAdmin && <PrimaryButton label="إضافة مشرف" onPress={onSubAdminCreate} />}
+        {admins.length === 0 ? <EmptyState text="لا يوجد مشرفون فرعيون." /> : admins.map((item) => (
+          <InfoRow key={item.id} title={item.name} meta={`${item.phone} • ${item.isActive === false ? 'غير نشط' : 'نشط'}`} value={`${item.permissions?.length || 0} صلاحيات`} actions={isAdmin ? <><SmallButton label="تعديل" onPress={() => onSubAdminEdit(item)} /><SmallButton label={item.isActive === false ? 'تفعيل' : 'تعطيل'} secondary onPress={() => onSubAdminToggle(item)} loading={actionId === `sub-admin-toggle-${item.id}`} /></> : null} />
+        ))}
+      </View>
+    );
+  }
+  return <GenericSection data={state.data} name={name} />;
+};
+
+const GenericSection = ({ data, name }) => {
+  const records = listFromPayload(data, name);
+  if (records.length === 0) {
+    if (data && typeof data === 'object' && !Array.isArray(data) && Object.keys(data).length > 0) {
+      return <View style={styles.panel}>{Object.entries(data).map(([key, value]) => <InfoRow key={key} title={key} value={typeof value === 'object' ? JSON.stringify(value) : valueOrDash(value)} />)}</View>;
+    }
+    return <EmptyState text="لا توجد بيانات في هذا القسم." />;
+  }
+  return records.map((item, index) => <InfoRow key={item.id || `${name}-${index}`} title={item.name || item.title || item.id || `#${index + 1}`} meta={item.status || item.action || item.createdAt || ''} value={item.totalPrice ? formatMoney(item.totalPrice) : ''} />);
+};
+
+const ModalCard = ({ title, onClose, children, scroll }) => (
+  <View style={styles.modalOverlay}>
+    {scroll ? <ScrollView style={styles.modalScroll} contentContainerStyle={styles.modalCard}><Text style={styles.modalTitle}>{title}</Text>{children}<TouchableOpacity style={styles.cancelButton} onPress={onClose}><Text>إغلاق</Text></TouchableOpacity></ScrollView> : <View style={styles.modalCard}><Text style={styles.modalTitle}>{title}</Text>{children}</View>}
   </View>
 );
 
+const ModalActions = ({ onCancel, onSave, loading }) => (
+  <View style={styles.modalActions}><TouchableOpacity style={styles.cancelButton} onPress={onCancel}><Text>إلغاء</Text></TouchableOpacity><TouchableOpacity style={styles.primaryAction} onPress={onSave} disabled={loading}>{loading ? <ActivityIndicator color="#FFF" /> : <Text style={styles.primaryActionText}>حفظ</Text>}</TouchableOpacity></View>
+);
+
+const Stat = ({ label, value }) => <View style={styles.card}><Text style={styles.value}>{valueOrDash(value)}</Text><Text style={styles.label}>{label}</Text></View>;
+const InfoRow = ({ title, meta, value, actions }) => <View style={styles.row}><View style={styles.rowInfo}><Text style={styles.rowTitle}>{valueOrDash(title)}</Text>{meta ? <Text style={styles.rowMeta}>{valueOrDash(meta)}</Text> : null}</View>{value ? <Text style={styles.rowValue}>{valueOrDash(value)}</Text> : null}{actions ? <View style={styles.rowActions}>{actions}</View> : null}</View>;
+const Chip = ({ label, selected, onPress }) => <TouchableOpacity style={[styles.chip, selected && styles.chipActive]} onPress={onPress}><Text style={selected ? styles.chipTextActive : styles.chipText}>{label}</Text></TouchableOpacity>;
+const PrimaryButton = ({ label, onPress, loading, disabled }) => <TouchableOpacity style={[styles.primaryButton, disabled && styles.disabled]} onPress={onPress} disabled={disabled || loading}>{loading ? <ActivityIndicator color="#FFF" /> : <Text style={styles.primaryButtonText}>{label}</Text>}</TouchableOpacity>;
+const SmallButton = ({ label, onPress, secondary, loading }) => <TouchableOpacity style={[styles.smallButton, secondary && styles.secondaryButton]} onPress={onPress} disabled={loading}>{loading ? <ActivityIndicator size="small" color={secondary ? COLORS.text : '#FFF'} /> : <Text style={secondary ? styles.secondaryButtonText : styles.smallButtonText}>{label}</Text>}</TouchableOpacity>;
+const LoadingState = () => <View style={styles.state}><ActivityIndicator size="large" color={COLORS.primary} /><Text style={styles.muted}>جاري تحميل البيانات...</Text></View>;
+const EmptyState = ({ text }) => <View style={styles.state}><Text style={styles.muted}>{text}</Text></View>;
+const ErrorState = ({ message, onRetry }) => <View style={styles.state}><Text style={styles.error}>{message}</Text>{onRetry && <PrimaryButton label="إعادة المحاولة" onPress={onRetry} />}</View>;
+const InlineError = ({ message, onRetry }) => <View style={styles.inlineError}><Text style={styles.error}>{message}</Text><SmallButton label="إعادة المحاولة" secondary onPress={onRetry} /></View>;
+
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#F4F7FB' },
-  content: { padding: 20 },
-  header: {
-    flexDirection: 'row-reverse',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    marginBottom: 24,
-  },
-  brand: { color: '#0B8FA3', fontSize: 16, fontWeight: '800', textAlign: 'right' },
-  title: { color: '#102A43', fontSize: 28, fontWeight: '800', textAlign: 'right', marginTop: 4 },
-  subtitle: { color: '#6B7C93', fontSize: 15, textAlign: 'right', marginTop: 6 },
-  logoutButton: { paddingHorizontal: 16, paddingVertical: 10, borderRadius: 10, backgroundColor: '#FDE8EC' },
-  logoutText: { color: '#D33B5D', fontWeight: '800' },
-  loader: { marginTop: 48 },
-  grid: { flexDirection: 'row-reverse', flexWrap: 'wrap', gap: 12 },
-  card: { width: '48%', minHeight: 110, padding: 16, borderRadius: 16, backgroundColor: '#FFF', justifyContent: 'center', alignItems: 'center' },
-  value: { color: '#0B8FA3', fontSize: 28, fontWeight: '800' },
-  label: { color: '#52606D', marginTop: 8, fontWeight: '700' },
-  refreshButton: { marginTop: 24, padding: 15, borderRadius: 12, backgroundColor: '#0B8FA3', alignItems: 'center' },
-  refreshText: { color: '#FFF', fontWeight: '800' },
+  container: { flex: 1, backgroundColor: COLORS.background },
+  content: { padding: 16, paddingBottom: 40 },
+  header: { flexDirection: 'row-reverse', alignItems: 'center', justifyContent: 'space-between', marginBottom: 18 },
+  headerText: { flex: 1, alignItems: 'flex-end' },
+  brand: { color: COLORS.primaryDark, fontSize: 15, fontWeight: '800' },
+  title: { color: COLORS.text, fontSize: 26, fontWeight: '800', marginTop: 3 },
+  subtitle: { color: COLORS.textSecondary, fontSize: 14, marginTop: 4 },
+  roleBadge: { color: COLORS.primaryDark, fontSize: 12, marginTop: 5 },
+  logoutButton: { backgroundColor: '#FDE8EC', borderRadius: 10, paddingHorizontal: 15, paddingVertical: 10 },
+  logoutText: { color: COLORS.error, fontWeight: '800' },
   sections: { flexDirection: 'row-reverse', gap: 8, paddingBottom: 16 },
-  sectionButton: { paddingHorizontal: 14, paddingVertical: 10, borderRadius: 20, backgroundColor: '#E8EEF3' },
-  sectionButtonActive: { backgroundColor: '#0B8FA3' },
-  sectionButtonText: { color: '#52606D', fontWeight: '700' },
-  sectionButtonTextActive: { color: '#FFF' },
-  row: { flexDirection: 'row-reverse', justifyContent: 'space-between', alignItems: 'center', backgroundColor: '#FFF', borderRadius: 12, padding: 14, marginBottom: 8 },
-  rowTitle: { color: '#102A43', fontWeight: '800' },
-  rowMeta: { color: '#6B7C93', fontSize: 12 },
-  empty: { textAlign: 'center', color: '#6B7C93', marginTop: 24 },
-  rowActions: { flexDirection: 'row', gap: 6, alignItems: 'center' },
-  smallButton: { backgroundColor: '#0B8FA3', borderRadius: 8, paddingHorizontal: 10, paddingVertical: 8 },
-  smallButtonText: { color: '#FFF', fontWeight: '700', fontSize: 12 },
-  resetButton: { backgroundColor: '#E8EEF3', borderRadius: 8, paddingHorizontal: 10, paddingVertical: 8 },
-  resetButtonText: { color: '#52606D', fontWeight: '700', fontSize: 12 },
-  modalOverlay: { position: 'absolute', top: 0, right: 0, bottom: 0, left: 0, backgroundColor: 'rgba(0,0,0,0.45)', justifyContent: 'center', padding: 20 },
-  modalCard: { backgroundColor: '#FFF', borderRadius: 16, padding: 20 },
-  modalTitle: { fontSize: 18, fontWeight: '800', color: '#102A43', textAlign: 'right', marginBottom: 16 },
-  passwordInput: { borderWidth: 1, borderColor: '#CBD5E1', borderRadius: 10, padding: 12 },
-  modalActions: { flexDirection: 'row', justifyContent: 'flex-start', gap: 10, marginTop: 16 },
-  cancelButton: { paddingHorizontal: 14, paddingVertical: 10, borderRadius: 8, backgroundColor: '#E8EEF3' },
-  filters: { backgroundColor: '#FFF', borderRadius: 12, padding: 12, marginBottom: 12 },
-  filterInput: { borderWidth: 1, borderColor: '#CBD5E1', borderRadius: 8, padding: 10 },
-  filterRow: { flexDirection: 'row-reverse', flexWrap: 'wrap', gap: 6, marginTop: 10 },
-  filterChip: { borderRadius: 16, backgroundColor: '#E8EEF3', paddingHorizontal: 10, paddingVertical: 7 },
-  filterChipActive: { backgroundColor: '#0B8FA3' },
-  filterChipText: { color: '#52606D', fontSize: 12 },
-  filterChipTextActive: { color: '#FFF', fontWeight: '700', fontSize: 12 },
-  notificationCard: { backgroundColor: '#FFF', borderRadius: 12, padding: 14 },
-  notificationBody: { minHeight: 100, marginTop: 10, textAlignVertical: 'top' },
-  sectionHeading: {
-    flexDirection: 'row-reverse',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    backgroundColor: '#FFF',
-    borderRadius: 16,
-    padding: 16,
-    marginBottom: 12,
-  },
-  sectionTitle: { color: '#102A43', fontSize: 18, fontWeight: '800', textAlign: 'right' },
-  sectionDescription: { color: '#6B7C93', fontSize: 12, marginTop: 5, textAlign: 'right' },
-  primaryAction: { backgroundColor: '#0B8FA3', borderRadius: 10, paddingHorizontal: 12, paddingVertical: 10 },
-  primaryActionText: { color: '#FFF', fontWeight: '800', fontSize: 12 },
-  adminCard: {
-    flexDirection: 'row-reverse',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    backgroundColor: '#FFF',
-    borderRadius: 14,
-    padding: 14,
-    marginBottom: 8,
-  },
-  adminCardInfo: { flex: 1, alignItems: 'flex-end', marginLeft: 12 },
-  permissionSummary: { color: '#0B8FA3', fontSize: 12, fontWeight: '700', marginTop: 5 },
-  permissionTitle: { color: '#102A43', fontWeight: '800', textAlign: 'right', marginTop: 16, marginBottom: 8 },
-  permissionActions: { flexDirection: 'row-reverse', gap: 8, marginBottom: 8 },
-  permissionAction: { backgroundColor: '#E8EEF3', borderRadius: 8, paddingHorizontal: 10, paddingVertical: 7 },
-  permissionActionText: { color: '#0B8FA3', fontSize: 12, fontWeight: '800' },
-  permissionGrid: { flexDirection: 'row-reverse', flexWrap: 'wrap', gap: 8 },
-  permissionChip: { borderRadius: 10, backgroundColor: '#E8EEF3', paddingHorizontal: 10, paddingVertical: 9 },
-  permissionChipActive: { backgroundColor: '#0B8FA3' },
-  modalScrollView: { flex: 1, width: '100%' },
-  modalScroll: { flexGrow: 1, justifyContent: 'center', paddingVertical: 20 },
+  sectionButton: { backgroundColor: '#E8EEF3', borderRadius: 20, paddingHorizontal: 13, paddingVertical: 9 },
+  sectionButtonActive: { backgroundColor: COLORS.primaryDark },
+  sectionButtonText: { color: COLORS.textSecondary, fontWeight: '700' },
+  sectionButtonTextActive: { color: COLORS.white },
+  grid: { flexDirection: 'row-reverse', flexWrap: 'wrap', gap: 10 },
+  card: { width: '48%', minHeight: 96, backgroundColor: COLORS.surface, borderRadius: 14, padding: 12, justifyContent: 'center', alignItems: 'center' },
+  value: { color: COLORS.primaryDark, fontSize: 21, fontWeight: '800' },
+  label: { color: COLORS.textSecondary, marginTop: 7, fontWeight: '700', textAlign: 'center' },
+  panel: { backgroundColor: COLORS.surface, borderRadius: 14, padding: 14, marginBottom: 12 },
+  sectionTitle: { color: COLORS.text, fontSize: 18, fontWeight: '800', textAlign: 'right', marginTop: 20, marginBottom: 10 },
+  input: { borderWidth: 1, borderColor: COLORS.border, backgroundColor: COLORS.white, borderRadius: 9, padding: 11, marginBottom: 9 },
+  textArea: { minHeight: 100, textAlignVertical: 'top' },
+  chipRow: { flexDirection: 'row-reverse', flexWrap: 'wrap', gap: 7, marginBottom: 9 },
+  chip: { backgroundColor: '#E8EEF3', borderRadius: 16, paddingHorizontal: 10, paddingVertical: 8 },
+  chipActive: { backgroundColor: COLORS.primaryDark },
+  chipText: { color: COLORS.textSecondary, fontSize: 12 },
+  chipTextActive: { color: COLORS.white, fontSize: 12, fontWeight: '700' },
+  primaryButton: { backgroundColor: COLORS.primaryDark, borderRadius: 10, padding: 13, alignItems: 'center', marginVertical: 5 },
+  primaryButtonText: { color: COLORS.white, fontWeight: '800' },
+  disabled: { opacity: 0.45 },
+  row: { flexDirection: 'row-reverse', alignItems: 'center', backgroundColor: COLORS.surface, borderRadius: 12, padding: 12, marginBottom: 8, gap: 7 },
+  rowInfo: { flex: 1, alignItems: 'flex-end' },
+  rowTitle: { color: COLORS.text, fontWeight: '800', textAlign: 'right' },
+  rowMeta: { color: COLORS.textSecondary, fontSize: 12, marginTop: 4, textAlign: 'right' },
+  rowValue: { color: COLORS.primaryDark, fontWeight: '700', fontSize: 12 },
+  rowActions: { flexDirection: 'row', gap: 5, alignItems: 'center' },
+  smallButton: { backgroundColor: COLORS.primaryDark, borderRadius: 8, paddingHorizontal: 9, paddingVertical: 8 },
+  smallButtonText: { color: COLORS.white, fontWeight: '700', fontSize: 11 },
+  secondaryButton: { backgroundColor: '#E8EEF3' },
+  secondaryButtonText: { color: COLORS.textSecondary, fontWeight: '700', fontSize: 11 },
+  state: { alignItems: 'center', justifyContent: 'center', paddingVertical: 35, gap: 10 },
+  muted: { color: COLORS.textSecondary, textAlign: 'right' },
+  cardText: { color: COLORS.text, textAlign: 'right', lineHeight: 21, marginTop: 5 },
+  error: { color: COLORS.error, textAlign: 'center', marginBottom: 8 },
+  inlineError: { backgroundColor: '#FDE8EC', borderRadius: 10, padding: 10, flexDirection: 'row-reverse', alignItems: 'center', justifyContent: 'space-between', marginBottom: 10 },
+  modalOverlay: { position: 'absolute', top: 0, right: 0, bottom: 0, left: 0, backgroundColor: 'rgba(0,0,0,0.45)', justifyContent: 'center', padding: 18 },
+  modalCard: { backgroundColor: COLORS.surface, borderRadius: 16, padding: 18 },
+  modalScroll: { maxHeight: '92%', backgroundColor: COLORS.surface, borderRadius: 16 },
+  modalTitle: { color: COLORS.text, fontSize: 18, fontWeight: '800', textAlign: 'right', marginBottom: 15 },
+  modalActions: { flexDirection: 'row', justifyContent: 'flex-start', gap: 8, marginTop: 8 },
+  cancelButton: { backgroundColor: '#E8EEF3', borderRadius: 8, paddingHorizontal: 14, paddingVertical: 10, alignSelf: 'flex-start', marginTop: 10 },
+  primaryAction: { backgroundColor: COLORS.primaryDark, borderRadius: 8, paddingHorizontal: 14, paddingVertical: 10 },
+  primaryActionText: { color: COLORS.white, fontWeight: '800' },
+  formTitle: { color: COLORS.text, fontWeight: '800', textAlign: 'right', marginVertical: 8 },
 });
 
 export default AdminDashboardScreen;

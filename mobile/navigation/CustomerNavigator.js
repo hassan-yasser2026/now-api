@@ -5,6 +5,7 @@ import { Ionicons } from '@expo/vector-icons';
 
 import CustomerHome from '../screens/customer/CustomerHome';
 import StoreMenu from '../screens/customer/StoreMenu';
+import ProductDetails from '../screens/customer/ProductDetails';
 import OrdersScreen from '../screens/customer/OrdersScreen';
 import FavoritesScreen from '../screens/customer/FavoritesScreen';
 import SettingsScreen from '../screens/customer/SettingsScreen';
@@ -84,6 +85,7 @@ const CustomerNavigator = () => (
   <Stack.Navigator screenOptions={{ headerShown: false }}>
     <Stack.Screen name="CustomerTabs" component={CustomerTabs} />
     <Stack.Screen name="StoreMenu" component={StoreMenu} />
+    <Stack.Screen name="ProductDetails" component={ProductDetails} />
     <Stack.Screen name="Cart" component={CartScreen} />
     <Stack.Screen name="DeliverySchedule" component={DeliverySchedule} />
     <Stack.Screen name="OrderConfirmation" component={OrderConfirmation} />

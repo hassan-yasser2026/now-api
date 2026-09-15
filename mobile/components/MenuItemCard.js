@@ -4,22 +4,45 @@ import { Ionicons } from '@expo/vector-icons';
 import { COLORS } from '../constants/colors';
 import { formatPrice } from '../utils/formatters';
 
-const FALLBACK_IMAGE = 'https://images.unsplash.com/photo-1544025162-d76694265947?auto=format&fit=crop&w=900&q=80';
-
-export default function MenuItemCard({ item, quantity = 0, onAdd, onRemove }) {
+export default function MenuItemCard({ item, quantity = 0, onAdd, onRemove, onPress }) {
   const isAvailable = item.isAvailable !== false;
-  const imageUri = item.image || item.img || FALLBACK_IMAGE;
+  const imageUri = item.image || item.img;
+  const ratingCount = Number(item.ratingsCount ?? item.ratingCount ?? 0);
+  const averageRating = Number(item.averageRating ?? item.ratingAverage ?? 0);
+  const hasDiscount = Number(item.discountValue || 0) > 0 && Number(item.originalPrice) > Number(item.price);
 
   return (
-    <View style={[styles.card, !isAvailable && styles.unavailableCard]}>
-      <Image source={{ uri: imageUri }} style={styles.image} resizeMode="cover" />
+    <TouchableOpacity activeOpacity={0.9} onPress={onPress} style={[styles.card, !isAvailable && styles.unavailableCard]}>
+      {imageUri ? (
+        <Image source={{ uri: imageUri }} style={styles.image} resizeMode="cover" />
+      ) : (
+        <View style={[styles.image, styles.imagePlaceholder]}>
+          <Ionicons name="image-outline" size={28} color="#94A3B8" />
+        </View>
+      )}
 
       <View style={styles.info}>
         <Text style={styles.name}>{item.name}</Text>
         {item.description ? (
           <Text style={styles.description} numberOfLines={2}>{item.description}</Text>
         ) : null}
-        <Text style={styles.price}>{formatPrice(item.price)}</Text>
+        {ratingCount > 0 ? (
+          <Text style={styles.rating}>⭐ {averageRating.toFixed(1)} ({ratingCount} تقييم)</Text>
+        ) : (
+          <Text style={styles.noRating}>لا توجد تقييمات بعد</Text>
+        )}
+        <View style={styles.priceRow}>
+          <Text style={styles.price}>{formatPrice(item.price)} ج.م</Text>
+          {hasDiscount ? <Text style={styles.originalPrice}>{formatPrice(item.originalPrice)} ج.م</Text> : null}
+        </View>
+        {hasDiscount ? (
+          <Text style={styles.discount}>
+            خصم {item.discountPercentage ? `${item.discountPercentage}%` : `${formatPrice(item.discountValue)} ج.م`}
+          </Text>
+        ) : null}
+        <Text style={[styles.availability, !isAvailable && styles.unavailableText]}>
+          {isAvailable ? 'متاح' : 'غير متاح'}
+        </Text>
       </View>
 
       {isAvailable ? (
@@ -43,7 +66,7 @@ export default function MenuItemCard({ item, quantity = 0, onAdd, onRemove }) {
           <Text style={styles.unavailableText}>غير متاح</Text>
         </View>
       )}
-    </View>
+    </TouchableOpacity>
   );
 }
 
@@ -60,10 +83,17 @@ const styles = StyleSheet.create({
   },
   unavailableCard: { opacity: 0.55 },
   image: { width: 72, height: 72, borderRadius: 14, marginLeft: 12 },
+  imagePlaceholder: { backgroundColor: '#F1F5F9', alignItems: 'center', justifyContent: 'center' },
   info: { flex: 1, marginRight: 8, alignItems: 'flex-end' },
   name: { fontSize: 16, fontWeight: '800', color: '#333333' },
   description: { fontSize: 12, color: '#666666', marginTop: 4, textAlign: 'right' },
-  price: { fontSize: 15, fontWeight: '900', color: COLORS.primary, marginTop: 8 },
+  rating: { fontSize: 12, color: '#B45309', fontWeight: '700', marginTop: 6 },
+  noRating: { fontSize: 11, color: '#64748B', marginTop: 6 },
+  priceRow: { flexDirection: 'row', alignItems: 'center', gap: 8, marginTop: 8 },
+  price: { fontSize: 15, fontWeight: '900', color: COLORS.primary },
+  originalPrice: { fontSize: 12, color: '#64748B', textDecorationLine: 'line-through' },
+  discount: { fontSize: 12, color: '#B91C1C', fontWeight: '800', marginTop: 3 },
+  availability: { fontSize: 11, color: '#15803D', fontWeight: '700', marginTop: 3 },
   addButton: {
     width: 48, height: 48, borderRadius: 16,
     backgroundColor: '#FFF1F7', alignItems: 'center', justifyContent: 'center',

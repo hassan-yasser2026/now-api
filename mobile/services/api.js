@@ -3,24 +3,30 @@ import { Platform } from 'react-native';
 import useAppStore from '../store/appStore';
 import { getAuthToken } from '../utils/authStorage';
 
-const PRODUCTION_API_URL = 'https://now-api-production-ca56.up.railway.app/api';
+const PRODUCTION_API_URL = 'https://now-api-21yn.vercel.app/api';
+const FALLBACK_API_URL = 'https://now-api-production-ca56.up.railway.app/api';
 
 const getApiBaseUrl = () => {
   const configuredUrl = process.env.EXPO_PUBLIC_API_URL?.trim();
 
   if (configuredUrl) {
     const normalizedUrl = configuredUrl.replace(/\/+$/, '');
-    const isProductionUrl = /^https:\/\/now-api-production-ca56\.up\.railway\.app\/api$/i.test(normalizedUrl);
-    if (isProductionUrl) {
+    const isVercelProductionUrl = /^https:\/\/now-api-21yn\.vercel\.app\/api$/i.test(normalizedUrl);
+    const isRailwayFallbackUrl = /^https:\/\/now-api-production-ca56\.up\.railway\.app\/api$/i.test(normalizedUrl);
+    if (isVercelProductionUrl) {
       return normalizedUrl;
     }
 
-    console.warn('Ignoring unsupported mobile API URL; using Railway production API');
-    return PRODUCTION_API_URL;
+    if (isRailwayFallbackUrl) {
+      console.warn('Using Railway fallback API URL from EXPO_PUBLIC_API_URL');
+      return FALLBACK_API_URL;
+    }
+
+    return normalizedUrl;
   }
 
   // A missing Expo URL must never send the installed mobile app to an
-  // unreachable emulator/LAN address. The online app uses Railway by default.
+  // unreachable emulator/LAN address. The online app uses Vercel by default.
   if (Platform.OS === 'android' || Platform.OS === 'ios') {
     return PRODUCTION_API_URL;
   }
