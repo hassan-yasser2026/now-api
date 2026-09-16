@@ -134,6 +134,7 @@ app.use(createRateLimiter({
 
 const defaultOrigins = [
   'https://now-api-production-ca56.up.railway.app',
+  'https://now-api-21yn.vercel.app',
   ...(NODE_ENV === 'production'
     ? []
     : [
