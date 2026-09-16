@@ -5,9 +5,14 @@ const readBody = async (req) => {
     return typeof req.body === 'string' ? req.body : JSON.stringify(req.body);
   }
 
-  const chunks = [];
-  for await (const chunk of req) chunks.push(chunk);
-  return Buffer.concat(chunks).toString('utf8');
+  return new Promise((resolve, reject) => {
+    let body = '';
+    req.on('data', (chunk) => {
+      body += chunk;
+    });
+    req.on('end', () => resolve(body));
+    req.on('error', reject);
+  });
 };
 
 module.exports = async (req, res) => {
