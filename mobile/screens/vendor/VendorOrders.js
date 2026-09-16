@@ -5,8 +5,6 @@ import { COLORS } from '../../constants/colors';
 import { orderService } from '../../services/orderService';
 import useAppStore from '../../store/appStore';
 
-const fallbackOrders = [];
-
 const statusMap = {
   PENDING: 'قيد الانتظار',
   ACCEPTED: 'تم القبول',
@@ -35,16 +33,23 @@ export default function VendorOrders({ navigation }) {
   const [search, setSearch] = useState('');
 
   useEffect(() => {
+    let active = true;
     const loadOrders = async () => {
       const result = await orderService.getVendorOrders(user?.id);
-      if (result?.success && Array.isArray(result.orders) && result.orders.length > 0) {
+      if (!active) return;
+      if (result?.success && Array.isArray(result.orders)) {
         setOrders(result.orders);
-        return;
+      } else {
+        setOrders([]);
       }
-      setOrders(fallbackOrders);
     };
 
     loadOrders();
+    const interval = setInterval(loadOrders, 30000);
+    return () => {
+      active = false;
+      clearInterval(interval);
+    };
   }, [user?.id]);
 
   const renderItem = ({ item }) => (

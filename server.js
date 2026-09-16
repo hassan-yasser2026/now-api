@@ -1591,7 +1591,7 @@ app.get('/api/stores', async (req, res) => {
 
     const nearbyStores = customerPoint
       ? stores.filter((store) => isWithinDeliveryRadius(customerPoint, parseLatLng(store.latitude, store.longitude)))
-      : stores.filter((store) => parseLatLng(store.latitude, store.longitude));
+      : stores;
 
     return successResponse(res, nearbyStores.map((store) => {
       const total = store.ratings.reduce((sum, rating) => sum + rating.stars, 0);
@@ -2711,11 +2711,12 @@ app.post(
         if (
           Number.isNaN(
             parsedScheduledAt.getTime()
-          )
+          ) ||
+          parsedScheduledAt <= new Date()
         ) {
           return errorResponse(
             res,
-            'موعد الطلب غير صالح',
+            'موعد الطلب غير صالح أو انتهى',
             400
           );
         }
@@ -2728,6 +2729,7 @@ app.post(
        */
 
       const preparedItems = [];
+      const seenMenuItemIds = new Set();
 
       for (const item of items) {
         const menuItemId = normalizeId(
@@ -2746,6 +2748,15 @@ app.post(
             400
           );
         }
+
+        if (seenMenuItemIds.has(menuItemId)) {
+          return errorResponse(
+            res,
+            'لا يمكن تكرار الصنف نفسه في الطلب',
+            400
+          );
+        }
+        seenMenuItemIds.add(menuItemId);
 
         if (!quantity) {
           return errorResponse(
@@ -4466,6 +4477,25 @@ app.put(
           );
         }
 
+        const deliveryUser = await prisma.user.findFirst({
+          where: {
+            id: requestedDeliveryId,
+            isActive: true,
+            deletedAt: null,
+            approvalStatus: SUBMISSION_STATUS.APPROVED,
+            role: { name: ROLES.DELIVERY },
+          },
+          select: { id: true },
+        });
+
+        if (!deliveryUser) {
+          return errorResponse(
+            res,
+            'المندوب المحدد غير صالح',
+            400
+          );
+        }
+
         updateData.deliveryId =
           requestedDeliveryId;
       }
@@ -4563,6 +4593,38 @@ app.put(
             data: { orderId: order.id, status: requestedStatus },
           })),
         });
+      }
+
+      // READY orders become available to delivery users. Notify eligible
+      // delivery users so they do not have to keep reopening the orders screen.
+      if (requestedStatus === ORDER_STATUS.READY && !order.deliveryId) {
+        const availableDeliveryUsers = await prisma.user.findMany({
+          where: {
+            isActive: true,
+            deletedAt: null,
+            notificationsEnabled: { not: false },
+            approvalStatus: SUBMISSION_STATUS.APPROVED,
+            role: { name: ROLES.DELIVERY },
+            deliveryProfile: {
+              status: 'AVAILABLE',
+            },
+          },
+          select: { id: true },
+        });
+
+        if (availableDeliveryUsers.length) {
+          await prisma.notification.createMany({
+            data: availableDeliveryUsers
+              .filter(({ id }) => id !== req.user.userId)
+              .map(({ id }) => ({
+                userId: id,
+                type: 'ORDER_STATUS',
+                title: 'طلب توصيل متاح',
+                body: `طلب جديد جاهز للاستلام رقم #${order.id}`,
+                data: { orderId: order.id, status: requestedStatus },
+              })),
+          });
+        }
       }
 
       return successResponse(
@@ -5783,17 +5845,35 @@ app.get(
       const [stores, menuItems, offers] = await Promise.all([
         prisma.store.findMany({
           where: { approvalStatus: SUBMISSION_STATUS.PENDING_ADMIN_REVIEW },
-          include: { vendor: { select: { id: true, name: true, phone: true } } },
+          include: { vendor: { select: { id: true, name: true, phone: true, profileImage: true } } },
           orderBy: { createdAt: 'asc' },
         }),
         prisma.menuItem.findMany({
           where: { approvalStatus: SUBMISSION_STATUS.PENDING_ADMIN_REVIEW },
-          include: { store: { select: { id: true, name: true, vendor: { select: { id: true, name: true } } } } },
+          include: {
+            store: {
+              select: {
+                id: true,
+                name: true,
+                image: true,
+                vendor: { select: { id: true, name: true, phone: true, profileImage: true } },
+              },
+            },
+          },
           orderBy: { createdAt: 'asc' },
         }),
         prisma.offer.findMany({
           where: { approvalStatus: SUBMISSION_STATUS.PENDING_ADMIN_REVIEW },
-          include: { store: { select: { id: true, name: true, vendor: { select: { id: true, name: true } } } } },
+          include: {
+            store: {
+              select: {
+                id: true,
+                name: true,
+                image: true,
+                vendor: { select: { id: true, name: true, phone: true, profileImage: true } },
+              },
+            },
+          },
           orderBy: { createdAt: 'asc' },
         }),
       ]);

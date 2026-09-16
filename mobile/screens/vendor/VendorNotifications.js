@@ -41,6 +41,8 @@ const VendorNotifications = ({ navigation }) => {
 
   useEffect(() => {
     load();
+    const interval = setInterval(load, 30000);
+    return () => clearInterval(interval);
   }, [load]);
 
   const toggleNotifications = async (value) => {
