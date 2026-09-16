@@ -29,3 +29,9 @@ module.exports = async (req, res) => {
   );
   res.send(body);
 };
+
+module.exports.config = {
+  api: {
+    bodyParser: false,
+  },
+};
