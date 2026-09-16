@@ -21,18 +21,18 @@ module.exports = async (req, res) => {
     return;
   }
 
-  const body = await readBody(req);
+  const requestBody = await readBody(req);
   const upstream = await fetch(API_URL, {
     method: 'POST',
     headers: { 'content-type': 'application/json' },
-    body,
+    body: requestBody,
   });
-  const body = await upstream.text();
+  const upstreamBody = await upstream.text();
   res.status(upstream.status).setHeader(
     'content-type',
     upstream.headers.get('content-type') || 'application/json',
   );
-  res.send(body);
+  res.send(upstreamBody);
 };
 
 module.exports.config = {
