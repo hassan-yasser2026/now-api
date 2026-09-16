@@ -439,7 +439,7 @@ const DELIVERY_RADIUS_KM = Number.isFinite(Number(process.env.DELIVERY_RADIUS_KM
   && Number(process.env.DELIVERY_RADIUS_KM) > 0
   ? Number(process.env.DELIVERY_RADIUS_KM)
   : 15;
-const APP_BUILD_ID = process.env.APP_BUILD_ID || 'e96796a';
+const APP_BUILD_ID = process.env.APP_BUILD_ID || '151e1e4';
 
 const distanceInKm = (from, to) => {
   if (!from || !to) return null;
