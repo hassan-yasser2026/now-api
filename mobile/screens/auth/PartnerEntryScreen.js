@@ -1,9 +1,8 @@
 import React from 'react';
-import { Linking, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 
 import { COLORS } from '../../constants/colors';
-import { CONFIG } from '../../constants/config';
 
 const OPTIONS = [
   {
@@ -56,13 +55,6 @@ const PartnerEntryScreen = ({ navigation }) => (
       </View>
     ))}
 
-    <TouchableOpacity
-      style={styles.support}
-      onPress={() => Linking.openURL(`tel:${CONFIG.SUPPORT_PHONE}`)}
-    >
-      <Ionicons name="call-outline" size={20} color={COLORS.primary} />
-      <Text style={styles.supportText}>مشكلة في التسجيل؟ الدعم: 01067254988</Text>
-    </TouchableOpacity>
   </View>
 );
 

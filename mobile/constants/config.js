@@ -19,10 +19,6 @@ export const CONFIG = {
   DEFAULT_LANGUAGE: 'ar',
   SUPPORTED_LANGUAGES: ['ar', 'en'],
 
-  // بيانات الدعم
-  SUPPORT_PHONE: '+201067254988',
-  SUPPORT_WHATSAPP: '+201067254988',
-
   // العملة
   CURRENCY: 'EGP',
   CURRENCY_SYMBOL: 'ج.م',

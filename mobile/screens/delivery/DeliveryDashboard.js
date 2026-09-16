@@ -857,30 +857,6 @@ const DeliveryDashboard = ({ navigation }) => {
     []
   );
 
-  const callSupport = useCallback(async () => {
-    const phone = CONFIG.SUPPORT_PHONE;
-    const whatsapp = CONFIG.SUPPORT_WHATSAPP.replace(/\D/g, '');
-    const url = Platform.OS === 'web'
-      ? `https://wa.me/${whatsapp}`
-      : `tel:${phone}`;
-
-    try {
-      await Linking.openURL(url);
-    } catch (_error) {
-      Alert.alert(
-        'الدعم',
-        `تعذر فتح الاتصال. يمكنك التواصل عبر واتساب على ${CONFIG.SUPPORT_PHONE}.`,
-        [
-          { text: 'إلغاء', style: 'cancel' },
-          {
-            text: 'فتح واتساب',
-            onPress: () => Linking.openURL(`https://wa.me/${whatsapp}`),
-          },
-        ]
-      );
-    }
-  }, []);
-
   /* =======================================================
      SHARE MY LOCATION
      يرسل موقع المندوب الحالي ليظهر للعميل على خريطة التتبع.
@@ -1075,18 +1051,13 @@ const DeliveryDashboard = ({ navigation }) => {
       return;
     }
 
-    if (label === 'الدعم') {
-      callSupport();
-      return;
-    }
-
     if (label === 'الملف الشخصي' || label === 'الإعدادات') {
       navigation.navigate('DeliveryProfile');
       return;
     }
 
     if (item?.action) item.action();
-  }, [callSupport, navigation]);
+  }, [navigation]);
 
   const handleBottomNavAction = useCallback((item, index) => {
     if (!item) return;
@@ -1852,7 +1823,6 @@ const DeliveryDashboard = ({ navigation }) => {
             { label: 'الرحلات', icon: 'map-outline', active: false },
             { label: 'التقييمات', icon: 'star-outline', active: false },
             { label: 'الإشعارات', icon: 'notifications-outline', active: false },
-            { label: 'الدعم', icon: 'chatbubbles-outline', active: false },
             { label: 'الملف الشخصي', icon: 'person-outline', active: false },
             { label: 'الإعدادات', icon: 'settings-outline', active: false },
           ].map((item) => (

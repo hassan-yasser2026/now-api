@@ -1,9 +1,8 @@
 import React from 'react';
-import { Alert, Linking, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { Alert, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { COLORS } from '../../constants/colors';
 import useAppStore from '../../store/appStore';
-import { CONFIG } from '../../constants/config';
 
 const DeliveryMore = ({ navigation }) => {
   const { logout } = useAppStore();
@@ -18,15 +17,6 @@ const DeliveryMore = ({ navigation }) => {
     { label: 'الإشعارات', icon: 'notifications-outline', route: 'DeliveryNotifications' },
     { label: 'حول التطبيق', icon: 'information-circle-outline', route: 'About' },
   ];
-
-  const openSupport = async () => {
-    try {
-      const number = CONFIG.SUPPORT_WHATSAPP.replace(/\D/g, '');
-      await Linking.openURL(`https://wa.me/${number}?text=%D9%85%D8%B1%D8%AD%D8%A8%D8%A7`);
-    } catch {
-      Alert.alert('الدعم', `رقم الدعم: ${CONFIG.SUPPORT_PHONE}`);
-    }
-  };
 
   const confirmLogout = () => {
     Alert.alert('تسجيل الخروج', 'هل أنت متأكد من تسجيل الخروج؟', [
@@ -55,11 +45,6 @@ const DeliveryMore = ({ navigation }) => {
               <Ionicons name="chevron-forward" size={20} color={COLORS.textSecondary} />
             </TouchableOpacity>
           ))}
-          <TouchableOpacity style={styles.menuItem} onPress={openSupport}>
-            <Ionicons name="headset-outline" size={23} color={COLORS.primary} />
-            <Text style={styles.menuLabel}>الدعم 01067254988</Text>
-            <Ionicons name="call-outline" size={20} color={COLORS.textSecondary} />
-          </TouchableOpacity>
         </View>
 
         <TouchableOpacity style={styles.logoutButton} onPress={confirmLogout}>

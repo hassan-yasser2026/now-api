@@ -21,9 +21,6 @@ import CountryPickerModal from '../../components/CountryPickerModal';
 
 type Language = 'ar' | 'en';
 
-type SupportType = 'whatsapp';
-const WHATSAPP_NUMBER = '201067254988';
-
 type SettingsScreenProps = {
   navigation?: {
     navigate: (screen: string) => void;
@@ -88,20 +85,6 @@ const SettingsScreen: React.FC<SettingsScreenProps> = ({ navigation }) => {
         },
       ]
     );
-  };
-
-  const openSupport = async (type: SupportType) => {
-    try {
-      const message = encodeURIComponent('Hello NOW support, I need help.');
-      const url = `https://wa.me/${WHATSAPP_NUMBER}?text=${message}`;
-      await Linking.openURL(url);
-    } catch {
-      Alert.alert(
-        t.settings.support,
-        t.settings.supportMessage,
-        [{ text: t.common.close, style: 'cancel' }]
-      );
-    }
   };
 
   const handleLogout = () => {
@@ -322,28 +305,6 @@ const SettingsScreen: React.FC<SettingsScreenProps> = ({ navigation }) => {
               {t.settings.version}
             </Text>
             <Text style={styles.versionText}>{t.settings.appVersion}</Text>
-          </TouchableOpacity>
-        </View>
-
-        <View style={styles.section}>
-          <Text style={[styles.sectionTitle, isRTL && styles.rtlText]}>
-            {t.settings.support}
-          </Text>
-
-          <TouchableOpacity
-            accessibilityRole="button"
-            style={[styles.supportCard, isRTL && styles.supportCardRTL]}
-            onPress={() => openSupport('whatsapp')}
-          >
-            <Ionicons name="logo-whatsapp" size={20} color={COLORS.success} />
-            <View style={[styles.supportTextWrap, isRTL && styles.supportTextWrapRTL]}>
-              <Text style={[styles.supportText, isRTL && styles.rtlText]}>
-                {t.settings.whatsapp}
-              </Text>
-              <Text style={[styles.supportValue, isRTL && styles.rtlText]}>
-                +20 106 725 4988
-              </Text>
-            </View>
           </TouchableOpacity>
         </View>
 

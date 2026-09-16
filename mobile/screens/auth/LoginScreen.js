@@ -4,7 +4,6 @@ import {
   Alert,
   Animated,
   KeyboardAvoidingView,
-  Linking,
   Platform,
   ScrollView,
   StyleSheet,
@@ -311,15 +310,6 @@ const LoginScreen = ({ navigation, route }) => {
               />
             </TouchableOpacity>
           </View>
-
-          {isPartnerLogin && (
-            <TouchableOpacity
-              style={styles.supportLink}
-              onPress={() => Linking.openURL('tel:+201067254988')}
-            >
-              <Text style={styles.supportText}>مشكلة في الدخول؟ الدعم: 01067254988</Text>
-            </TouchableOpacity>
-          )}
 
           {/* ====================================
               LOGIN BUTTON

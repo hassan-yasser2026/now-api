@@ -2,7 +2,6 @@ import React, { useEffect, useState } from 'react';
 import {
   Alert,
   Image,
-  Linking,
   Modal,
   ScrollView,
   StyleSheet,
@@ -14,7 +13,6 @@ import {
 import useAppStore from '../../store/appStore';
 import { storeService } from '../../services/storeService';
 import { orderService } from '../../services/orderService';
-import { CONFIG } from '../../constants/config';
 
 const ORDER_STATUS_LABELS = {
   PENDING: 'جديد',
@@ -46,7 +44,6 @@ const MENU_ITEMS = [
   { label: 'العروض والخصومات', icon: '🏷️', route: 'VendorOffers' },
   { label: 'المحفظة والأرباح', icon: '💰', route: 'VendorWallet' },
   { label: 'التقييمات', icon: '⭐', route: 'VendorRatings' },
-  { label: 'الدعم', icon: '💬', support: true },
   { label: 'الإشعارات', icon: '🔔', route: 'VendorNotifications' },
   { label: 'الملف الشخصي', icon: '👤', route: 'VendorProfile' },
   { label: 'حالة المتجر', icon: '🟢', statusAction: true },
@@ -123,12 +120,6 @@ const VendorDashboard = ({ navigation }) => {
 
     if (item.route) {
       navigation.navigate(item.route);
-      return;
-    }
-
-    if (item.support) {
-      const whatsappNumber = CONFIG.SUPPORT_WHATSAPP.replace(/\D/g, '');
-      Linking.openURL(`https://wa.me/${whatsappNumber}`);
       return;
     }
 

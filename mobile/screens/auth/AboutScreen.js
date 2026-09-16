@@ -89,26 +89,6 @@ const AboutScreen = ({ navigation }) => {
     }
   };
 
-  const handlePhone = () => {
-    openUrl(
-      `tel:${CONFIG.SUPPORT_PHONE}`,
-      'لا يمكن إجراء المكالمة من هذا الجهاز.'
-    );
-  };
-
-  const handleWhatsApp = () => {
-    const phone = String(CONFIG.SUPPORT_PHONE || '')
-      .replace(/\+/g, '')
-      .replace(/\s/g, '');
-
-    const whatsappUrl = `https://wa.me/${phone}`;
-
-    openUrl(
-      whatsappUrl,
-      'لا يمكن فتح واتساب على هذا الجهاز.'
-    );
-  };
-
   const renderFeature = (item, index) => (
     <View key={`${item.title}-${index}`} style={styles.featureRow}>
       <View style={styles.featureIcon}>
@@ -271,90 +251,6 @@ const AboutScreen = ({ navigation }) => {
           <View style={styles.featureList}>
             {features.map(renderFeature)}
           </View>
-        </View>
-
-        {/* Support */}
-        <View style={styles.card}>
-          <View style={styles.cardHeader}>
-            <View style={styles.cardHeaderIcon}>
-              <Ionicons
-                name="headset-outline"
-                size={22}
-                color={COLORS.primary}
-              />
-            </View>
-
-            <Text style={styles.cardTitle}>
-              خدمة العملاء
-            </Text>
-          </View>
-
-          <Text style={styles.cardText}>
-            لو عندك استفسار أو مشكلة، تقدر تتواصل مع فريق
-            الدعم من خلال إحدى الطرق التالية:
-          </Text>
-
-          {/* WhatsApp */}
-          <TouchableOpacity
-            style={styles.contactButton}
-            onPress={handleWhatsApp}
-            activeOpacity={0.8}
-          >
-            <View style={styles.contactIconWhatsApp}>
-              <Ionicons
-                name="logo-whatsapp"
-                size={23}
-                color="#FFFFFF"
-              />
-            </View>
-
-            <View style={styles.contactInfo}>
-              <Text style={styles.contactTitle}>
-                واتساب
-              </Text>
-
-              <Text style={styles.contactValue}>
-                تواصل معنا مباشرة
-              </Text>
-            </View>
-
-            <Ionicons
-              name="chevron-back"
-              size={20}
-              color={COLORS.textLight}
-            />
-          </TouchableOpacity>
-
-          {/* Phone */}
-          <TouchableOpacity
-            style={styles.contactButton}
-            onPress={handlePhone}
-            activeOpacity={0.8}
-          >
-            <View style={styles.contactIcon}>
-              <Ionicons
-                name="call-outline"
-                size={22}
-                color={COLORS.primary}
-              />
-            </View>
-
-            <View style={styles.contactInfo}>
-              <Text style={styles.contactTitle}>
-                الهاتف
-              </Text>
-
-              <Text style={styles.contactValue}>
-                {CONFIG.SUPPORT_PHONE}
-              </Text>
-            </View>
-
-            <Ionicons
-              name="chevron-back"
-              size={20}
-              color={COLORS.textLight}
-            />
-          </TouchableOpacity>
         </View>
 
         {/* Security / Reliability */}
