@@ -3423,9 +3423,24 @@ app.post('/api/admin/support/sessions/:id/messages', authMiddleware, adminPermis
     const session = await prisma.chatSession.findUnique({ where: { id }, select: { id: true, status: true } });
     if (!session) return errorResponse(res, 'المحادثة غير موجودة', 404);
     if (session.status === 'RESOLVED') return errorResponse(res, 'المحادثة مغلقة', 409);
-    const created = await prisma.chatMessage.create({ data: { sessionId: id, sender: 'ADMIN', message } });
-    await prisma.chatSession.update({ where: { id }, data: { status: 'ESCALATED' } });
-    await auditAdminAction(req, 'SUPPORT_REPLY', 'ChatSession', id);
+    const created = await prisma.$transaction(async (tx) => {
+      const newMessage = await tx.chatMessage.create({
+        data: { sessionId: id, sender: 'ADMIN', message },
+      });
+      await tx.chatSession.update({
+        where: { id },
+        data: { status: 'ESCALATED' },
+      });
+      return newMessage;
+    });
+
+    // Auditing must not turn a successfully stored support reply into a 500.
+    try {
+      await auditAdminAction(req, 'SUPPORT_REPLY', 'ChatSession', id);
+    } catch (auditError) {
+      console.error('SUPPORT REPLY AUDIT ERROR:', auditError);
+    }
+
     return successResponse(res, { ...created, sender: req.user.role === ROLES.SUB_ADMIN ? 'SUBADMIN' : 'ADMIN' }, 201);
   } catch (error) {
     return handlePrismaError(error, res);
