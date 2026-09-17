@@ -1601,9 +1601,7 @@ app.get('/api/stores', async (req, res) => {
     const stores = await prisma.store.findMany({
       where: {
         isActive: true,
-        // Active stores are the published storefronts visible to customers.
-        // Keep the public listing resilient if older records have a missing
-        // or legacy approval status while remaining gated by isActive.
+        approvalStatus: SUBMISSION_STATUS.APPROVED,
         ...(req.query.includeClosed === 'true' ? {} : { isOpen: true }),
       },
       include: {
@@ -1703,6 +1701,7 @@ app.get(
           id: storeId,
           isActive: true,
           approvalStatus: SUBMISSION_STATUS.APPROVED,
+          isOpen: true,
         },
         include: {
           vendor: {
@@ -1711,7 +1710,14 @@ app.get(
             },
           },
           menuItems: {
-            where: { approvalStatus: SUBMISSION_STATUS.APPROVED },
+            where: {
+              approvalStatus: SUBMISSION_STATUS.APPROVED,
+              isAvailable: true,
+              OR: [
+                { categoryId: null },
+                { category: { isActive: true, storeId } },
+              ],
+            },
             include: {
               ratings: {
                 select: {
@@ -1997,8 +2003,18 @@ app.get(
     try {
       const items = await prisma.menuItem.findMany({
         where: {
-          storeId,
+          store: {
+            id: storeId,
+            isActive: true,
+            isOpen: true,
+            approvalStatus: SUBMISSION_STATUS.APPROVED,
+          },
           approvalStatus: SUBMISSION_STATUS.APPROVED,
+          isAvailable: true,
+          OR: [
+            { categoryId: null },
+            { category: { isActive: true, storeId } },
+          ],
         },
         include: {
           ratings: {
