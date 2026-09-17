@@ -266,6 +266,15 @@ const SettingsScreen: React.FC<SettingsScreenProps> = ({ navigation }) => {
               thumbColor={notificationsEnabled ? COLORS.primary : '#fff'}
             />
           </View>
+          <TouchableOpacity
+            style={[styles.supportCard, isRTL && styles.supportCardRTL]}
+            onPress={() => navigation?.navigate('CustomerNotifications')}
+          >
+            <Ionicons name="list-outline" size={20} color={COLORS.primary} />
+            <Text style={[styles.supportText, isRTL && styles.rtlText]}>
+              {t.settings.notifications}
+            </Text>
+          </TouchableOpacity>
 
           <TouchableOpacity
             style={[styles.supportCard, isRTL && styles.supportCardRTL]}

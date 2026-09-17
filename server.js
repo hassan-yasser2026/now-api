@@ -3001,7 +3001,7 @@ app.post(
 app.get(
   '/api/notifications',
   authMiddleware,
-  roleMiddleware(ROLES.VENDOR, ROLES.DELIVERY),
+  roleMiddleware(ROLES.CUSTOMER, ROLES.VENDOR, ROLES.DELIVERY, ROLES.ADMIN, ROLES.SUB_ADMIN),
   async (req, res) => {
     try {
       const notifications = await prisma.notification.findMany({
@@ -3019,7 +3019,7 @@ app.get(
 app.patch(
   '/api/notifications/:id/read',
   authMiddleware,
-  roleMiddleware(ROLES.VENDOR, ROLES.DELIVERY),
+  roleMiddleware(ROLES.CUSTOMER, ROLES.VENDOR, ROLES.DELIVERY, ROLES.ADMIN, ROLES.SUB_ADMIN),
   async (req, res) => {
     const id = normalizeId(req.params.id);
     if (!id) return errorResponse(res, 'رقم الإشعار غير صالح', 400);
@@ -3040,7 +3040,7 @@ app.patch(
 app.get(
   '/api/notifications/preferences',
   authMiddleware,
-  roleMiddleware(ROLES.VENDOR, ROLES.DELIVERY),
+  roleMiddleware(ROLES.CUSTOMER, ROLES.VENDOR, ROLES.DELIVERY, ROLES.ADMIN, ROLES.SUB_ADMIN),
   async (req, res) => {
     try {
       const user = await prisma.user.findUnique({
@@ -3057,7 +3057,7 @@ app.get(
 app.patch(
   '/api/notifications/preferences',
   authMiddleware,
-  roleMiddleware(ROLES.VENDOR, ROLES.DELIVERY),
+  roleMiddleware(ROLES.CUSTOMER, ROLES.VENDOR, ROLES.DELIVERY, ROLES.ADMIN, ROLES.SUB_ADMIN),
   async (req, res) => {
     if (typeof req.body.enabled !== 'boolean') {
       return errorResponse(res, 'قيمة الإشعارات غير صالحة', 400);
