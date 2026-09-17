@@ -1610,6 +1610,17 @@ app.get('/api/stores', async (req, res) => {
             name: true,
           },
         },
+        menuItems: {
+          where: {
+            isAvailable: true,
+            approvalStatus: SUBMISSION_STATUS.APPROVED,
+            OR: [
+              { categoryId: null },
+              { category: { isActive: true } },
+            ],
+          },
+          orderBy: { id: 'desc' },
+        },
         offers: {
           where: {
             approvalStatus: SUBMISSION_STATUS.APPROVED,
@@ -1712,6 +1723,7 @@ app.get(
           menuItems: {
             where: {
               isAvailable: true,
+              approvalStatus: SUBMISSION_STATUS.APPROVED,
               OR: [
                 { categoryId: null },
                 { category: { isActive: true, storeId } },
@@ -2008,6 +2020,7 @@ app.get(
             isOpen: true,
           },
           isAvailable: true,
+          approvalStatus: SUBMISSION_STATUS.APPROVED,
           OR: [
             { categoryId: null },
             { category: { isActive: true, storeId } },

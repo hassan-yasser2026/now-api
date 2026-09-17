@@ -1,6 +1,6 @@
 {
   "expo": {
-    "name": "NOW Delivery",
+    "name": "NOW",
     "slug": "now-server",
     "version": "1.0.0",
     "platforms": [
@@ -11,7 +11,7 @@
     "orientation": "portrait",
     "userInterfaceStyle": "automatic",
     "scheme": "now-delivery",
-    "icon": "./assets/images/icon.png",
+    "icon": "./assets/images/now-logo.png",
     "assetBundlePatterns": [
       "**/*"
     ],
@@ -26,7 +26,7 @@
     },
     "android": {
       "package": "com.now.delivery",
-      "versionCode": 3,
+      "versionCode": 12,
       "permissions": [
         "ACCESS_COARSE_LOCATION",
         "ACCESS_FINE_LOCATION",
@@ -42,7 +42,7 @@
     "web": {
       "bundler": "metro",
       "output": "single",
-      "favicon": "./assets/images/favicon.png"
+      "favicon": "./assets/images/now-logo.png"
     },
     "plugins": [
       "expo-status-bar",

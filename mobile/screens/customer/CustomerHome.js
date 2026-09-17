@@ -23,6 +23,7 @@ import storeService from '../../services/storeService';
 
 import Loading from '../../components/Loading';
 import LocationPickerModal from '../../components/LocationPickerModal';
+import { formatPrice } from '../../utils/formatters';
 
 const HOME_ACCENT = '#0B8FA3';
 const HOME_DARK = '#151515';
@@ -71,6 +72,15 @@ const CustomerHome = ({ navigation }) => {
 
         const menuResults = await Promise.all(
           loadedStores.map(async (store) => {
+            if (Array.isArray(store.menuItems)) {
+              return store.menuItems.slice(0, 4).map((item) => ({
+                ...item,
+                storeId: store.id,
+                storeName: store.name,
+                storeImage: store.image || store.logo,
+              }));
+            }
+
             const menuResult = await storeService.getMenu(store.id);
             if (!menuResult.success) return [];
             return (menuResult.menu || []).slice(0, 4).map((item) => ({
@@ -354,13 +364,16 @@ const CustomerHome = ({ navigation }) => {
               accessibilityLabel={item.name || 'منتج'}
               activeOpacity={0.85}
             >
-              <Image
-                source={{
-                  uri: item.image || item.img || 'https://images.unsplash.com/photo-1544025162-d76694265947?auto=format&fit=crop&w=900&q=80',
-                }}
-                style={styles.productImage}
-                resizeMode="cover"
-              />
+              <View style={styles.productImageFrame}>
+                <Image
+                  source={{
+                    uri: item.image || item.img || 'https://images.unsplash.com/photo-1544025162-d76694265947?auto=format&fit=crop&w=900&q=80',
+                  }}
+                  style={styles.productImage}
+                  resizeMode="cover"
+                />
+                <ProductImageDetails item={item} />
+              </View>
             </TouchableOpacity>
             ))}
           </View>
@@ -409,6 +422,32 @@ const CustomerHome = ({ navigation }) => {
           ))}
         </View>
       )}
+    </View>
+  );
+};
+
+const ProductImageDetails = ({ item }) => {
+  const ratingCount = Number(item.ratingsCount ?? item.ratingCount ?? 0);
+  const averageRating = Number(item.averageRating ?? item.ratingAverage ?? 0);
+  const hasDiscount = Number(item.discountValue || 0) > 0 && Number(item.originalPrice) > Number(item.price);
+  const categoryName = item.category?.nameAr || item.category?.name || item.categoryName || item.category;
+
+  return (
+    <View style={styles.productImageDetails}>
+      <Text style={styles.productNameOverlay} numberOfLines={1}>{item.name}</Text>
+      <View style={styles.productDetailsRow}>
+        <Text style={styles.productPriceOverlay}>{formatPrice(item.price)}</Text>
+        {categoryName ? <Text style={styles.productTypeOverlay} numberOfLines={1}>{categoryName}</Text> : null}
+        {ratingCount > 0 ? <Text style={styles.productRatingOverlay}>⭐ {averageRating.toFixed(1)} ({ratingCount})</Text> : null}
+      </View>
+      {hasDiscount ? (
+        <View style={styles.productDiscountRow}>
+          <Text style={styles.productDiscountOverlay}>
+            خصم {item.discountPercentage ? `${item.discountPercentage}%` : formatPrice(item.discountValue)}
+          </Text>
+          <Text style={styles.productOriginalOverlay}>{formatPrice(item.originalPrice)}</Text>
+        </View>
+      ) : null}
     </View>
   );
 };
@@ -845,6 +884,63 @@ const styles = StyleSheet.create({
     width: '100%',
     aspectRatio: 1,
     backgroundColor: '#E9FAFD',
+  },
+  productImageFrame: {
+    position: 'relative',
+  },
+  productImageDetails: {
+    position: 'absolute',
+    left: 0,
+    right: 0,
+    bottom: 0,
+    backgroundColor: 'rgba(15, 23, 42, 0.82)',
+    paddingHorizontal: 8,
+    paddingVertical: 7,
+  },
+  productNameOverlay: {
+    color: '#FFFFFF',
+    fontSize: 13,
+    fontWeight: '800',
+    textAlign: 'right',
+  },
+  productDetailsRow: {
+    flexDirection: 'row-reverse',
+    alignItems: 'center',
+    flexWrap: 'wrap',
+    gap: 5,
+    marginTop: 3,
+  },
+  productPriceOverlay: {
+    color: '#FFFFFF',
+    fontSize: 12,
+    fontWeight: '900',
+  },
+  productTypeOverlay: {
+    color: '#BAE6FD',
+    fontSize: 10,
+    fontWeight: '700',
+    maxWidth: '38%',
+  },
+  productRatingOverlay: {
+    color: '#FDE68A',
+    fontSize: 10,
+    fontWeight: '700',
+  },
+  productDiscountRow: {
+    flexDirection: 'row-reverse',
+    alignItems: 'center',
+    gap: 5,
+    marginTop: 2,
+  },
+  productDiscountOverlay: {
+    color: '#FECACA',
+    fontSize: 10,
+    fontWeight: '800',
+  },
+  productOriginalOverlay: {
+    color: '#CBD5E1',
+    fontSize: 10,
+    textDecorationLine: 'line-through',
   },
   productsEmpty: {
     color: COLORS.textSecondary,

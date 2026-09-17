@@ -2,6 +2,7 @@ import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import {
   ActivityIndicator,
   Alert,
+  Image,
   RefreshControl,
   SafeAreaView,
   ScrollView,
@@ -16,11 +17,19 @@ import useAppStore from '../../store/appStore';
 import { COLORS } from '../../constants/colors';
 
 /*
- * This screen deliberately uses the contracts in server.js.  In particular,
- * products use products.read/products.write on the server (these permissions
- * are not currently in the server permission catalogue), so they are not
- * shown to a sub-admin until the backend exposes those permissions.
+ * Keep section permissions aligned with the backend, including its legacy
+ * aliases for existing sub-admin accounts.
  */
+const ADMIN_PERMISSION_ALIASES = {
+  'products.read': ['stores.read'],
+  'products.write': ['stores.update'],
+  'ratings.read': ['reports.read'],
+  'ratings.delete': ['ratings.write', 'reports.read'],
+  'support.read': ['complaints.read', 'reports.read'],
+  'support.reply': ['complaints.write', 'complaints.read', 'reports.read'],
+  'support.status': ['complaints.write', 'complaints.read', 'reports.read'],
+};
+
 const SECTIONS = [
   { key: 'dashboard', label: 'الرئيسية', permission: 'reports.read' },
   { key: 'users', label: 'المستخدمون', permission: 'users.read' },
@@ -66,6 +75,31 @@ const listFromPayload = (payload, key) => {
   return [];
 };
 
+const ADMIN_LABELS = {
+  admin: 'مدير رئيسي',
+  sub_admin: 'مشرف فرعي',
+  customer: 'عميل',
+  vendor: 'بائع',
+  delivery: 'مندوب',
+  OPEN: 'مفتوحة',
+  IN_PROGRESS: 'قيد المتابعة',
+  CLOSED: 'مغلقة',
+  PENDING: 'معلقة',
+  ACCEPTED: 'مقبولة',
+  PREPARING: 'قيد التحضير',
+  READY: 'جاهزة',
+  PICKED_UP: 'تم الاستلام',
+  ON_THE_WAY: 'في الطريق',
+  DELIVERED: 'تم التوصيل',
+  CANCELLED: 'ملغاة',
+  APPROVED: 'معتمد',
+  REJECTED: 'مرفوض',
+  ACTIVE: 'نشط',
+  INACTIVE: 'غير نشط',
+};
+
+const adminLabel = (value) => ADMIN_LABELS[value] || value;
+
 const valueOrDash = (value) => (
   value === null || value === undefined || value === '' ? '—' : String(value)
 );
@@ -100,10 +134,18 @@ const AdminDashboardScreen = () => {
   const [permissionOptions, setPermissionOptions] = useState([]);
   const [supportSession, setSupportSession] = useState(null);
   const [supportReply, setSupportReply] = useState('');
+  const [submissionDetail, setSubmissionDetail] = useState(null);
+  const [rejectionTarget, setRejectionTarget] = useState(null);
+  const [rejectionReason, setRejectionReason] = useState('');
+  const [rejectionError, setRejectionError] = useState('');
 
   const permissions = useMemo(() => normalizePermissions(user), [user]);
   const isAdmin = role === 'admin' || user?.role === 'admin';
-  const can = useCallback((permission) => isAdmin || permissions.includes(permission), [isAdmin, permissions]);
+  const can = useCallback((permission) => (
+    isAdmin
+    || permissions.includes(permission)
+    || (ADMIN_PERMISSION_ALIASES[permission] || []).some((alias) => permissions.includes(alias))
+  ), [isAdmin, permissions]);
 
   const visibleSections = useMemo(
     () => SECTIONS.filter((section) => !section.adminOnly ? can(section.permission) : isAdmin),
@@ -174,6 +216,31 @@ const AdminDashboardScreen = () => {
     }
   };
 
+  const updateSubmission = async (item, status, reason = '') => {
+    if (!can('stores.update')) return;
+    const normalizedReason = reason.trim();
+    if (status === 'REJECTED' && !normalizedReason) {
+      setRejectionError('اكتب سبب الرفض أولاً.');
+      return;
+    }
+    setActionId(`submission-${status}-${item.id}`);
+    try {
+      const type = item.submissionType;
+      await api.patch(`/admin/submissions/${type}/${item.id}/${status === 'APPROVED' ? 'approve' : 'reject'}`,
+        status === 'REJECTED' ? { rejectionReason: normalizedReason } : {});
+      setRejectionTarget(null);
+      setRejectionReason('');
+      setRejectionError('');
+      setSubmissionDetail(null);
+      await loadSection('submissions');
+      Alert.alert('تم بنجاح', status === 'APPROVED' ? 'تم اعتماد الطلب ونشره.' : 'تم رفض الطلب.');
+    } catch (error) {
+      Alert.alert('تعذر تحديث الطلب', getErrorMessage(error));
+    } finally {
+      setActionId(null);
+    }
+  };
+
   const loadPermissions = useCallback(async () => {
     if (!isAdmin) return;
     try {
@@ -189,6 +256,10 @@ const AdminDashboardScreen = () => {
   useEffect(() => {
     loadDashboard();
   }, [loadDashboard]);
+
+  useEffect(() => {
+    if (can('stores.read')) loadSection('submissions');
+  }, [can, loadSection]);
 
   useEffect(() => {
     if (!visibleSections.some((section) => section.key === activeSection)) {
@@ -229,12 +300,20 @@ const AdminDashboardScreen = () => {
         ? (action === 'store-open' || action === 'store-close' ? 'stores.update' : 'stores.suspend')
         : 'products.write';
     if (!can(requiredPermission)) return;
-    if (!(await confirm('تأكيد العملية', 'هل تريد تنفيذ هذه العملية؟'))) return;
+    const isDelete = action === 'user-delete';
+    if (!(await confirm(
+      isDelete ? 'تأكيد حذف الحساب' : 'تأكيد العملية',
+      isDelete
+        ? 'سيتم حذف الحساب نهائيًا من النظام، ولن يتمكن صاحبه من الدخول، وسيصبح رقم الهاتف متاحًا للتسجيل من جديد. هل تريد المتابعة؟'
+        : 'هل تريد تنفيذ هذه العملية؟',
+    ))) return;
     setActionId(`${action}-${item.id}`);
     try {
       if (action === 'user-suspend' || action === 'user-activate') {
         await api.patch(`/admin/users/${item.id}/${action === 'user-suspend' ? 'suspend' : 'activate'}`,
           action === 'user-suspend' ? { reason: 'إجراء إداري' } : {});
+      } else if (action === 'user-delete') {
+        await api.delete(`/admin/users/${item.id}`);
       } else if (action === 'store-open' || action === 'store-close') {
         await api.patch(`/admin/stores/${item.id}`, { isOpen: action === 'store-open' });
       } else if (action === 'store-suspend' || action === 'store-activate') {
@@ -243,7 +322,7 @@ const AdminDashboardScreen = () => {
         await api.patch(`/admin/products/${item.id}`, { isAvailable: item.isAvailable === false });
       }
       await loadSection(activeSection);
-      Alert.alert('تم بنجاح', 'تم تنفيذ العملية بنجاح.');
+      Alert.alert('تم بنجاح', isDelete ? 'تم حذف الحساب وإتاحة رقم الهاتف للتسجيل من جديد.' : 'تم تنفيذ العملية بنجاح.');
     } catch (error) {
       Alert.alert('تعذر التنفيذ', getErrorMessage(error));
     } finally {
@@ -391,9 +470,14 @@ const AdminDashboardScreen = () => {
               style={[styles.sectionButton, activeSection === section.key && styles.sectionButtonActive]}
               onPress={() => selectSection(section.key)}
             >
-              <Text style={[styles.sectionButtonText, activeSection === section.key && styles.sectionButtonTextActive]}>
-                {section.label}
-              </Text>
+              <View style={styles.sectionLabel}>
+                <Text style={[styles.sectionButtonText, activeSection === section.key && styles.sectionButtonTextActive]}>
+                  {section.label}
+                </Text>
+                {section.key === 'submissions' && listFromPayload(sectionStates.submissions?.data, 'submissions').length > 0 && (
+                  <View style={styles.badge}><Text style={styles.badgeText}>{listFromPayload(sectionStates.submissions.data, 'submissions').length}</Text></View>
+                )}
+              </View>
             </TouchableOpacity>
           ))}
         </ScrollView>
@@ -424,6 +508,12 @@ const AdminDashboardScreen = () => {
             setNotification={setNotification}
             onSendNotification={sendNotification}
             canWriteNotification={can('notifications.write')}
+            onNotificationOpen={(item) => {
+              const data = item?.data;
+              if (data?.submissionType && data?.submissionId) {
+                setSubmissionDetail({ ...data, id: data.submissionId });
+              }
+            }}
             isAdmin={isAdmin}
             onRetry={refreshActive}
             onSupportOpen={async (item) => {
@@ -442,7 +532,54 @@ const AdminDashboardScreen = () => {
             canSupportRead={can('support.read')}
             canSupportReply={can('support.reply')}
             canSupportStatus={can('support.status')}
+            submissionDetail={submissionDetail}
+            onSubmissionOpen={setSubmissionDetail}
+            onSubmissionUpdate={updateSubmission}
           />
+        )}
+        {submissionDetail && (
+          <ModalCard title={submissionDetail.submissionType === 'partner_user' ? 'تفاصيل طلب الشريك' : 'تفاصيل طلب البائع'} onClose={() => setSubmissionDetail(null)} scroll>
+            <SubmissionDetails item={submissionDetail} />
+            {can('stores.update') && (
+              <View style={styles.modalActions}>
+                <SmallButton
+                  label="رفض الطلب"
+                  secondary
+                  onPress={() => {
+                    setRejectionReason('');
+                    setRejectionError('');
+                    setRejectionTarget(submissionDetail);
+                  }}
+                  loading={actionId === `submission-REJECTED-${submissionDetail.id}`}
+                />
+                <SmallButton label="اعتماد ونشر" onPress={() => updateSubmission(submissionDetail, 'APPROVED')} loading={actionId === `submission-APPROVED-${submissionDetail.id}`} />
+              </View>
+            )}
+          </ModalCard>
+        )}
+        {rejectionTarget && (
+          <ModalCard title="سبب رفض الطلب" onClose={() => setRejectionTarget(null)}>
+            <Text style={styles.detailText}>اكتب سببًا واضحًا ليتم إرساله إلى البائع.</Text>
+            <TextInput
+              style={[styles.input, styles.textArea]}
+              value={rejectionReason}
+              onChangeText={(value) => {
+                setRejectionReason(value);
+                if (rejectionError) setRejectionError('');
+              }}
+              placeholder="مثال: يرجى استكمال بيانات المتجر أو تعديل صورة المنتج"
+              multiline
+              maxLength={500}
+              textAlign="right"
+            />
+            <Text style={styles.muted}>{rejectionReason.length}/500</Text>
+            {rejectionError ? <Text style={styles.error}>{rejectionError}</Text> : null}
+            <ModalActions
+              onCancel={() => setRejectionTarget(null)}
+              onSave={() => updateSubmission(rejectionTarget, 'REJECTED', rejectionReason)}
+              loading={actionId === `submission-REJECTED-${rejectionTarget.id}`}
+            />
+          </ModalCard>
         )}
       </ScrollView>
 
@@ -520,20 +657,20 @@ const AdminDashboardScreen = () => {
           </Text>
           {(supportSession.messages || []).map((message) => (
             <View key={message.id} style={styles.panel}>
-              <Text style={styles.muted}>{message.sender} • {message.createdAt ? new Date(message.createdAt).toLocaleString() : ''}</Text>
+              <Text style={styles.muted}>{message.sender === 'ADMIN' || message.sender === 'SUBADMIN' ? 'الدعم' : 'العميل'} • {message.createdAt ? new Date(message.createdAt).toLocaleString('ar-EG') : ''}</Text>
               <Text style={styles.cardText}>{message.message}</Text>
             </View>
           ))}
-          {canSupportReply && supportSession.status !== 'CLOSED' && (
+          {can('support.reply') && supportSession.status !== 'CLOSED' && (
             <>
               <TextInput style={[styles.input, styles.textArea]} value={supportReply} onChangeText={setSupportReply} placeholder="اكتب الرد..." multiline textAlign="right" />
               <PrimaryButton label="إرسال الرد" onPress={sendSupportReply} loading={actionId === `support-reply-${supportSession.id}`} />
             </>
           )}
-          {canSupportStatus && (
+          {can('support.status') && (
             <View style={styles.chipRow}>
               {['OPEN', 'IN_PROGRESS', 'CLOSED'].map((status) => (
-                <Chip key={status} label={status} selected={supportSession.status === status} onPress={() => updateSupportStatus(status)} />
+                <Chip key={status} label={adminLabel(status)} selected={supportSession.status === status} onPress={() => updateSupportStatus(status)} />
               ))}
             </View>
           )}
@@ -558,7 +695,7 @@ const DashboardContent = ({ dashboard, stats, onRetry }) => {
       )}
       <Text style={styles.sectionTitle}>آخر المستخدمين</Text>
       {(stats.recentUsers || []).length === 0 ? <EmptyState text="لا يوجد مستخدمون جدد." /> : (
-        stats.recentUsers.map((item) => <InfoRow key={item.id} title={item.name} meta={`${item.role?.name || '—'} • ${item.phone || '—'}`} />)
+        stats.recentUsers.map((item) => <InfoRow key={item.id} title={item.name} meta={`${adminLabel(item.role?.name) || '—'} • ${item.phone || '—'}`} />)
       )}
     </View>
   );
@@ -568,9 +705,10 @@ const SectionContent = (props) => {
   const {
     name, state, can, filters, setFilters, onSearch, actionId, onAction, onReset,
     onProductCreate, onProductEdit, onSubAdminCreate, onSubAdminEdit, onSubAdminToggle,
-    notification, setNotification, onSendNotification, canWriteNotification, isAdmin,
+    notification, setNotification, onSendNotification, canWriteNotification, onNotificationOpen, isAdmin,
     onRetry, onSupportOpen, supportSession, supportReply, setSupportReply,
     onSupportReply, onSupportStatus, canSupportRead, canSupportReply, canSupportStatus,
+    submissionDetail, onSubmissionOpen, onSubmissionUpdate,
   } = props;
   if (state.loading) return <LoadingState />;
   if (state.error) return <ErrorState message={state.error} onRetry={onRetry} />;
@@ -578,13 +716,21 @@ const SectionContent = (props) => {
     return (
       <View style={styles.panel}>
         <Text style={styles.sectionTitle}>إرسال إشعار</Text>
-        {!canWriteNotification && <Text style={styles.muted}>تحتاج إلى notifications.write للإرسال.</Text>}
+        {!canWriteNotification && <Text style={styles.muted}>تحتاج إلى صلاحية إرسال الإشعارات.</Text>}
         <TextInput style={styles.input} value={notification.title} onChangeText={(title) => setNotification((current) => ({ ...current, title }))} placeholder="عنوان الإشعار" textAlign="right" />
         <TextInput style={[styles.input, styles.textArea]} value={notification.body} onChangeText={(body) => setNotification((current) => ({ ...current, body }))} placeholder="نص الإشعار" multiline textAlign="right" />
         <View style={styles.chipRow}>
-          {['', 'customer', 'vendor', 'delivery'].map((value) => <Chip key={value || 'all'} label={value ? value : 'كل المستخدمين'} selected={notification.role === value} onPress={() => setNotification((current) => ({ ...current, role: value }))} />)}
+          {['', 'customer', 'vendor', 'delivery'].map((value) => <Chip key={value || 'all'} label={value ? adminLabel(value) : 'كل المستخدمين'} selected={notification.role === value} onPress={() => setNotification((current) => ({ ...current, role: value }))} />)}
         </View>
         <PrimaryButton label="إرسال الإشعار" onPress={onSendNotification} loading={actionId === 'notification'} disabled={!canWriteNotification} />
+        <Text style={styles.sectionTitle}>إشعارات طلبات الشركاء</Text>
+        {listFromPayload(state.data, 'notifications').filter((item) => item.data?.submissionType).map((item) => (
+          <TouchableOpacity key={item.id} style={styles.notificationCard} onPress={() => onNotificationOpen(item)}>
+            <Text style={styles.rowTitle}>{item.title}</Text>
+            <Text style={styles.rowMeta}>{item.body}</Text>
+            <Text style={styles.rowMeta}>اضغط لعرض الصور والبيانات كاملة</Text>
+          </TouchableOpacity>
+        ))}
       </View>
     );
   }
@@ -595,7 +741,7 @@ const SectionContent = (props) => {
         <View style={styles.panel}>
           <TextInput style={styles.input} value={filters.search} onChangeText={(search) => setFilters((current) => ({ ...current, search }))} placeholder="بحث بالاسم أو الهاتف أو الرقم" textAlign="right" />
           <View style={styles.chipRow}>
-            {['', 'customer', 'vendor', 'delivery', 'sub_admin'].map((value) => <Chip key={value || 'all-role'} label={value || 'كل الأدوار'} selected={filters.role === value} onPress={() => setFilters((current) => ({ ...current, role: value }))} />)}
+            {['', 'customer', 'vendor', 'delivery', 'sub_admin'].map((value) => <Chip key={value || 'all-role'} label={value ? adminLabel(value) : 'كل الأدوار'} selected={filters.role === value} onPress={() => setFilters((current) => ({ ...current, role: value }))} />)}
             {['', 'true', 'false'].map((value) => <Chip key={value || 'all-active'} label={value === 'true' ? 'نشط' : value === 'false' ? 'غير نشط' : 'كل الحالات'} selected={filters.active === value} onPress={() => setFilters((current) => ({ ...current, active: value }))} />)}
           </View>
           <PrimaryButton label="تطبيق الفلاتر" onPress={onSearch} />
@@ -604,10 +750,11 @@ const SectionContent = (props) => {
           <InfoRow
             key={item.id}
             title={item.name || `#${item.id}`}
-            meta={`${item.role?.name || '—'} • ${item.isActive === false ? 'غير نشط' : 'نشط'}`}
+            meta={`${adminLabel(item.role?.name) || '—'} • ${item.isActive === false ? 'غير نشط' : 'نشط'}`}
             actions={(
               <>
                 {can('users.suspend') && <SmallButton label={item.isActive === false ? 'تفعيل' : 'تعطيل'} onPress={() => onAction(item, item.isActive === false ? 'user-activate' : 'user-suspend')} loading={actionId === `${item.isActive === false ? 'user-activate' : 'user-suspend'}-${item.id}`} />}
+                {can('users.suspend') && <SmallButton label="حذف الحساب" secondary onPress={() => onAction(item, 'user-delete')} loading={actionId === `user-delete-${item.id}`} />}
                 {can('users.update') && <SmallButton label="كلمة المرور" secondary onPress={() => onReset(item)} />}
               </>
             )}
@@ -625,13 +772,35 @@ const SectionContent = (props) => {
           <InfoRow
             key={item.id}
             title={`محادثة #${item.id} • ${item.user?.name || 'عميل'}`}
-            meta={`${item.status || 'OPEN'}${item.order?.id ? ` • الطلب #${item.order.id}` : ''}`}
+            meta={`${adminLabel(item.status || 'OPEN')}${item.order?.id ? ` • الطلب #${item.order.id}` : ''}`}
             value={item.messages?.[item.messages.length - 1]?.message || 'بدون رسائل'}
             actions={<SmallButton label="فتح المحادثة" onPress={() => onSupportOpen(item)} />}
           />
         ))}
         {supportSession && <Text style={styles.muted}>المحادثة المحددة: #{supportSession.id}</Text>}
         {!canSupportReply && !canSupportStatus && <Text style={styles.muted}>صلاحية القراءة فقط.</Text>}
+      </View>
+    );
+  }
+  if (name === 'submissions') {
+    const submissions = listFromPayload(state.data, 'submissions');
+    return (
+      <View>
+        <View style={styles.pendingBanner}>
+          <Text style={styles.pendingBannerTitle}>طلبات بائعين جديدة</Text>
+          <Text style={styles.pendingBannerText}>{submissions.length ? `يوجد ${submissions.length} طلب يحتاج المراجعة.` : 'لا توجد طلبات معلقة حاليًا.'}</Text>
+        </View>
+        {submissions.length === 0 ? <EmptyState text="لا توجد طلبات معلقة." /> : submissions.map((item) => (
+          <TouchableOpacity key={`${item.submissionType}-${item.id}`} style={styles.submissionCard} onPress={() => onSubmissionOpen(item)}>
+            <SubmissionImage item={item} />
+            <View style={styles.rowInfo}>
+              <Text style={styles.rowTitle}>{item.name || item.title || `طلب #${item.id}`}</Text>
+              <Text style={styles.rowMeta}>{item.submissionType === 'store' ? 'متجر' : item.submissionType === 'offer' ? 'عرض' : 'منتج'} • {item.store?.vendor?.name || item.vendor?.name || 'بائع'}</Text>
+              <Text style={styles.rowMeta}>{item.store?.name || item.name || '—'} • اضغط لعرض كل البيانات</Text>
+            </View>
+            <View style={styles.newBadge}><Text style={styles.newBadgeText}>جديد</Text></View>
+          </TouchableOpacity>
+        ))}
       </View>
     );
   }
@@ -679,7 +848,62 @@ const GenericSection = ({ data, name }) => {
     }
     return <EmptyState text="لا توجد بيانات في هذا القسم." />;
   }
-  return records.map((item, index) => <InfoRow key={item.id || `${name}-${index}`} title={item.name || item.title || item.id || `#${index + 1}`} meta={item.status || item.action || item.createdAt || ''} value={item.totalPrice ? formatMoney(item.totalPrice) : ''} />);
+  return records.map((item, index) => <InfoRow key={item.id || `${name}-${index}`} title={item.name || item.title || item.id || `#${index + 1}`} meta={adminLabel(item.status || item.action || item.createdAt || '')} value={item.totalPrice ? formatMoney(item.totalPrice) : ''} />);
+};
+
+const getSubmissionImages = (item) => {
+  if (item.submissionType === 'partner_user') {
+    return [item.profileImage, item.idImage, item.motorcycleImage, item.motorcycleCardImage, item.store?.image].filter(Boolean);
+  }
+  return [item.submissionType === 'store'
+    ? item.image || item.vendor?.profileImage
+    : item.image || item.store?.image || item.store?.vendor?.profileImage].filter(Boolean);
+};
+
+const getSubmissionImage = (item) => getSubmissionImages(item)[0];
+
+const SubmissionImage = ({ item, large = false }) => {
+  const uri = getSubmissionImage(item);
+  return uri
+    ? <Image source={{ uri }} style={large ? styles.submissionImageLarge : styles.submissionImage} />
+    : <View style={large ? styles.submissionImagePlaceholderLarge : styles.submissionImagePlaceholder}><Text style={styles.muted}>لا توجد صورة</Text></View>;
+};
+
+const SubmissionDetails = ({ item }) => {
+  const vendor = item.vendor || item.store?.vendor;
+  const isPartner = item.submissionType === 'partner_user';
+  const roleLabel = item.submissionRole === 'delivery' ? 'مندوب' : 'بائع';
+  const images = getSubmissionImages(item);
+  const imageLabels = isPartner
+    ? ['الصورة الشخصية', 'صورة البطاقة', 'صورة الدراجة', 'بطاقة الدراجة', 'صورة المتجر']
+    : ['الصورة'];
+  return (
+    <View>
+      {images.length
+        ? images.map((uri, index) => (
+          <View key={`${uri}-${index}`}>
+            <Text style={styles.detailText}>{imageLabels[index] || 'صورة مرفقة'}</Text>
+            <Image source={{ uri }} style={styles.submissionImageLarge} />
+          </View>
+        ))
+        : <SubmissionImage item={item} large />}
+      <Text style={styles.detailTitle}>{item.name || item.title || `طلب #${item.id}`}</Text>
+      <Text style={styles.detailText}>نوع الطلب: {isPartner ? `طلب ${roleLabel}` : item.submissionType === 'store' ? 'متجر' : item.submissionType === 'offer' ? 'عرض' : 'منتج'}</Text>
+      <Text style={styles.detailText}>{isPartner ? 'الاسم' : 'البائع'}: {isPartner ? item.name || '—' : vendor?.name || '—'}</Text>
+      <Text style={styles.detailText}>الهاتف: {(isPartner ? item.phone : vendor?.phone) || '—'}</Text>
+      {isPartner && item.email ? <Text style={styles.detailText}>البريد الإلكتروني: {item.email}</Text> : null}
+      {isPartner && item.store?.name ? <Text style={styles.detailText}>اسم المتجر: {item.store.name}</Text> : null}
+      {!isPartner && <Text style={styles.detailText}>المتجر: {item.store?.name || item.name || '—'}</Text>}
+      {isPartner && item.submissionRole === 'delivery' && item.vehicleType ? <Text style={styles.detailText}>نوع المركبة: {item.vehicleType}</Text> : null}
+      {isPartner && item.submissionRole === 'delivery' && item.vehiclePlate ? <Text style={styles.detailText}>رقم المركبة: {item.vehiclePlate}</Text> : null}
+      {isPartner && (item.latitude !== null || item.longitude !== null) ? <Text style={styles.detailText}>الموقع: {item.latitude || '—'} ، {item.longitude || '—'}</Text> : null}
+      {item.description ? <Text style={styles.detailText}>الوصف: {item.description}</Text> : null}
+      {item.price !== undefined ? <Text style={styles.detailText}>السعر: {formatMoney(item.price)}</Text> : null}
+      {item.originalPrice !== undefined ? <Text style={styles.detailText}>السعر الأصلي: {formatMoney(item.originalPrice)}</Text> : null}
+      {item.discountValue !== undefined ? <Text style={styles.detailText}>الخصم: {valueOrDash(item.discountValue)}</Text> : null}
+      <Text style={styles.detailText}>تاريخ التقديم: {item.createdAt ? new Date(item.createdAt).toLocaleString() : '—'}</Text>
+    </View>
+  );
 };
 
 const ModalCard = ({ title, onClose, children, scroll }) => (
@@ -714,6 +938,9 @@ const styles = StyleSheet.create({
   logoutButton: { backgroundColor: '#FDE8EC', borderRadius: 10, paddingHorizontal: 15, paddingVertical: 10 },
   logoutText: { color: COLORS.error, fontWeight: '800' },
   sections: { flexDirection: 'row-reverse', gap: 8, paddingBottom: 16 },
+  sectionLabel: { flexDirection: 'row-reverse', alignItems: 'center', gap: 5 },
+  badge: { minWidth: 20, height: 20, borderRadius: 10, backgroundColor: '#D92D20', alignItems: 'center', justifyContent: 'center', paddingHorizontal: 5 },
+  badgeText: { color: COLORS.white, fontSize: 11, fontWeight: '800' },
   sectionButton: { backgroundColor: '#E8EEF3', borderRadius: 20, paddingHorizontal: 13, paddingVertical: 9 },
   sectionButtonActive: { backgroundColor: COLORS.primaryDark },
   sectionButtonText: { color: COLORS.textSecondary, fontWeight: '700' },
@@ -740,6 +967,18 @@ const styles = StyleSheet.create({
   rowMeta: { color: COLORS.textSecondary, fontSize: 12, marginTop: 4, textAlign: 'right' },
   rowValue: { color: COLORS.primaryDark, fontWeight: '700', fontSize: 12 },
   rowActions: { flexDirection: 'row', gap: 5, alignItems: 'center' },
+  pendingBanner: { backgroundColor: '#FFF4E5', borderColor: '#F59E0B', borderWidth: 1, borderRadius: 14, padding: 14, marginBottom: 12 },
+  pendingBannerTitle: { color: '#92400E', fontWeight: '800', textAlign: 'right', fontSize: 16 },
+  pendingBannerText: { color: '#92400E', textAlign: 'right', marginTop: 4 },
+  submissionCard: { flexDirection: 'row-reverse', alignItems: 'center', gap: 10, backgroundColor: COLORS.surface, borderRadius: 14, padding: 10, marginBottom: 8 },
+  submissionImage: { width: 64, height: 64, borderRadius: 10, backgroundColor: '#E8EEF3' },
+  submissionImagePlaceholder: { width: 64, height: 64, borderRadius: 10, backgroundColor: '#E8EEF3', alignItems: 'center', justifyContent: 'center' },
+  submissionImageLarge: { width: '100%', height: 190, borderRadius: 12, backgroundColor: '#E8EEF3', marginBottom: 12 },
+  submissionImagePlaceholderLarge: { width: '100%', height: 190, borderRadius: 12, backgroundColor: '#E8EEF3', alignItems: 'center', justifyContent: 'center', marginBottom: 12 },
+  newBadge: { backgroundColor: '#D92D20', borderRadius: 8, paddingHorizontal: 7, paddingVertical: 5 },
+  newBadgeText: { color: COLORS.white, fontSize: 11, fontWeight: '800' },
+  detailTitle: { color: COLORS.text, fontSize: 20, fontWeight: '800', textAlign: 'right', marginBottom: 10 },
+  detailText: { color: COLORS.text, textAlign: 'right', marginBottom: 7 },
   smallButton: { backgroundColor: COLORS.primaryDark, borderRadius: 8, paddingHorizontal: 9, paddingVertical: 8 },
   smallButtonText: { color: COLORS.white, fontWeight: '700', fontSize: 11 },
   secondaryButton: { backgroundColor: '#E8EEF3' },
@@ -749,6 +988,7 @@ const styles = StyleSheet.create({
   cardText: { color: COLORS.text, textAlign: 'right', lineHeight: 21, marginTop: 5 },
   error: { color: COLORS.error, textAlign: 'center', marginBottom: 8 },
   inlineError: { backgroundColor: '#FDE8EC', borderRadius: 10, padding: 10, flexDirection: 'row-reverse', alignItems: 'center', justifyContent: 'space-between', marginBottom: 10 },
+  notificationCard: { backgroundColor: COLORS.white, borderWidth: 1, borderColor: COLORS.border, borderRadius: 10, padding: 12, marginBottom: 8 },
   modalOverlay: { position: 'absolute', top: 0, right: 0, bottom: 0, left: 0, backgroundColor: 'rgba(0,0,0,0.45)', justifyContent: 'center', padding: 18 },
   modalCard: { backgroundColor: COLORS.surface, borderRadius: 16, padding: 18 },
   modalScroll: { maxHeight: '92%', backgroundColor: COLORS.surface, borderRadius: 16 },

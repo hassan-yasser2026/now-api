@@ -10,35 +10,39 @@ export default function MenuItemCard({ item, quantity = 0, onAdd, onRemove, onPr
   const ratingCount = Number(item.ratingsCount ?? item.ratingCount ?? 0);
   const averageRating = Number(item.averageRating ?? item.ratingAverage ?? 0);
   const hasDiscount = Number(item.discountValue || 0) > 0 && Number(item.originalPrice) > Number(item.price);
+  const categoryName = item.category?.nameAr || item.category?.name || item.categoryName || item.category;
 
   return (
     <TouchableOpacity activeOpacity={0.9} onPress={onPress} style={[styles.card, !isAvailable && styles.unavailableCard]}>
-      {imageUri ? (
-        <Image source={{ uri: imageUri }} style={styles.image} resizeMode="cover" />
-      ) : (
-        <View style={[styles.image, styles.imagePlaceholder]}>
-          <Ionicons name="image-outline" size={28} color="#94A3B8" />
+      <View style={styles.imageContainer}>
+        {imageUri ? (
+          <Image source={{ uri: imageUri }} style={styles.image} resizeMode="cover" />
+        ) : (
+          <View style={[styles.image, styles.imagePlaceholder]}>
+            <Ionicons name="image-outline" size={28} color="#94A3B8" />
+          </View>
+        )}
+        <View style={styles.imageOverlay}>
+          <View style={styles.overlayTopRow}>
+            {hasDiscount ? (
+              <Text style={styles.discountBadge}>
+                خصم {item.discountPercentage ? `${item.discountPercentage}%` : formatPrice(item.discountValue)}
+              </Text>
+            ) : null}
+            {categoryName ? <Text style={styles.categoryBadge}>{categoryName}</Text> : null}
+          </View>
+          <View style={styles.overlayBottomRow}>
+            <Text style={styles.overlayPrice}>{formatPrice(item.price)}</Text>
+            {hasDiscount ? <Text style={styles.overlayOriginalPrice}>{formatPrice(item.originalPrice)}</Text> : null}
+            {ratingCount > 0 ? <Text style={styles.overlayRating}>⭐ {averageRating.toFixed(1)} ({ratingCount})</Text> : null}
+          </View>
         </View>
-      )}
+      </View>
 
       <View style={styles.info}>
         <Text style={styles.name}>{item.name}</Text>
         {item.description ? (
           <Text style={styles.description} numberOfLines={2}>{item.description}</Text>
-        ) : null}
-        {ratingCount > 0 ? (
-          <Text style={styles.rating}>⭐ {averageRating.toFixed(1)} ({ratingCount} تقييم)</Text>
-        ) : (
-          <Text style={styles.noRating}>لا توجد تقييمات بعد</Text>
-        )}
-        <View style={styles.priceRow}>
-          <Text style={styles.price}>{formatPrice(item.price)} ج.م</Text>
-          {hasDiscount ? <Text style={styles.originalPrice}>{formatPrice(item.originalPrice)} ج.م</Text> : null}
-        </View>
-        {hasDiscount ? (
-          <Text style={styles.discount}>
-            خصم {item.discountPercentage ? `${item.discountPercentage}%` : `${formatPrice(item.discountValue)} ج.م`}
-          </Text>
         ) : null}
         <Text style={[styles.availability, !isAvailable && styles.unavailableText]}>
           {isAvailable ? 'متاح' : 'غير متاح'}
@@ -82,17 +86,20 @@ const styles = StyleSheet.create({
     borderColor: '#e0e0e0',
   },
   unavailableCard: { opacity: 0.55 },
-  image: { width: 72, height: 72, borderRadius: 14, marginLeft: 12 },
+  imageContainer: { width: 120, height: 120, borderRadius: 14, marginLeft: 12, overflow: 'hidden', position: 'relative' },
+  image: { width: '100%', height: '100%' },
   imagePlaceholder: { backgroundColor: '#F1F5F9', alignItems: 'center', justifyContent: 'center' },
+  imageOverlay: { position: 'absolute', left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(15, 23, 42, 0.78)', paddingHorizontal: 6, paddingVertical: 5 },
+  overlayTopRow: { flexDirection: 'row-reverse', alignItems: 'center', justifyContent: 'space-between', gap: 4 },
+  overlayBottomRow: { flexDirection: 'row-reverse', alignItems: 'center', flexWrap: 'wrap', gap: 5, marginTop: 3 },
+  categoryBadge: { color: '#E0F2FE', fontSize: 10, fontWeight: '700', flexShrink: 1 },
+  discountBadge: { color: '#FECACA', fontSize: 10, fontWeight: '800', flexShrink: 1 },
+  overlayPrice: { color: '#FFFFFF', fontSize: 13, fontWeight: '900' },
+  overlayOriginalPrice: { color: '#CBD5E1', fontSize: 10, textDecorationLine: 'line-through' },
+  overlayRating: { color: '#FDE68A', fontSize: 10, fontWeight: '700' },
   info: { flex: 1, marginRight: 8, alignItems: 'flex-end' },
   name: { fontSize: 16, fontWeight: '800', color: '#333333' },
   description: { fontSize: 12, color: '#666666', marginTop: 4, textAlign: 'right' },
-  rating: { fontSize: 12, color: '#B45309', fontWeight: '700', marginTop: 6 },
-  noRating: { fontSize: 11, color: '#64748B', marginTop: 6 },
-  priceRow: { flexDirection: 'row', alignItems: 'center', gap: 8, marginTop: 8 },
-  price: { fontSize: 15, fontWeight: '900', color: COLORS.primary },
-  originalPrice: { fontSize: 12, color: '#64748B', textDecorationLine: 'line-through' },
-  discount: { fontSize: 12, color: '#B91C1C', fontWeight: '800', marginTop: 3 },
   availability: { fontSize: 11, color: '#15803D', fontWeight: '700', marginTop: 3 },
   addButton: {
     width: 48, height: 48, borderRadius: 16,
