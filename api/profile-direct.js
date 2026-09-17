@@ -11,7 +11,23 @@ module.exports = async (req, res) => {
     return;
   }
 
-  const body = typeof req.body === 'string' ? req.body : JSON.stringify(req.body || {});
+  let payload;
+  try {
+    payload = typeof req.body === 'string'
+      ? JSON.parse(req.body || '{}')
+      : (req.body || {});
+  } catch (error) {
+    console.error('PROFILE REQUEST PARSE ERROR:', error);
+    res.status(400).json({ success: false, message: 'صيغة JSON غير صحيحة' });
+    return;
+  }
+
+  if (!payload || typeof payload !== 'object' || Array.isArray(payload)) {
+    res.status(400).json({ success: false, message: 'بيانات الطلب غير صحيحة' });
+    return;
+  }
+
+  const body = JSON.stringify(payload);
   const headers = {
     authorization: req.headers.authorization || '',
     'content-type': req.headers['content-type'] || 'application/json',
@@ -46,9 +62,6 @@ module.exports = async (req, res) => {
       issuer: 'NOW_API',
       audience: 'NOW_APP',
     });
-    const payload = typeof req.body === 'string'
-      ? JSON.parse(req.body || '{}')
-      : (req.body || {});
     const currentUser = await prisma.user.findUnique({
       where: { id: decoded.userId },
       select: { id: true, password: true },
