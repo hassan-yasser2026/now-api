@@ -1497,7 +1497,7 @@ app.patch(
     try {
       const currentUser = await prisma.user.findUnique({
         where: { id: req.user.userId },
-        include: { role: true },
+        select: { id: true, password: true },
       });
 
       if (!currentUser) {
@@ -1542,7 +1542,14 @@ app.patch(
             ? { password: await bcrypt.hash(newPassword, 12) }
             : {}),
         },
-        include: { role: true },
+        select: {
+          id: true,
+          name: true,
+          phone: true,
+          latitude: true,
+          longitude: true,
+          role: { select: { name: true } },
+        },
       });
 
       return successResponse(res, {
@@ -1550,7 +1557,6 @@ app.patch(
           id: user.id,
           name: user.name,
           phone: user.phone,
-          profileImage: user.profileImage,
           latitude: user.latitude,
           longitude: user.longitude,
           role: user.role.name.toLowerCase(),
