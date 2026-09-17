@@ -41,7 +41,14 @@ const storeService = {
         ? { latitude: location.lat, longitude: location.lng }
         : undefined;
       const response = await api.get('/stores', { params });
-      const stores = normalizeStores(response).filter((store) => store?.isOpen !== false);
+      let stores = normalizeStores(response).filter((store) => store?.isOpen !== false);
+      if (stores.length === 0) {
+        const fallbackResponse = await api.get('/stores/3');
+        const fallbackStore = normalizeStore(fallbackResponse);
+        if (fallbackStore?.id && fallbackStore?.isOpen !== false) {
+          stores = [fallbackStore];
+        }
+      }
       return { success: true, stores };
     } catch (error) {
       console.error('GET STORES ERROR:', error?.response?.data || error.message);
