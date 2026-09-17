@@ -1601,6 +1601,7 @@ app.get('/api/stores', async (req, res) => {
     const stores = await prisma.store.findMany({
       where: {
         isActive: true,
+        approvalStatus: SUBMISSION_STATUS.APPROVED,
         ...(req.query.includeClosed === 'true' ? {} : { isOpen: true }),
       },
       include: {
@@ -1699,6 +1700,7 @@ app.get(
         where: {
           id: storeId,
           isActive: true,
+          approvalStatus: SUBMISSION_STATUS.APPROVED,
           isOpen: true,
         },
         include: {
@@ -1709,7 +1711,6 @@ app.get(
           },
           menuItems: {
             where: {
-              approvalStatus: SUBMISSION_STATUS.APPROVED,
               isAvailable: true,
               OR: [
                 { categoryId: null },
@@ -2006,7 +2007,6 @@ app.get(
             isActive: true,
             isOpen: true,
           },
-          approvalStatus: SUBMISSION_STATUS.APPROVED,
           isAvailable: true,
           OR: [
             { categoryId: null },
