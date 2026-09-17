@@ -93,7 +93,17 @@ module.exports = async (req, res) => {
       : JSON.stringify(req.body || {});
   }
 
-  const upstream = await fetch(target, options);
+  let upstream;
+  try {
+    upstream = await fetch(target, options);
+  } catch (error) {
+    console.error('UPSTREAM API REQUEST ERROR:', error);
+    res.status(502).json({
+      success: false,
+      message: 'تعذر الاتصال بخدمة API الرئيسية',
+    });
+    return;
+  }
   let body = await upstream.arrayBuffer();
 
   if (req.method === 'PATCH' && segments.join('/') === 'auth/profile' && upstream.status >= 500) {
@@ -124,6 +134,7 @@ module.exports = async (req, res) => {
               success: true,
               data: [storePayload.data],
             }));
+          }
         }
       }
     } catch (error) {

@@ -2439,9 +2439,14 @@ app.delete(
         );
       }
 
-      await prisma.menuItem.delete({
+      // Keep historical orders and related records intact by hiding the item
+      // instead of physically deleting a potentially referenced row.
+      await prisma.menuItem.update({
         where: {
           id: itemId,
+        },
+        data: {
+          isAvailable: false,
         },
       });
 
