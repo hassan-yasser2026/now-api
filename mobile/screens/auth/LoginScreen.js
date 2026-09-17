@@ -90,13 +90,14 @@ const LoginScreen = ({ navigation, route }) => {
     try {
       setLoading(true);
 
-      // Keep the legacy Egyptian trunk prefix for deployed API versions that
-      // store local numbers without the country prefix.
-      const loginPhone =
-        country === 'EG' && !phone.startsWith('0') ? `0${phone}` : phone;
+      // Send the canonical E.164 value first; retry the legacy local format
+      // only for older deployments that still store Egyptian numbers locally.
+      const loginPhone = phoneE164 || phone;
       let result = await authService.login(loginPhone, password);
-      if (!result?.success && phoneE164 && phoneE164 !== loginPhone) {
-        result = await authService.login(phoneE164, password);
+      const legacyPhone =
+        country === 'EG' && !phone.startsWith('0') ? `0${phone}` : phone;
+      if (!result?.success && legacyPhone !== loginPhone) {
+        result = await authService.login(legacyPhone, password);
       }
 
       if (!result?.success) {
