@@ -387,6 +387,14 @@ const MISSING_ARABIC_FALLBACKS = [
 
 export const AR_EN = {
   ...Object.fromEntries(MISSING_ARABIC_FALLBACKS.map((value) => [value, value])),
+  'تعديل الحساب': 'Edit account',
+  'تعديل بيانات المدير العام': 'Edit general admin details',
+  'رقم الموبايل': 'Mobile number',
+  'كلمة المرور الجديدة (اختياري)': 'New password (optional)',
+  'الاسم ورقم الهاتف مطلوبان.': 'Name and phone number are required.',
+  'أدخل كلمة المرور الحالية لتغيير كلمة المرور.': 'Enter the current password to change the password.',
+  'تم تحديث بيانات المدير العام.': 'General admin details updated.',
+  'تعذر تحديث البيانات': 'Could not update details',
   'الخدمة غير متاحة حاليًا. حاول مرة أخرى لاحقًا':
     'The service is currently unavailable. Please try again later',
   'بيانات التسجيل غير صحيحة': 'The registration data is invalid',

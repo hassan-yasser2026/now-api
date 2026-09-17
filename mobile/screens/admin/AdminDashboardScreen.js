@@ -138,6 +138,7 @@ const AdminDashboardScreen = () => {
   const [rejectionTarget, setRejectionTarget] = useState(null);
   const [rejectionReason, setRejectionReason] = useState('');
   const [rejectionError, setRejectionError] = useState('');
+  const [profileForm, setProfileForm] = useState(null);
 
   const permissions = useMemo(() => normalizePermissions(user), [user]);
   const isAdmin = role === 'admin' || user?.role === 'admin';
@@ -348,6 +349,49 @@ const AdminDashboardScreen = () => {
     }
   };
 
+  const openProfileEditor = () => {
+    setProfileForm({
+      name: user?.name || '',
+      phone: user?.phone || '',
+      currentPassword: '',
+      newPassword: '',
+    });
+  };
+
+  const saveProfile = async () => {
+    if (!profileForm?.name?.trim() || !profileForm?.phone?.trim()) {
+      Alert.alert('بيانات غير صالحة', 'الاسم ورقم الهاتف مطلوبان.');
+      return;
+    }
+    if (profileForm.newPassword && !profileForm.currentPassword) {
+      Alert.alert('بيانات غير صالحة', 'أدخل كلمة المرور الحالية لتغيير كلمة المرور.');
+      return;
+    }
+    setActionId('admin-profile-save');
+    try {
+      const response = await api.patch('/auth/profile', {
+        name: profileForm.name.trim(),
+        phone: profileForm.phone.trim(),
+        ...(profileForm.newPassword
+          ? {
+              currentPassword: profileForm.currentPassword,
+              newPassword: profileForm.newPassword,
+            }
+          : {}),
+      });
+      const updatedUser = response?.data?.data?.user;
+      if (updatedUser) {
+        await useAppStore.getState().setAuth(updatedUser, useAppStore.getState().token, 'admin');
+      }
+      setProfileForm(null);
+      Alert.alert('تم بنجاح', 'تم تحديث بيانات المدير العام.');
+    } catch (error) {
+      Alert.alert('تعذر تحديث البيانات', getErrorMessage(error));
+    } finally {
+      setActionId(null);
+    }
+  };
+
   const saveProduct = async () => {
     if (!productForm?.name?.trim() || !productForm?.storeId || !productForm?.originalPrice || !can('products.write')) {
       Alert.alert('بيانات غير صالحة', 'اسم المنتج والمتجر والسعر الأصلي مطلوبة.');
@@ -458,6 +502,9 @@ const AdminDashboardScreen = () => {
             <Text style={styles.subtitle}>مرحبًا {user?.name || 'مدير النظام'}</Text>
             {!isAdmin && <Text style={styles.roleBadge}>مشرف بصلاحيات محددة</Text>}
           </View>
+          <TouchableOpacity style={styles.profileButton} onPress={openProfileEditor}>
+            <Text style={styles.profileButtonText}>تعديل الحساب</Text>
+          </TouchableOpacity>
           <TouchableOpacity style={styles.logoutButton} onPress={logout}>
             <Text style={styles.logoutText}>خروج</Text>
           </TouchableOpacity>
@@ -587,6 +634,32 @@ const AdminDashboardScreen = () => {
         <ModalCard title={`تغيير كلمة مرور ${resetUser.name}`} onClose={() => setResetUser(null)}>
           <TextInput style={styles.input} value={newPassword} onChangeText={setNewPassword} placeholder="كلمة المرور الجديدة" secureTextEntry textAlign="right" />
           <ModalActions onCancel={() => setResetUser(null)} onSave={resetPassword} loading={actionId === `reset-${resetUser.id}`} />
+        </ModalCard>
+      )}
+      {profileForm && (
+        <ModalCard title="تعديل بيانات المدير العام" onClose={() => setProfileForm(null)}>
+          {[
+            ['name', 'الاسم'],
+            ['phone', 'رقم الموبايل'],
+            ['currentPassword', 'كلمة المرور الحالية'],
+            ['newPassword', 'كلمة المرور الجديدة (اختياري)'],
+          ].map(([key, placeholder]) => (
+            <TextInput
+              key={key}
+              style={styles.input}
+              value={String(profileForm[key] || '')}
+              onChangeText={(value) => setProfileForm((current) => ({ ...current, [key]: value }))}
+              placeholder={placeholder}
+              secureTextEntry={key.includes('Password')}
+              keyboardType={key === 'phone' ? 'phone-pad' : 'default'}
+              textAlign="right"
+            />
+          ))}
+          <ModalActions
+            onCancel={() => setProfileForm(null)}
+            onSave={saveProfile}
+            loading={actionId === 'admin-profile-save'}
+          />
         </ModalCard>
       )}
       {productForm && (
@@ -935,6 +1008,8 @@ const styles = StyleSheet.create({
   title: { color: COLORS.text, fontSize: 26, fontWeight: '800', marginTop: 3 },
   subtitle: { color: COLORS.textSecondary, fontSize: 14, marginTop: 4 },
   roleBadge: { color: COLORS.primaryDark, fontSize: 12, marginTop: 5 },
+  profileButton: { backgroundColor: '#E0F2FE', borderRadius: 10, paddingHorizontal: 12, paddingVertical: 10, marginHorizontal: 6 },
+  profileButtonText: { color: COLORS.primaryDark, fontWeight: '800' },
   logoutButton: { backgroundColor: '#FDE8EC', borderRadius: 10, paddingHorizontal: 15, paddingVertical: 10 },
   logoutText: { color: COLORS.error, fontWeight: '800' },
   sections: { flexDirection: 'row-reverse', gap: 8, paddingBottom: 16 },
