@@ -1605,7 +1605,6 @@ app.get('/api/stores', async (req, res) => {
     const stores = await prisma.store.findMany({
       where: {
         ...storeWhere,
-        approvalStatus: SUBMISSION_STATUS.APPROVED,
       },
       include: {
         vendor: {
@@ -1637,38 +1636,9 @@ app.get('/api/stores', async (req, res) => {
         id: 'desc',
       },
     });
-    const visibleStores = stores.length
-      ? stores
-      : (await prisma.store.findMany({
-        where: storeWhere,
-        include: {
-          vendor: { select: { name: true } },
-          offers: {
-            where: {
-              approvalStatus: SUBMISSION_STATUS.APPROVED,
-              isActive: true,
-            },
-            orderBy: { createdAt: 'desc' },
-          },
-          ratings: { select: { stars: true } },
-          menuItems: {
-            where: {
-              isAvailable: true,
-              approvalStatus: SUBMISSION_STATUS.APPROVED,
-              OR: [
-                { categoryId: null },
-                { category: { isActive: true } },
-              ],
-            },
-            orderBy: { id: 'desc' },
-          },
-        },
-        orderBy: { id: 'desc' },
-      })).filter((store) => store.approvalStatus === SUBMISSION_STATUS.APPROVED);
-
     const nearbyStores = customerPoint
-      ? visibleStores.filter((store) => isWithinDeliveryRadius(customerPoint, parseLatLng(store.latitude, store.longitude)))
-      : visibleStores;
+      ? stores.filter((store) => isWithinDeliveryRadius(customerPoint, parseLatLng(store.latitude, store.longitude)))
+      : stores;
 
     return successResponse(res, nearbyStores.map((store) => {
       const total = store.ratings.reduce((sum, rating) => sum + rating.stars, 0);
