@@ -13,6 +13,7 @@ import {
 } from 'react-native';
 import * as ImagePicker from 'expo-image-picker';
 import { Ionicons } from '@expo/vector-icons';
+import PasswordInput from '../../components/PasswordInput';
 
 import PhoneInput from '../../components/PhoneInput';
 import { authService } from '../../services/authService';
@@ -162,37 +163,37 @@ const AccountSettingsScreen = ({ navigation }) => {
         <Text style={styles.sectionTitle}>تغيير كلمة المرور</Text>
         <Text style={styles.label}>كلمة المرور الحالية</Text>
         <View style={styles.inputContainer}>
-          <TextInput
-            style={styles.input}
+          <PasswordInput
+            containerStyle={styles.inputContainer}
+            inputStyle={styles.input}
             value={currentPassword}
             onChangeText={setCurrentPassword}
             placeholder="أدخل كلمة المرور الحالية"
             placeholderTextColor="#9AAEB2"
-            secureTextEntry
           />
         </View>
 
         <Text style={styles.label}>كلمة المرور الجديدة</Text>
         <View style={styles.inputContainer}>
-          <TextInput
-            style={styles.input}
+          <PasswordInput
+            containerStyle={styles.inputContainer}
+            inputStyle={styles.input}
             value={newPassword}
             onChangeText={setNewPassword}
             placeholder="6 أحرف على الأقل وبها رقم"
             placeholderTextColor="#9AAEB2"
-            secureTextEntry
           />
         </View>
 
         <Text style={styles.label}>تأكيد كلمة المرور الجديدة</Text>
         <View style={styles.inputContainer}>
-          <TextInput
-            style={styles.input}
+          <PasswordInput
+            containerStyle={styles.inputContainer}
+            inputStyle={styles.input}
             value={confirmPassword}
             onChangeText={setConfirmPassword}
             placeholder="أعد كتابة كلمة المرور الجديدة"
             placeholderTextColor="#9AAEB2"
-            secureTextEntry
           />
         </View>
 

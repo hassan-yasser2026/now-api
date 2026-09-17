@@ -15,6 +15,7 @@ import {
 import api from '../../services/api';
 import useAppStore from '../../store/appStore';
 import { COLORS } from '../../constants/colors';
+import PasswordInput from '../../components/PasswordInput';
 
 /*
  * Keep section permissions aligned with the backend, including its legacy
@@ -369,7 +370,7 @@ const AdminDashboardScreen = () => {
     }
     setActionId('admin-profile-save');
     try {
-      const response = await api.patch('/auth/profile-direct', {
+      const response = await api.patch('/profile-direct', {
         name: profileForm.name.trim(),
         phone: profileForm.phone.trim(),
         ...(profileForm.newPassword
@@ -632,7 +633,13 @@ const AdminDashboardScreen = () => {
 
       {resetUser && (
         <ModalCard title={`تغيير كلمة مرور ${resetUser.name}`} onClose={() => setResetUser(null)}>
-          <TextInput style={styles.input} value={newPassword} onChangeText={setNewPassword} placeholder="كلمة المرور الجديدة" secureTextEntry textAlign="right" />
+          <PasswordInput
+            containerStyle={styles.input}
+            value={newPassword}
+            onChangeText={setNewPassword}
+            placeholder="كلمة المرور الجديدة"
+            textAlign="right"
+          />
           <ModalActions onCancel={() => setResetUser(null)} onSave={resetPassword} loading={actionId === `reset-${resetUser.id}`} />
         </ModalCard>
       )}
@@ -644,16 +651,26 @@ const AdminDashboardScreen = () => {
             ['currentPassword', 'كلمة المرور الحالية'],
             ['newPassword', 'كلمة المرور الجديدة (اختياري)'],
           ].map(([key, placeholder]) => (
-            <TextInput
-              key={key}
-              style={styles.input}
-              value={String(profileForm[key] || '')}
-              onChangeText={(value) => setProfileForm((current) => ({ ...current, [key]: value }))}
-              placeholder={placeholder}
-              secureTextEntry={key.includes('Password')}
-              keyboardType={key === 'phone' ? 'phone-pad' : 'default'}
-              textAlign="right"
-            />
+            key.includes('Password') ? (
+              <PasswordInput
+                key={key}
+                containerStyle={styles.input}
+                value={String(profileForm[key] || '')}
+                onChangeText={(value) => setProfileForm((current) => ({ ...current, [key]: value }))}
+                placeholder={placeholder}
+                textAlign="right"
+              />
+            ) : (
+              <TextInput
+                key={key}
+                style={styles.input}
+                value={String(profileForm[key] || '')}
+                onChangeText={(value) => setProfileForm((current) => ({ ...current, [key]: value }))}
+                placeholder={placeholder}
+                keyboardType={key === 'phone' ? 'phone-pad' : 'default'}
+                textAlign="right"
+              />
+            )
           ))}
           <ModalActions
             onCancel={() => setProfileForm(null)}
@@ -689,16 +706,26 @@ const AdminDashboardScreen = () => {
             ['name', 'اسم المشرف'], ['phone', 'رقم الهاتف'], ['email', 'البريد الإلكتروني'],
             ...(!subAdminForm.id ? [['password', 'كلمة المرور']] : []),
           ].map(([key, placeholder]) => (
-            <TextInput
-              key={key}
-              style={styles.input}
-              value={String(subAdminForm[key] ?? '')}
-              onChangeText={(value) => setSubAdminForm((current) => ({ ...current, [key]: value }))}
-              placeholder={placeholder}
-              secureTextEntry={key === 'password'}
-              keyboardType={key === 'phone' ? 'phone-pad' : 'default'}
-              textAlign="right"
-            />
+            key === 'password' ? (
+              <PasswordInput
+                key={key}
+                containerStyle={styles.input}
+                value={String(subAdminForm[key] ?? '')}
+                onChangeText={(value) => setSubAdminForm((current) => ({ ...current, [key]: value }))}
+                placeholder={placeholder}
+                textAlign="right"
+              />
+            ) : (
+              <TextInput
+                key={key}
+                style={styles.input}
+                value={String(subAdminForm[key] ?? '')}
+                onChangeText={(value) => setSubAdminForm((current) => ({ ...current, [key]: value }))}
+                placeholder={placeholder}
+                keyboardType={key === 'phone' ? 'phone-pad' : 'default'}
+                textAlign="right"
+              />
+            )
           ))}
           <Text style={styles.formTitle}>الصلاحيات</Text>
           <View style={styles.chipRow}>

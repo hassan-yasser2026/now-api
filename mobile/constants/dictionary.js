@@ -572,6 +572,8 @@ export const AR_EN = {
   'انضم كشريك': 'Join as a partner',
   'رقم الهاتف': 'Phone number',
   'كلمة المرور': 'Password',
+  'إظهار كلمة المرور': 'Show password',
+  'إخفاء كلمة المرور': 'Hide password',
   'تأكيد كلمة المرور': 'Confirm password',
   'كلمة مرور جديدة (اختياري)': 'New password (optional)',
   'الاسم': 'Name',
