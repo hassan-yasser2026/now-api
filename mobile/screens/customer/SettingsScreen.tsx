@@ -18,6 +18,7 @@ import useAppStore from '../../store/appStore';
 import { getTranslations } from '../../constants/i18n';
 import { getCountry } from '../../constants/countries';
 import CountryPickerModal from '../../components/CountryPickerModal';
+import api from '../../services/api';
 
 type Language = 'ar' | 'en';
 
@@ -58,7 +59,9 @@ const SettingsScreen: React.FC<SettingsScreenProps> = ({ navigation }) => {
     setNotificationsEnabled(enabled);
     try {
       await AsyncStorage.setItem('notificationsEnabled', String(enabled));
-    } catch {
+      await api.patch('/notifications/preferences', { enabled });
+    } catch (error) {
+      setNotificationsEnabled(!enabled);
       console.error('Error saving notification preference:', error);
     }
   };
