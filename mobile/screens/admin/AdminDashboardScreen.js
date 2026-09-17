@@ -369,7 +369,7 @@ const AdminDashboardScreen = () => {
     }
     setActionId('admin-profile-save');
     try {
-      const response = await api.patch('/auth/profile', {
+      const response = await api.patch('/auth/profile-direct', {
         name: profileForm.name.trim(),
         phone: profileForm.phone.trim(),
         ...(profileForm.newPassword
