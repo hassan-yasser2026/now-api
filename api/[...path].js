@@ -76,6 +76,61 @@ const updateProfileFallback = async (req, res) => {
   return true;
 };
 
+const deleteMenuItemFallback = async (req, res, storeId, itemId) => {
+  const authorization = req.headers.authorization || '';
+  const token = authorization.startsWith('Bearer ')
+    ? authorization.slice('Bearer '.length)
+    : '';
+  if (!token || !process.env.JWT_SECRET) return false;
+
+  let decoded;
+  try {
+    decoded = jwt.verify(token, process.env.JWT_SECRET, {
+      issuer: 'NOW_API',
+      audience: 'NOW_APP',
+    });
+  } catch {
+    return false;
+  }
+
+  const user = await prisma.user.findUnique({
+    where: { id: decoded.userId },
+    select: { id: true, role: { select: { name: true } } },
+  });
+  if (!user || user.role.name !== 'vendor') {
+    res.status(403).json({ success: false, message: 'غير مصرح لك' });
+    return true;
+  }
+
+  const store = await prisma.store.findFirst({
+    where: { id: Number(storeId), vendorId: user.id },
+    select: { id: true },
+  });
+  if (!store) {
+    res.status(404).json({ success: false, message: 'المتجر غير موجود' });
+    return true;
+  }
+
+  const item = await prisma.menuItem.findFirst({
+    where: { id: Number(itemId), storeId: store.id },
+    select: { id: true },
+  });
+  if (!item) {
+    res.status(404).json({ success: false, message: 'الصنف غير موجود' });
+    return true;
+  }
+
+  await prisma.menuItem.update({
+    where: { id: item.id },
+    data: { isAvailable: false },
+  });
+  res.status(200).json({
+    success: true,
+    data: { message: 'تم تعطيل الصنف بنجاح' },
+  });
+  return true;
+};
+
 module.exports = async (req, res) => {
   const segments = Array.isArray(req.query.path)
     ? req.query.path
@@ -105,6 +160,20 @@ module.exports = async (req, res) => {
     return;
   }
   let body = await upstream.arrayBuffer();
+
+  if (
+    req.method === 'DELETE'
+    && segments.length === 4
+    && segments[0] === 'stores'
+    && segments[2] === 'menu'
+    && upstream.status >= 500
+  ) {
+    try {
+      if (await deleteMenuItemFallback(req, res, segments[1], segments[3])) return;
+    } catch (error) {
+      console.error('MENU ITEM DELETE FALLBACK ERROR:', error);
+    }
+  }
 
   if (req.method === 'PATCH' && segments.join('/') === 'auth/profile' && upstream.status >= 500) {
     try {
