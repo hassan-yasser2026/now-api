@@ -142,3 +142,4 @@ export const installGlobalTranslation = () => {
 };
 
 export default installGlobalTranslation;
+// مسودة المشروع - البشمهندس حسن ياسر

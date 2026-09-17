@@ -30,3 +30,4 @@ export function calculateCartTotal(items) {
     return total + price * quantity;
   }, 0);
 }
+// مسودة المشروع - البشمهندس حسن ياسر

@@ -100,3 +100,4 @@ export const translateChildren = (children, language) => {
 export const hasTranslation = (value) => Boolean(AR_EN[value]);
 
 export default translate;
+// مسودة المشروع - البشمهندس حسن ياسر

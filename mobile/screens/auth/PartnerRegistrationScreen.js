@@ -576,3 +576,4 @@ const styles = StyleSheet.create({
 });
 
 export default PartnerRegistrationScreen;
+// مسودة المشروع - البشمهندس حسن ياسر

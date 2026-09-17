@@ -56,3 +56,4 @@ export const createAlertTranslator = (getLanguage) => (title, message, buttons) 
 };
 
 export default createPropsTranslator;
+// مسودة المشروع - البشمهندس حسن ياسر

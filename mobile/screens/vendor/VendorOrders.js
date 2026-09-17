@@ -137,3 +137,4 @@ const styles = StyleSheet.create({
   customer: { color: COLORS.textSecondary, fontSize: 13, textAlign: 'right', marginBottom: 4 },
   total: { color: COLORS.primary, fontWeight: '800', fontSize: 15, textAlign: 'right' },
 });
+// مسودة المشروع - البشمهندس حسن ياسر
