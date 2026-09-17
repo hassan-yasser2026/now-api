@@ -3740,8 +3740,11 @@ app.get(
       const nearbyOrders = orders.filter((order) => {
         const storePoint = parseLatLng(order.store?.latitude, order.store?.longitude);
         const customerPoint = parseLatLng(order.deliveryLat, order.deliveryLng);
-        return isWithinDeliveryRadius(deliveryPoint, storePoint)
-          && isWithinDeliveryRadius(deliveryPoint, customerPoint);
+        // Some stores do not have a saved map location yet. In that case the
+        // customer's validated delivery location is the safest available
+        // proximity check, so the order must remain discoverable.
+        return (!storePoint || isWithinDeliveryRadius(deliveryPoint, storePoint))
+          && (!customerPoint || isWithinDeliveryRadius(deliveryPoint, customerPoint));
       });
 
       return successResponse(res, nearbyOrders);

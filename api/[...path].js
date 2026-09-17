@@ -6,6 +6,92 @@ const jwt = require('jsonwebtoken');
 
 const prisma = new PrismaClient();
 
+const getAuthenticatedUser = async (req) => {
+  const authorization = req.headers.authorization || '';
+  const token = authorization.startsWith('Bearer ')
+    ? authorization.slice('Bearer '.length)
+    : '';
+  if (!token || !process.env.JWT_SECRET) return null;
+
+  let decoded;
+  try {
+    decoded = jwt.verify(token, process.env.JWT_SECRET, {
+      issuer: 'NOW_API',
+      audience: 'NOW_APP',
+    });
+  } catch {
+    return null;
+  }
+
+  return prisma.user.findFirst({
+    where: { id: decoded.userId, deletedAt: null, isActive: true },
+    select: { id: true, notificationsEnabled: true, role: { select: { name: true } } },
+  });
+};
+
+const notificationFallback = async (req, res, segments) => {
+  const user = await getAuthenticatedUser(req);
+  if (!user) return false;
+
+  const path = segments.join('/');
+  const allowedRoles = ['customer', 'vendor', 'delivery', 'admin', 'sub_admin'];
+  if (!allowedRoles.includes(user.role.name)) {
+    res.status(403).json({ success: false, message: 'غير مصرح لك بتنفيذ هذا الإجراء' });
+    return true;
+  }
+
+  if (req.method === 'GET' && path === 'notifications') {
+    const notifications = await prisma.notification.findMany({
+      where: { userId: user.id },
+      orderBy: { createdAt: 'desc' },
+      take: 100,
+    });
+    res.status(200).json({ success: true, data: notifications });
+    return true;
+  }
+
+  if (req.method === 'PATCH' && segments.length === 2 && segments[0] === 'notifications') {
+    const id = Number(segments[1]);
+    if (!Number.isInteger(id) || id <= 0) {
+      res.status(400).json({ success: false, message: 'رقم الإشعار غير صالح' });
+      return true;
+    }
+    const result = await prisma.notification.updateMany({
+      where: { id, userId: user.id },
+      data: { readAt: new Date() },
+    });
+    if (!result.count) {
+      res.status(404).json({ success: false, message: 'الإشعار غير موجود' });
+      return true;
+    }
+    res.status(200).json({ success: true, data: { id, readAt: new Date() } });
+    return true;
+  }
+
+  if (path === 'notifications/preferences') {
+    if (req.method === 'GET') {
+      res.status(200).json({ success: true, data: { enabled: user.notificationsEnabled !== false } });
+      return true;
+    }
+    if (req.method === 'PATCH') {
+      const body = typeof req.body === 'string' ? JSON.parse(req.body || '{}') : (req.body || {});
+      if (typeof body.enabled !== 'boolean') {
+        res.status(400).json({ success: false, message: 'قيمة الإشعارات غير صالحة' });
+        return true;
+      }
+      const updated = await prisma.user.update({
+        where: { id: user.id },
+        data: { notificationsEnabled: body.enabled },
+        select: { notificationsEnabled: true },
+      });
+      res.status(200).json({ success: true, data: { enabled: updated.notificationsEnabled } });
+      return true;
+    }
+  }
+
+  return false;
+};
+
 const updateProfileFallback = async (req, res) => {
   const authorization = req.headers.authorization || '';
   const token = authorization.startsWith('Bearer ')
@@ -180,6 +266,18 @@ module.exports = async (req, res) => {
       if (await updateProfileFallback(req, res)) return;
     } catch (error) {
       console.error('PROFILE FALLBACK ERROR:', error);
+    }
+  }
+
+  if (
+    ['GET', 'PATCH'].includes(req.method)
+    && (segments[0] === 'notifications')
+    && upstream.status >= 400
+  ) {
+    try {
+      if (await notificationFallback(req, res, segments)) return;
+    } catch (error) {
+      console.error('NOTIFICATION FALLBACK ERROR:', error);
     }
   }
 
