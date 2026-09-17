@@ -769,6 +769,7 @@ const privateContactFields = (req, user) => canViewUserContacts(req)
 // Prisma Error Helper
 // ============================================================
 
+// Keep database errors explicit while allowing the API to return a stable response.
 const handlePrismaError = (error, res) => {
   console.error('PRISMA ERROR:', {
     code: error?.code,
