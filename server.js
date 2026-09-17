@@ -1305,6 +1305,41 @@ app.post('/api/auth/register', authRateLimiter, async (req, res) => {
     );
 
     if (result.user.approvalStatus !== SUBMISSION_STATUS.APPROVED) {
+      const admins = await prisma.user.findMany({
+        where: {
+          isActive: true,
+          deletedAt: null,
+          role: { name: ROLES.ADMIN },
+        },
+        select: { id: true },
+      });
+      if (admins.length) {
+        await prisma.notification.createMany({
+          data: admins.map(({ id }) => ({
+            userId: id,
+            type: 'SYSTEM',
+            title: 'طلب شريك جديد للمراجعة',
+            body: `${role === ROLES.DELIVERY ? 'مندوب' : 'بائع'} جديد باسم ${name} أرسل بياناته وصوره وينتظر مراجعة الإدارة.`,
+            data: {
+              submissionType: 'partner_user',
+              submissionId: result.user.id,
+              submissionRole: role,
+              name: result.user.name,
+              phone: result.user.phone,
+              email: result.user.email,
+              profileImage: result.user.profileImage,
+              idImage: result.user.idImage,
+              motorcycleImage: result.user.motorcycleImage,
+              motorcycleCardImage: result.user.motorcycleCardImage,
+              latitude: result.user.latitude == null ? null : Number(result.user.latitude),
+              longitude: result.user.longitude == null ? null : Number(result.user.longitude),
+              store: result.store
+                ? { id: result.store.id, name: result.store.name, image: result.store.image }
+                : null,
+            },
+          })),
+        });
+      }
       return successResponse(
         res,
         {
@@ -1566,7 +1601,9 @@ app.get('/api/stores', async (req, res) => {
     const stores = await prisma.store.findMany({
       where: {
         isActive: true,
-        approvalStatus: SUBMISSION_STATUS.APPROVED,
+        // Active stores are the published storefronts visible to customers.
+        // Keep the public listing resilient if older records have a missing
+        // or legacy approval status while remaining gated by isActive.
         ...(req.query.includeClosed === 'true' ? {} : { isOpen: true }),
       },
       include: {
@@ -5857,9 +5894,12 @@ app.get(
   adminPermissionMiddleware('stores.read'),
   async (req, res) => {
     try {
-      const [stores, menuItems, offers] = await Promise.all([
+      const [stores, menuItems, offers, partnerUsers] = await Promise.all([
         prisma.store.findMany({
-          where: { approvalStatus: SUBMISSION_STATUS.PENDING_ADMIN_REVIEW },
+          where: {
+            approvalStatus: SUBMISSION_STATUS.PENDING_ADMIN_REVIEW,
+            vendor: { approvalStatus: SUBMISSION_STATUS.APPROVED },
+          },
           include: { vendor: { select: { id: true, name: true, phone: true, profileImage: true } } },
           orderBy: { createdAt: 'asc' },
         }),
@@ -5891,9 +5931,29 @@ app.get(
           },
           orderBy: { createdAt: 'asc' },
         }),
+        prisma.user.findMany({
+          where: {
+            approvalStatus: SUBMISSION_STATUS.PENDING_ADMIN_REVIEW,
+            deletedAt: null,
+            role: { name: { in: [ROLES.VENDOR, ROLES.DELIVERY] } },
+          },
+          include: {
+            role: { select: { name: true } },
+            store: { select: { id: true, name: true, image: true, approvalStatus: true } },
+            deliveryProfile: {
+              select: { vehicleType: true, vehiclePlate: true, latitude: true, longitude: true },
+            },
+          },
+          orderBy: { createdAt: 'asc' },
+        }),
       ]);
 
       const submissions = [
+        ...partnerUsers.map((item) => ({
+          ...item,
+          submissionType: 'partner_user',
+          submissionRole: item.role?.name || null,
+        })),
         ...stores.map((item) => ({ ...item, submissionType: 'store' })),
         ...menuItems.map((item) => ({ ...item, submissionType: 'menu_item' })),
         ...offers.map((item) => ({ ...item, submissionType: 'offer' })),
@@ -5924,7 +5984,7 @@ app.get(
 const updateSubmission = async (req, res, status) => {
   const id = normalizeId(req.params.id);
   const type = normalizeString(req.params.type).toLowerCase();
-  if (!id || !['store', 'stores', 'menu_item', 'menuitem', 'offer', 'offers'].includes(type)) {
+  if (!id || !['partner_user', 'user', 'store', 'stores', 'menu_item', 'menuitem', 'offer', 'offers'].includes(type)) {
     return errorResponse(res, 'بيانات الإرسال غير صالحة', 400);
   }
 
@@ -5941,7 +6001,27 @@ const updateSubmission = async (req, res, status) => {
   try {
     let item;
     let vendorId;
-    if (type === 'store' || type === 'stores') {
+    if (type === 'partner_user' || type === 'user') {
+      item = await prisma.user.update({
+        where: { id },
+        data: {
+          approvalStatus: status,
+          isActive: status === SUBMISSION_STATUS.APPROVED,
+          rejectionReason: status === SUBMISSION_STATUS.REJECTED ? rejectionReason : null,
+        },
+        include: { role: { select: { name: true } }, store: true },
+      });
+      vendorId = item.id;
+      if (item.role?.name === ROLES.VENDOR && item.store) {
+        await prisma.store.update({
+          where: { id: item.store.id },
+          data: {
+            approvalStatus: status,
+            rejectionReason: status === SUBMISSION_STATUS.REJECTED ? rejectionReason : null,
+          },
+        });
+      }
+    } else if (type === 'store' || type === 'stores') {
       item = await prisma.store.update({ where: { id }, data });
       vendorId = item.vendorId;
     } else if (type === 'menu_item' || type === 'menuitem') {
@@ -5962,7 +6042,7 @@ const updateSubmission = async (req, res, status) => {
             userId: vendorId,
             type: 'SYSTEM',
             title: status === SUBMISSION_STATUS.APPROVED ? 'تم اعتماد طلبك' : 'تم رفض طلبك',
-            body: `${statusText} ${type === 'store' || type === 'stores' ? 'المتجر' : type === 'offer' || type === 'offers' ? 'العرض' : 'المنتج'} الخاص بك.${reasonText}`,
+            body: `${statusText} ${type === 'partner_user' || type === 'user' ? 'طلب الانضمام' : type === 'store' || type === 'stores' ? 'المتجر' : type === 'offer' || type === 'offers' ? 'العرض' : 'المنتج'} الخاص بك.${reasonText}`,
             data: { submissionType: type, submissionId: id, approvalStatus: status, rejectionReason: rejectionReason || null },
           },
         });
