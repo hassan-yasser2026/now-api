@@ -3459,8 +3459,9 @@ app.get('/api/admin/support/sessions', authMiddleware, adminPermissionMiddleware
   const dbStatus = requestedStatus ? supportStatusToDb(requestedStatus) : undefined;
   if (requestedStatus && !dbStatus) return errorResponse(res, 'حالة المحادثة غير صالحة', 422);
   try {
+    res.set('X-NOW-Route', 'admin-support-sessions');
     const sessions = await prisma.chatSession.findMany({
-      where: dbStatus ? { status: dbStatus } : undefined,
+      where: dbStatus ? { status: dbStatus } : {},
       orderBy: { updatedAt: 'desc' },
       take: 200,
       include: {
