@@ -25,7 +25,14 @@ const getAuthenticatedUser = async (req) => {
 
   return prisma.user.findFirst({
     where: { id: decoded.userId, deletedAt: null, isActive: true },
-    select: { id: true, notificationsEnabled: true, role: { select: { name: true } } },
+    select: {
+      id: true,
+      notificationsEnabled: true,
+      role: { select: { name: true } },
+      subAdminPermissions: {
+        select: { permission: { select: { name: true } } },
+      },
+    },
   });
 };
 
@@ -38,6 +45,75 @@ const notificationFallback = async (req, res, segments) => {
   if (!allowedRoles.includes(user.role.name)) {
     res.status(403).json({ success: false, message: 'غير مصرح لك بتنفيذ هذا الإجراء' });
     return true;
+  }
+
+  if (path === 'admin/notifications' || path === 'admin/notifications/broadcast') {
+    const permission = path.endsWith('/broadcast')
+      ? 'notifications.write'
+      : 'notifications.read';
+    const hasPermission = user.role.name === 'admin'
+      || user.subAdminPermissions?.some(({ permission: item }) => item.name === permission);
+    if (!hasPermission) {
+      res.status(403).json({ success: false, message: 'غير مصرح لك بتنفيذ هذا الإجراء' });
+      return true;
+    }
+
+    if (req.method === 'GET' && path === 'admin/notifications') {
+      const notifications = await prisma.notification.findMany({
+        orderBy: { createdAt: 'desc' },
+        take: 200,
+        include: {
+          user: {
+            select: {
+              id: true,
+              name: true,
+              role: { select: { name: true } },
+            },
+          },
+        },
+      });
+      res.status(200).json({ success: true, data: notifications });
+      return true;
+    }
+
+    if (req.method === 'POST' && path === 'admin/notifications/broadcast') {
+      const body = typeof req.body === 'string' ? JSON.parse(req.body || '{}') : (req.body || {});
+      const title = String(body.title || '').trim();
+      const message = String(body.body || '').trim();
+      const role = String(body.role || '').trim().toLowerCase();
+      const allowedTargetRoles = ['customer', 'vendor', 'delivery', 'admin', 'sub_admin'];
+
+      if (!title || !message || title.length > 120 || message.length > 1000) {
+        res.status(422).json({ success: false, message: 'عنوان ونص الإشعار مطلوبان وبحدود صالحة' });
+        return true;
+      }
+      if (role && !allowedTargetRoles.includes(role)) {
+        res.status(422).json({ success: false, message: 'الدور المستهدف غير صالح' });
+        return true;
+      }
+
+      const recipients = await prisma.user.findMany({
+        where: {
+          isActive: true,
+          deletedAt: null,
+          ...(role ? { role: { name: role } } : {}),
+        },
+        select: { id: true },
+      });
+      const result = recipients.length
+        ? await prisma.notification.createMany({
+            data: recipients.map(({ id }) => ({
+              userId: id,
+              type: 'SYSTEM',
+              title,
+              body: message,
+            })),
+          })
+        : { count: 0 };
+
+      res.status(200).json({ success: true, data: { sent: result.count } });
+      return true;
+    }
   }
 
   if (req.method === 'GET' && path === 'notifications') {
@@ -270,8 +346,8 @@ module.exports = async (req, res) => {
   }
 
   if (
-    ['GET', 'PATCH'].includes(req.method)
-    && (segments[0] === 'notifications')
+    ['GET', 'PATCH', 'POST'].includes(req.method)
+    && (segments[0] === 'notifications' || segments[0] === 'admin')
     && upstream.status >= 400
   ) {
     try {
