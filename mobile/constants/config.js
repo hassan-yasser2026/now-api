@@ -9,7 +9,7 @@ export const CONFIG = {
 
   // رابط الـ API — يُستبدل عبر متغير البيئة EXPO_PUBLIC_API_URL
   API_URL: process.env.EXPO_PUBLIC_API_URL
-    || 'https://now-api-21yn.vercel.app/api',
+    || 'https://api.now-eg.com/api',
 
   API_TIMEOUT: 30000,
 

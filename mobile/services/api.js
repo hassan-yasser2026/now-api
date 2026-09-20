@@ -3,7 +3,7 @@ import { Platform } from 'react-native';
 import useAppStore from '../store/appStore';
 import { getAuthToken } from '../utils/authStorage';
 
-const PRODUCTION_API_URL = 'https://now-api-21yn.vercel.app/api';
+const PRODUCTION_API_URL = 'https://api.now-eg.com/api';
 const FALLBACK_API_URL = 'https://now-api-production-ca56.up.railway.app/api';
 
 const getApiBaseUrl = () => {
