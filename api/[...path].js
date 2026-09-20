@@ -415,9 +415,10 @@ const deleteMenuItemFallback = async (req, res, storeId, itemId) => {
 };
 
 module.exports = async (req, res) => {
-  const segments = Array.isArray(req.query.path)
+  const rawPath = Array.isArray(req.query.path)
     ? req.query.path
-    : [req.query.path].filter(Boolean);
+    : String(req.query.path || '').split('/');
+  const segments = rawPath.filter(Boolean);
   const target = `${API_ORIGIN}/api/${segments.map(encodeURIComponent).join('/')}`;
   const headers = {};
 
