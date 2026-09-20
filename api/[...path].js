@@ -168,6 +168,127 @@ const notificationFallback = async (req, res, segments) => {
   return false;
 };
 
+const supportFallback = async (req, res, segments) => {
+  const user = await getAuthenticatedUser(req);
+  if (!user) return false;
+
+  const path = segments.join('/');
+  const isAdminPath = segments[0] === 'admin' && segments[1] === 'support';
+  const isUserPath = segments[0] === 'support';
+  if (!isAdminPath && !isUserPath) return false;
+
+  const sessionId = Number(isAdminPath ? segments[3] : segments[2]);
+  const action = isAdminPath ? segments[4] : segments[3];
+  const hasPermission = (name) => user.role.name === 'admin'
+    || user.subAdminPermissions?.some(({ permission }) => permission.name === name);
+  const formatSession = (session) => ({
+    ...session,
+    status: { ESCALATED: 'IN_PROGRESS', RESOLVED: 'CLOSED' }[session.status] || session.status,
+    messages: (session.messages || []).map((item) => ({
+      ...item,
+      sender: item.sender === 'USER'
+        ? 'CUSTOMER'
+        : (user.role.name === 'sub_admin' ? 'SUBADMIN' : 'ADMIN'),
+    })),
+  });
+
+  if (isAdminPath && !hasPermission(
+    req.method === 'GET' ? 'support.read' : action === 'status' ? 'support.status' : 'support.reply',
+  )) {
+    res.status(403).json({ success: false, message: 'غير مصرح لك بتنفيذ هذا الإجراء' });
+    return true;
+  }
+
+  if (req.method === 'GET' && segments.length === (isAdminPath ? 3 : 2)) {
+    const requestedStatus = String(req.query?.status || '').toUpperCase();
+    const dbStatus = { OPEN: 'OPEN', IN_PROGRESS: 'ESCALATED', CLOSED: 'RESOLVED' }[requestedStatus];
+    if (requestedStatus && !dbStatus) {
+      res.status(422).json({ success: false, message: 'حالة المحادثة غير صالحة' });
+      return true;
+    }
+    const sessions = await prisma.chatSession.findMany({
+      where: {
+        ...(dbStatus ? { status: dbStatus } : {}),
+        ...(isAdminPath ? {} : { userId: user.id }),
+      },
+      orderBy: { updatedAt: 'desc' },
+      take: 200,
+      include: {
+        ...(isAdminPath ? { user: { select: { id: true, name: true, role: { select: { name: true } } } } } : {}),
+        order: { select: { id: true, status: true } },
+        messages: { orderBy: { createdAt: 'asc' } },
+      },
+    });
+    res.status(200).json({ success: true, data: sessions.map(formatSession) });
+    return true;
+  }
+
+  if (req.method === 'GET' && segments.length === (isAdminPath ? 4 : 3) && Number.isInteger(sessionId)) {
+    const session = await prisma.chatSession.findFirst({
+      where: { id: sessionId, ...(isAdminPath ? {} : { userId: user.id }) },
+      include: {
+        ...(isAdminPath ? { user: { select: { id: true, name: true, role: { select: { name: true } } } } } : {}),
+        order: { select: { id: true, status: true } },
+        messages: { orderBy: { createdAt: 'asc' } },
+      },
+    });
+    if (!session) {
+      res.status(404).json({ success: false, message: 'المحادثة غير موجودة' });
+      return true;
+    }
+    res.status(200).json({ success: true, data: formatSession(session) });
+    return true;
+  }
+
+  if (req.method === 'POST' && segments.length === (isAdminPath ? 5 : 4) && action === 'messages') {
+    const body = typeof req.body === 'string' ? JSON.parse(req.body || '{}') : (req.body || {});
+    const message = String(body.message || '').trim();
+    if (!Number.isInteger(sessionId) || !message || message.length > 2000) {
+      res.status(422).json({ success: false, message: 'المحادثة والرسالة مطلوبتان' });
+      return true;
+    }
+    const session = await prisma.chatSession.findFirst({
+      where: { id: sessionId, ...(isAdminPath ? {} : { userId: user.id }) },
+      select: { id: true, status: true },
+    });
+    if (!session) {
+      res.status(404).json({ success: false, message: 'المحادثة غير موجودة' });
+      return true;
+    }
+    if (session.status === 'RESOLVED') {
+      res.status(409).json({ success: false, message: 'المحادثة مغلقة' });
+      return true;
+    }
+    const created = await prisma.$transaction(async (tx) => {
+      const item = await tx.chatMessage.create({
+        data: { sessionId, sender: isAdminPath ? 'ADMIN' : 'USER', message },
+      });
+      if (isAdminPath) await tx.chatSession.update({ where: { id: sessionId }, data: { status: 'ESCALATED' } });
+      return item;
+    });
+    res.status(201).json({ success: true, data: { ...created, sender: isAdminPath ? 'ADMIN' : 'CUSTOMER' } });
+    return true;
+  }
+
+  if (req.method === 'PATCH' && isAdminPath && segments.length === 5 && action === 'status') {
+    const body = typeof req.body === 'string' ? JSON.parse(req.body || '{}') : (req.body || {});
+    const status = { OPEN: 'OPEN', IN_PROGRESS: 'ESCALATED', CLOSED: 'RESOLVED' }[String(body.status || '').toUpperCase()];
+    if (!Number.isInteger(sessionId) || !status) {
+      res.status(422).json({ success: false, message: 'حالة المحادثة غير صالحة' });
+      return true;
+    }
+    const updated = await prisma.chatSession.update({
+      where: { id: sessionId },
+      data: { status },
+      include: { messages: { orderBy: { createdAt: 'asc' } } },
+    });
+    res.status(200).json({ success: true, data: formatSession(updated) });
+    return true;
+  }
+
+  return false;
+};
+
 const updateProfileFallback = async (req, res) => {
   const authorization = req.headers.authorization || '';
   const token = authorization.startsWith('Bearer ')
@@ -354,6 +475,19 @@ module.exports = async (req, res) => {
       if (await notificationFallback(req, res, segments)) return;
     } catch (error) {
       console.error('NOTIFICATION FALLBACK ERROR:', error);
+    }
+  }
+
+  if (
+    ['GET', 'PATCH', 'POST'].includes(req.method)
+    && (segments[0] === 'support' || segments[0] === 'admin')
+    && segments.includes('support')
+    && upstream.status >= 400
+  ) {
+    try {
+      if (await supportFallback(req, res, segments)) return;
+    } catch (error) {
+      console.error('SUPPORT FALLBACK ERROR:', error);
     }
   }
 
