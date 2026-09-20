@@ -3452,6 +3452,8 @@ app.post('/api/support/sessions/:id/messages', authMiddleware, async (req, res) 
   }
 });
 
+// Admin support routes are kept in the main API entrypoint so hosted Railway
+// deployments expose the same paths as the mobile admin dashboard.
 app.get('/api/admin/support/sessions', authMiddleware, adminPermissionMiddleware('support.read'), async (req, res) => {
   const requestedStatus = normalizeString(req.query.status).toUpperCase();
   const dbStatus = requestedStatus ? supportStatusToDb(requestedStatus) : undefined;
