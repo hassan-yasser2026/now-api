@@ -4,7 +4,6 @@ import useAppStore from '../store/appStore';
 import { getAuthToken } from '../utils/authStorage';
 
 const PRODUCTION_API_URL = 'https://api.now-eg.com/api';
-const FALLBACK_API_URL = 'https://now-api-production-ca56.up.railway.app/api';
 
 const getApiBaseUrl = () => {
   const configuredUrl = process.env.EXPO_PUBLIC_API_URL?.trim();
@@ -12,14 +11,8 @@ const getApiBaseUrl = () => {
   if (configuredUrl) {
     const normalizedUrl = configuredUrl.replace(/\/+$/, '');
     const isVercelProductionUrl = /^https:\/\/now-api-21yn\.vercel\.app\/api$/i.test(normalizedUrl);
-    const isRailwayFallbackUrl = /^https:\/\/now-api-production-ca56\.up\.railway\.app\/api$/i.test(normalizedUrl);
     if (isVercelProductionUrl) {
       return normalizedUrl;
-    }
-
-    if (isRailwayFallbackUrl) {
-      console.warn('Using Railway fallback API URL from EXPO_PUBLIC_API_URL');
-      return FALLBACK_API_URL;
     }
 
     return normalizedUrl;
