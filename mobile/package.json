@@ -49,9 +49,13 @@
     "zustand": "^5.0.8"
   },
   "devDependencies": {
+    "@react-native/babel-preset": "^0.86.3",
+    "@react-native/metro-babel-transformer": "^0.86.3",
+    "@react-native/metro-config": "^0.86.3",
     "@types/react": "~19.2.4",
     "eslint": "^9.39.5",
     "eslint-config-expo": "^57.0.2",
+    "hermes-parser": "^0.36.0",
     "typescript": "~6.0.3"
   },
   "overrides": {
