@@ -4979,6 +4979,13 @@ app.get(
             approvalStatus: true,
             suspensionReason: true,
             suspendedUntil: true,
+            rejectionReason: true,
+            profileImage: true,
+            idImage: true,
+            motorcycleImage: true,
+            motorcycleCardImage: true,
+            latitude: true,
+            longitude: true,
 
             role: {
               select: {
@@ -4986,6 +4993,23 @@ app.get(
               },
             },
 
+            store: {
+              select: {
+                id: true,
+                name: true,
+                image: true,
+                approvalStatus: true,
+                rejectionReason: true,
+              },
+            },
+            deliveryProfile: {
+              select: {
+                vehicleType: true,
+                vehiclePlate: true,
+                latitude: true,
+                longitude: true,
+              },
+            },
             createdAt: true,
           },
 
@@ -5065,11 +5089,7 @@ app.patch(
   }
 );
 
-app.post(
-  '/api/admin/users/:id/reset-password',
-  authMiddleware,
-  adminPermissionMiddleware('users.update'),
-  async (req, res) => {
+const resetAdminUserPassword = async (req, res) => {
     const userId = normalizeId(req.params.id);
     const newPassword = typeof req.body.newPassword === 'string'
       ? req.body.newPassword
@@ -5097,7 +5117,13 @@ app.post(
     } catch (error) {
       return handlePrismaError(error, res);
     }
-  }
+};
+
+app.post(
+  ['/api/admin/users/:id/reset-password', '/api/admin/users/:id/password'],
+  authMiddleware,
+  adminPermissionMiddleware('users.update'),
+  resetAdminUserPassword
 );
 
 const setAdminManagedUserActive = async (req, res, isActive) => {

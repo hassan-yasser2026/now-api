@@ -339,7 +339,7 @@ const AdminDashboardScreen = () => {
     }
     setActionId(`reset-${resetUser.id}`);
     try {
-      await api.post(`/admin/users/${resetUser.id}/reset-password`, { newPassword });
+      await api.post(`/admin/users/${resetUser.id}/password`, { newPassword });
       setResetUser(null);
       setNewPassword('');
       Alert.alert('تم بنجاح', 'تم تغيير كلمة المرور.');
@@ -583,6 +583,7 @@ const AdminDashboardScreen = () => {
             submissionDetail={submissionDetail}
             onSubmissionOpen={setSubmissionDetail}
             onSubmissionUpdate={updateSubmission}
+            onUserOpen={(item) => setSubmissionDetail(item)}
           />
         )}
         {submissionDetail && (
@@ -808,7 +809,7 @@ const SectionContent = (props) => {
     notification, setNotification, onSendNotification, canWriteNotification, onNotificationOpen, isAdmin,
     onRetry, onSupportOpen, supportSession, supportReply, setSupportReply,
     onSupportReply, onSupportStatus, canSupportRead, canSupportReply, canSupportStatus,
-    submissionDetail, onSubmissionOpen, onSubmissionUpdate,
+    submissionDetail, onSubmissionOpen, onSubmissionUpdate, onUserOpen,
   } = props;
   if (state.loading) return <LoadingState />;
   if (state.error) return <ErrorState message={state.error} onRetry={onRetry} />;
@@ -853,6 +854,15 @@ const SectionContent = (props) => {
             meta={`${adminLabel(item.role?.name) || '—'} • ${item.isActive === false ? 'غير نشط' : 'نشط'}`}
             actions={(
               <>
+                <SmallButton
+                  label="عرض التفاصيل"
+                  secondary
+                  onPress={() => onUserOpen({
+                    ...item,
+                    submissionType: 'partner_user',
+                    submissionRole: item.role?.name,
+                  })}
+                />
                 {can('users.suspend') && <SmallButton label={item.isActive === false ? 'تفعيل' : 'تعطيل'} onPress={() => onAction(item, item.isActive === false ? 'user-activate' : 'user-suspend')} loading={actionId === `${item.isActive === false ? 'user-activate' : 'user-suspend'}-${item.id}`} />}
                 {can('users.suspend') && <SmallButton label="حذف الحساب" secondary onPress={() => onAction(item, 'user-delete')} loading={actionId === `user-delete-${item.id}`} />}
                 {can('users.update') && <SmallButton label="كلمة المرور" secondary onPress={() => onReset(item)} />}
@@ -991,12 +1001,14 @@ const SubmissionDetails = ({ item }) => {
       <Text style={styles.detailText}>نوع الطلب: {isPartner ? `طلب ${roleLabel}` : item.submissionType === 'store' ? 'متجر' : item.submissionType === 'offer' ? 'عرض' : 'منتج'}</Text>
       <Text style={styles.detailText}>{isPartner ? 'الاسم' : 'البائع'}: {isPartner ? item.name || '—' : vendor?.name || '—'}</Text>
       <Text style={styles.detailText}>الهاتف: {(isPartner ? item.phone : vendor?.phone) || '—'}</Text>
-      {isPartner && item.email ? <Text style={styles.detailText}>البريد الإلكتروني: {item.email}</Text> : null}
+      {item.email ? <Text style={styles.detailText}>البريد الإلكتروني: {item.email}</Text> : null}
       {isPartner && item.store?.name ? <Text style={styles.detailText}>اسم المتجر: {item.store.name}</Text> : null}
       {!isPartner && <Text style={styles.detailText}>المتجر: {item.store?.name || item.name || '—'}</Text>}
-      {isPartner && item.submissionRole === 'delivery' && item.vehicleType ? <Text style={styles.detailText}>نوع المركبة: {item.vehicleType}</Text> : null}
-      {isPartner && item.submissionRole === 'delivery' && item.vehiclePlate ? <Text style={styles.detailText}>رقم المركبة: {item.vehiclePlate}</Text> : null}
-      {isPartner && (item.latitude !== null || item.longitude !== null) ? <Text style={styles.detailText}>الموقع: {item.latitude || '—'} ، {item.longitude || '—'}</Text> : null}
+      {isPartner && item.submissionRole === 'delivery' && (item.vehicleType || item.deliveryProfile?.vehicleType) ? <Text style={styles.detailText}>نوع المركبة: {item.vehicleType || item.deliveryProfile.vehicleType}</Text> : null}
+      {isPartner && item.submissionRole === 'delivery' && (item.vehiclePlate || item.deliveryProfile?.vehiclePlate) ? <Text style={styles.detailText}>رقم المركبة: {item.vehiclePlate || item.deliveryProfile.vehiclePlate}</Text> : null}
+      {isPartner && ((item.latitude !== undefined && item.latitude !== null) || (item.longitude !== undefined && item.longitude !== null)) ? <Text style={styles.detailText}>الموقع: {item.latitude || '—'} ، {item.longitude || '—'}</Text> : null}
+      {isPartner && item.approvalStatus ? <Text style={styles.detailText}>حالة الحساب: {adminLabel(item.approvalStatus)}</Text> : null}
+      {isPartner && item.rejectionReason ? <Text style={styles.detailText}>سبب الرفض: {item.rejectionReason}</Text> : null}
       {item.description ? <Text style={styles.detailText}>الوصف: {item.description}</Text> : null}
       {item.price !== undefined ? <Text style={styles.detailText}>السعر: {formatMoney(item.price)}</Text> : null}
       {item.originalPrice !== undefined ? <Text style={styles.detailText}>السعر الأصلي: {formatMoney(item.originalPrice)}</Text> : null}
