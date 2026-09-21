@@ -2168,6 +2168,14 @@ app.post(
       );
     }
 
+    if (!image) {
+      return errorResponse(
+        res,
+        'صورة المنتج مطلوبة',
+        400
+      );
+    }
+
     try {
       const store = await prisma.store.findUnique({
         where: {

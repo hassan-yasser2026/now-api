@@ -148,6 +148,10 @@ const AddMenuItem = ({ navigation, route }) => {
       return 'السعر غير صحيح';
     }
 
+    if (!isEditMode && !imageUrl.trim()) {
+      return 'صورة المنتج مطلوبة';
+    }
+
     if (numericPrice < MIN_PRICE) {
       return 'السعر يجب أن يكون أكبر من صفر';
     }
@@ -166,6 +170,8 @@ const AddMenuItem = ({ navigation, route }) => {
     trimmedName,
     normalizedPrice,
     numericPrice,
+    imageUrl,
+    isEditMode,
     trimmedDescription,
   ]);
 
@@ -469,7 +475,7 @@ const AddMenuItem = ({ navigation, route }) => {
                       <Text style={styles.imageTitle}>اختيار صورة المنتج</Text>
 
                       <Text style={styles.imageSubtitle}>
-                        اختياري
+                        مطلوب
                       </Text>
                     </>
                   )}
