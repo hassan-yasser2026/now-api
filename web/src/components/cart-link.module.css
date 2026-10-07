@@ -1,0 +1,24 @@
+.link {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  border-radius: 10px;
+  padding: 10px 12px;
+  background: #e8f6f2;
+  color: #087b87;
+  font-size: 0.9rem;
+  font-weight: 800;
+  white-space: nowrap;
+}
+
+.count {
+  display: inline-grid;
+  min-width: 21px;
+  height: 21px;
+  place-items: center;
+  border-radius: 999px;
+  padding: 0 5px;
+  background: #087b87;
+  color: #fff;
+  font-size: 0.75rem;
+}

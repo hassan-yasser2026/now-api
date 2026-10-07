@@ -1,0 +1,179 @@
+.page {
+  width: min(1120px, calc(100% - 40px));
+  min-height: 100vh;
+  margin: 0 auto;
+}
+
+.header {
+  display: flex;
+  min-height: 78px;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  border-bottom: 1px solid #e7eeec;
+}
+
+.brand {
+  color: #087b87;
+  font-size: 1.5rem;
+  font-weight: 900;
+  letter-spacing: -0.07em;
+}
+
+.content {
+  width: min(820px, 100%);
+  margin: 52px auto 80px;
+}
+
+.eyebrow {
+  margin-bottom: 9px;
+  color: #0a8792;
+  font-size: 0.88rem;
+  font-weight: 700;
+}
+
+.content h1 {
+  color: #172d31;
+  font-size: clamp(2rem, 5vw, 3rem);
+  font-weight: 800;
+}
+
+.intro {
+  margin-top: 10px;
+  color: #697d80;
+  line-height: 1.8;
+}
+
+.orderList {
+  display: grid;
+  gap: 16px;
+  margin-top: 28px;
+}
+
+.orderCard,
+.empty,
+.error {
+  border: 1px solid #e3ebea;
+  border-radius: 16px;
+  padding: 20px;
+  background: #fff;
+}
+
+.orderHeading,
+.orderFooter {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+}
+
+.orderNumber {
+  color: #697d80;
+  font-size: 0.84rem;
+}
+
+.orderHeading h2 {
+  margin-top: 6px;
+  color: #172d31;
+  font-size: 1.15rem;
+}
+
+.status {
+  border-radius: 999px;
+  padding: 8px 11px;
+  background: #e8f6f2;
+  color: #08704e;
+  font-size: 0.82rem;
+  font-weight: 700;
+  text-align: center;
+}
+
+.items {
+  display: grid;
+  gap: 7px;
+  margin-top: 16px;
+  padding-right: 20px;
+  color: #536b6e;
+  font-size: 0.92rem;
+  line-height: 1.65;
+}
+
+.orderFooter {
+  margin-top: 18px;
+  border-top: 1px solid #edf1f0;
+  padding-top: 14px;
+  color: #697d80;
+  font-size: 0.88rem;
+}
+
+.orderFooter strong {
+  color: #087b87;
+  font-size: 1rem;
+}
+
+.orderDetailsLink {
+  display: inline-flex;
+  margin-top: 15px;
+  color: #087b87;
+  font-size: 0.9rem;
+  font-weight: 800;
+}
+
+.empty,
+.error {
+  margin-top: 28px;
+  padding: 40px 24px;
+  text-align: center;
+}
+
+.empty h2,
+.error strong {
+  color: #172d31;
+}
+
+.empty p,
+.error p {
+  margin-top: 8px;
+  color: #697d80;
+  line-height: 1.8;
+}
+
+.empty a {
+  display: inline-flex;
+  margin-top: 18px;
+  color: #087b87;
+  font-weight: 800;
+}
+
+.error {
+  border-color: #f0d6d2;
+  background: #fff9f8;
+}
+
+.error strong {
+  color: #a33225;
+}
+
+@media (max-width: 540px) {
+  .page {
+    width: calc(100% - 28px);
+  }
+
+  .content {
+    margin-top: 30px;
+  }
+
+  .orderCard {
+    padding: 15px;
+  }
+
+  .orderHeading {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
+  .orderFooter {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+}

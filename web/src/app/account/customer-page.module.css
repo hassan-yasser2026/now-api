@@ -1,0 +1,103 @@
+.page {
+  width: min(1120px, calc(100% - 40px));
+  min-height: 100vh;
+  margin: 0 auto;
+}
+
+.header {
+  display: flex;
+  min-height: 78px;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  border-bottom: 1px solid #e7eeec;
+}
+
+.brand {
+  color: #087b87;
+  font-size: 1.5rem;
+  font-weight: 900;
+  letter-spacing: -0.07em;
+}
+
+.content {
+  width: min(720px, 100%);
+  margin: 52px auto 80px;
+}
+
+.eyebrow {
+  margin-bottom: 9px;
+  color: #0a8792;
+  font-size: 0.88rem;
+  font-weight: 700;
+}
+
+.content h1 {
+  color: #172d31;
+  font-size: clamp(2rem, 5vw, 3rem);
+  font-weight: 800;
+}
+
+.intro {
+  margin-top: 10px;
+  color: #697d80;
+  line-height: 1.8;
+}
+
+.profileCard {
+  display: grid;
+  gap: 1px;
+  margin-top: 26px;
+  overflow: hidden;
+  border: 1px solid #e3ebea;
+  border-radius: 16px;
+  background: #e3ebea;
+}
+
+.profileCard > div {
+  display: flex;
+  min-height: 68px;
+  align-items: center;
+  justify-content: space-between;
+  gap: 18px;
+  padding: 16px 20px;
+  background: #fff;
+}
+
+.profileCard span {
+  color: #697d80;
+}
+
+.profileCard strong {
+  overflow-wrap: anywhere;
+  color: #172d31;
+}
+
+.primaryLink {
+  display: inline-flex;
+  min-height: 48px;
+  align-items: center;
+  justify-content: center;
+  margin-top: 24px;
+  border-radius: 11px;
+  padding: 0 20px;
+  background: #087b87;
+  color: #fff;
+  font-weight: 800;
+}
+
+@media (max-width: 540px) {
+  .page {
+    width: calc(100% - 28px);
+  }
+
+  .content {
+    margin-top: 30px;
+  }
+
+  .profileCard > div {
+    align-items: flex-start;
+    flex-direction: column;
+    gap: 7px;
+  }
+}

@@ -1,0 +1,23 @@
+.wrapper {
+  display: grid;
+  justify-items: start;
+  gap: 8px;
+}
+
+.button {
+  min-height: 48px;
+  border: 0;
+  border-radius: 12px;
+  padding: 0 20px;
+  background: #087b87;
+  color: #fff;
+  cursor: pointer;
+  font: inherit;
+  font-weight: 700;
+}
+
+.message {
+  color: #315256;
+  font-size: 0.88rem;
+  line-height: 1.6;
+}

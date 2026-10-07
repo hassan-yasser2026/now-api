@@ -1,0 +1,194 @@
+.page {
+  min-height: 100vh;
+}
+
+.header {
+  display: flex;
+  width: min(900px, calc(100% - 40px));
+  min-height: 76px;
+  align-items: center;
+  justify-content: space-between;
+  margin: 0 auto;
+  border-bottom: 1px solid #e7eeec;
+}
+
+.brand {
+  color: #087b87;
+  font-size: 1.5rem;
+  font-weight: 900;
+  letter-spacing: -0.07em;
+}
+
+.backLink {
+  color: #087b87;
+  font-weight: 700;
+}
+
+.content {
+  width: min(760px, calc(100% - 32px));
+  margin: 40px auto 72px;
+}
+
+.eyebrow {
+  margin-bottom: 7px;
+  color: #0a8792;
+  font-size: 0.9rem;
+  font-weight: 700;
+}
+
+.content h1 {
+  margin-bottom: 20px;
+  color: #172d31;
+  font-size: clamp(1.8rem, 5vw, 2.4rem);
+}
+
+.card {
+  display: grid;
+  gap: 22px;
+  border: 1px solid #e3ebea;
+  border-radius: 16px;
+  padding: 20px;
+  background: #fff;
+}
+
+.heading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+}
+
+.storeName {
+  color: #172d31;
+  font-size: 1.05rem;
+  font-weight: 800;
+}
+
+.muted {
+  margin-top: 6px;
+  color: #697d80;
+  font-size: 0.86rem;
+}
+
+.status {
+  border-radius: 999px;
+  padding: 9px 12px;
+  background: #e8f6f2;
+  color: #08704e;
+  font-size: 0.84rem;
+  font-weight: 800;
+  text-align: center;
+}
+
+.section {
+  display: grid;
+  gap: 12px;
+  border-top: 1px solid #edf1f0;
+  padding-top: 18px;
+  color: #536b6e;
+  line-height: 1.7;
+}
+
+.section h2 {
+  color: #172d31;
+  font-size: 1rem;
+}
+
+.items {
+  display: grid;
+  gap: 10px;
+  list-style: none;
+}
+
+.items li,
+.section > div {
+  display: flex;
+  justify-content: space-between;
+  gap: 16px;
+}
+
+.items strong,
+.section strong {
+  color: #087b87;
+  white-space: nowrap;
+}
+
+.total {
+  border-top: 1px solid #edf1f0;
+  padding-top: 12px;
+  font-weight: 800;
+}
+
+.footer {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-top: 14px;
+  color: #697d80;
+  font-size: 0.84rem;
+}
+
+.footer button,
+.error button {
+  border: 0;
+  border-radius: 9px;
+  padding: 9px 12px;
+  background: #e8f6f2;
+  color: #087b87;
+  cursor: pointer;
+  font: inherit;
+  font-weight: 800;
+}
+
+.info {
+  color: #697d80;
+}
+
+.error,
+.refreshError {
+  border: 1px solid #f0d6d2;
+  border-radius: 12px;
+  padding: 15px;
+  background: #fff9f8;
+  color: #a33225;
+  line-height: 1.7;
+}
+
+.error {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 12px;
+}
+
+.error a {
+  color: #087b87;
+  font-weight: 700;
+}
+
+.refreshError {
+  margin-bottom: 12px;
+  font-size: 0.9rem;
+}
+
+@media (max-width: 560px) {
+  .header {
+    width: calc(100% - 28px);
+  }
+
+  .content {
+    margin-top: 28px;
+  }
+
+  .card {
+    gap: 18px;
+    padding: 15px;
+  }
+
+  .heading {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+}
