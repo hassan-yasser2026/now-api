@@ -1,12 +1,19 @@
 :root {
   color-scheme: light;
-  background: #f7f9f8;
-  color: #172d31;
-  font-family: Arial, Tahoma, sans-serif;
+  background: #f6f8f5;
+  color: #183330;
+  font-family: "Segoe UI", Tahoma, Arial, sans-serif;
   font-synthesis: none;
   text-rendering: optimizeLegibility;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+  --color-ink: #183330;
+  --color-muted: #71817c;
+  --color-primary: #147a68;
+  --color-primary-dark: #10594e;
+  --color-border: #e2eae5;
+  --color-surface: #fff;
+  --shadow-card: 0 12px 32px rgb(29 63 52 / 7%);
 }
 
 * {
@@ -22,6 +29,9 @@ html {
 
 body {
   min-height: 100vh;
+  background:
+    radial-gradient(ellipse at 50% -20%, rgb(220 237 224 / 48%), transparent 44rem),
+    #f6f8f5;
 }
 
 a {
@@ -35,7 +45,9 @@ a {
 }
 
 a:focus-visible,
-button:focus-visible {
+button:focus-visible,
+input:focus-visible,
+textarea:focus-visible {
   outline: 3px solid #16a59f;
   outline-offset: 3px;
 }
@@ -43,4 +55,10 @@ button:focus-visible {
 ::selection {
   background: #b9eee5;
   color: #073f49;
+}
+
+button,
+input,
+textarea {
+  font-family: inherit;
 }

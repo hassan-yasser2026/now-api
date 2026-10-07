@@ -9,11 +9,11 @@
   min-height: 84px;
   align-items: center;
   gap: 16px;
-  border-bottom: 1px solid #e7eeec;
+  border-bottom: 1px solid #e2eae5;
 }
 
 .brand {
-  color: #087b87;
+  color: #147a68;
   font-size: 1.55rem;
   font-weight: 900;
   letter-spacing: -0.07em;
@@ -21,7 +21,7 @@
 
 .backLink {
   margin-right: auto;
-  color: #087b87;
+  color: #147a68;
   font-size: 0.92rem;
   font-weight: 700;
 }
@@ -42,8 +42,8 @@
   place-items: center;
   overflow: hidden;
   border-radius: 24px;
-  background: linear-gradient(135deg, #e6f5f1, #c9e8e2);
-  color: #087b87;
+  background: linear-gradient(135deg, #e9f3e9, #c9e4d5);
+  color: #147a68;
   font-size: 4rem;
   font-weight: 900;
 }
@@ -54,14 +54,14 @@
 
 .storeName {
   margin-bottom: 12px;
-  color: #0a8792;
+  color: #147a68;
   font-size: 0.95rem;
   font-weight: 700;
 }
 
 .category {
   margin-bottom: 9px;
-  color: #697d80;
+  color: #71817c;
   font-size: 0.9rem;
 }
 
@@ -87,7 +87,7 @@
 }
 
 .price {
-  color: #087b87;
+  color: #147a68;
   font-size: 1.5rem;
   font-weight: 800;
 }
@@ -101,8 +101,8 @@
 .discount {
   border-radius: 999px;
   padding: 5px 9px;
-  background: #fff0ed;
-  color: #a33225;
+  background: #fff1e4;
+  color: #a05a1f;
   font-size: 0.82rem;
   font-weight: 800;
 }
@@ -118,15 +118,15 @@
 }
 
 .available {
-  color: #08704e;
+  color: #146147;
 }
 
 .noRating {
-  color: #697d80;
+  color: #71817c;
 }
 
 .rating {
-  color: #96620a;
+  color: #906314;
 }
 
 .backButton {
@@ -137,7 +137,7 @@
   margin-top: 24px;
   border-radius: 12px;
   padding: 0 20px;
-  background: #087b87;
+  background: #147a68;
   color: #fff;
   font-weight: 700;
 }
@@ -173,14 +173,14 @@
 .review {
   display: grid;
   gap: 8px;
-  border: 1px solid #e3ebea;
+  border: 1px solid #e2eae5;
   border-radius: 14px;
   padding: 16px;
   background: #fff;
 }
 
 .review strong {
-  color: #172d31;
+  color: #183330;
 }
 
 .review span {
@@ -213,7 +213,7 @@
 .errorState a {
   display: inline-block;
   margin-top: 16px;
-  color: #087b87;
+  color: #147a68;
   font-weight: 700;
 }
 

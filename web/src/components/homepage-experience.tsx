@@ -228,15 +228,15 @@ export function HomepageExperience({ stores }: { stores: Store[] }) {
           )}
         </label>
 
-        <div className={styles.categoryBlock}>
-          <div className={styles.categoryHeading}>
-            <div>
-              <p className={styles.eyebrow}>تصفح أسرع</p>
-              <h2>التصنيفات</h2>
+        {categories.length > 0 && (
+          <div className={styles.categoryBlock}>
+            <div className={styles.categoryHeading}>
+              <div>
+                <p className={styles.eyebrow}>تصفح أسرع</p>
+                <h2>التصنيفات</h2>
+              </div>
+              <span>{categories.length} تصنيف</span>
             </div>
-            <span>{categories.length} تصنيف</span>
-          </div>
-          {categories.length > 0 ? (
             <div className={styles.categoryList} aria-label="تصفية حسب التصنيف">
               <button
                 className={!activeCategory ? styles.selectedCategory : ""}
@@ -260,12 +260,8 @@ export function HomepageExperience({ stores }: { stores: Store[] }) {
                 </button>
               ))}
             </div>
-          ) : (
-            <p className={styles.unavailable}>
-              التصنيفات غير متاحة في بيانات المتاجر العامة حاليًا.
-            </p>
-          )}
-        </div>
+          </div>
+        )}
       </section>
 
       {!normalizedSearch && !activeCategory && featuredStores.length > 0 && (

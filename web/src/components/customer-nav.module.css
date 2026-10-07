@@ -2,7 +2,7 @@
   display: flex;
   align-items: center;
   gap: 12px;
-  color: #315256;
+  color: #36564d;
   font-size: 0.9rem;
   font-weight: 700;
 }
@@ -17,10 +17,25 @@
   cursor: pointer;
   font: inherit;
   white-space: nowrap;
+  transition: background 150ms ease, color 150ms ease;
+}
+
+.nav a:hover,
+.nav button:hover {
+  background: #e8f0e9;
+  color: #10594e;
 }
 
 .nav .register {
-  background: #087b87;
+  border-radius: 11px;
+  padding-right: 16px;
+  padding-left: 16px;
+  background: #147a68;
+  color: #fff;
+}
+
+.nav .register:hover {
+  background: #10594e;
   color: #fff;
 }
 
@@ -37,6 +52,13 @@
   .nav {
     gap: 2px;
     font-size: 0.78rem;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .nav a,
+    .nav button {
+      transition: none;
+    }
   }
 
   .nav a,
