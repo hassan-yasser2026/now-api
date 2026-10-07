@@ -46,7 +46,7 @@
 .heroContent {
   position: relative;
   z-index: 1;
-  max-width: 540px;
+  max-width: 48%;
 }
 
 .eyebrow {
@@ -68,7 +68,7 @@
 }
 
 .hero h1 {
-  max-width: 520px;
+  max-width: 100%;
   font-size: clamp(2.35rem, 5.4vw, 4.15rem);
   font-weight: 800;
   letter-spacing: -0.055em;
@@ -108,9 +108,9 @@
 .heroShape {
   position: absolute;
   top: 50%;
-  left: 10%;
+  left: 7%;
   display: grid;
-  width: clamp(210px, 27vw, 320px);
+  width: clamp(190px, 24vw, 280px);
   aspect-ratio: 1;
   place-items: center;
   transform: translateY(-50%) rotate(-9deg);
