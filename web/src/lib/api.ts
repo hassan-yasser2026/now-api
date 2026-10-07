@@ -52,7 +52,7 @@ export type Store = {
 async function getApiData<T>(path: string): Promise<T> {
   const response = await fetch(`${API_BASE_URL}${path}`, {
     headers: { Accept: "application/json" },
-    next: { revalidate: 3600 },
+    next: { revalidate: 60 },
   });
 
   let payload: ApiEnvelope<T>;
