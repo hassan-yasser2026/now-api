@@ -1,129 +1,214 @@
 const { PrismaClient } = require('@prisma/client');
 const bcrypt = require('bcryptjs');
+
 const prisma = new PrismaClient();
 
-const seedUsers = [
+const roles = [
+  { name: 'admin', description: 'مدير عام' },
+  { name: 'customer', description: 'عميل' },
+  { name: 'vendor', description: 'بائع' },
+  { name: 'delivery', description: 'مندوب' },
+  { name: 'sub_admin', description: 'مدير فرعي' },
+];
+
+const demoAccounts = [
   {
-    name: 'المدير العام',
-    phone: '01000000099',
-    email: 'admin@now.com',
-    password: '12345678',
     role: 'admin',
+    name: 'مدير تجريبي',
+    phoneKey: 'DEMO_ADMIN_PHONE',
+    passwordKey: 'DEMO_ADMIN_PASSWORD',
   },
   {
-    name: 'أحمد العميل',
-    phone: '01000000000',
-    email: 'customer@now.com',
-    password: '12345678',
     role: 'customer',
+    name: 'عميل تجريبي',
+    phoneKey: 'DEMO_CUSTOMER_PHONE',
+    passwordKey: 'DEMO_CUSTOMER_PASSWORD',
   },
   {
-    name: 'مطعم البيت',
-    phone: '01000000001',
-    email: 'vendor@now.com',
-    password: '123456',
     role: 'vendor',
-    storeName: 'مطعم البيت',
+    name: 'بائع تجريبي',
+    phoneKey: 'DEMO_VENDOR_PHONE',
+    passwordKey: 'DEMO_VENDOR_PASSWORD',
   },
   {
-    name: 'سعيد المندوب',
-    phone: '01000000002',
-    email: 'delivery@now.com',
-    password: '123456',
     role: 'delivery',
-  },
-  {
-    name: 'مدير فرعي',
-    phone: '01000000003',
-    email: 'subadmin@now.com',
-    password: '123456',
-    role: 'sub_admin',
+    name: 'مندوب تجريبي',
+    phoneKey: 'DEMO_DELIVERY_PHONE',
+    passwordKey: 'DEMO_DELIVERY_PASSWORD',
   },
 ];
 
-async function main() {
-  await prisma.role.createMany({
-    data: [
-      { name: 'admin', description: 'مدير عام' },
-      { name: 'customer', description: 'عميل' },
-      { name: 'vendor', description: 'بائع' },
-      { name: 'delivery', description: 'مندوب' },
-      { name: 'sub_admin', description: 'مدير فرعي' },
-    ],
-    skipDuplicates: true,
+const demoMenuItems = [
+  { name: 'وجبة تجريبية 1', description: 'منتج تجريبي للاختبار', price: 50 },
+  { name: 'وجبة تجريبية 2', description: 'منتج تجريبي للاختبار', price: 75 },
+  { name: 'مشروب تجريبي', description: 'منتج تجريبي للاختبار', price: 20 },
+];
+
+function loadDemoAccounts() {
+  const accounts = demoAccounts.map((account) => {
+    const phone = process.env[account.phoneKey]?.trim();
+    const password = process.env[account.passwordKey];
+
+    if (!phone || !/^01[0125]\d{8}$/.test(phone)) {
+      throw new Error(`${account.phoneKey} must be a valid 11-digit Egyptian mobile number`);
+    }
+
+    if (!password || password.trim().length < 16) {
+      throw new Error(`${account.passwordKey} must contain at least 16 characters`);
+    }
+
+    return { ...account, phone, password };
   });
 
-  console.log('✅ Roles created');
-
-  for (const userData of seedUsers) {
-    const role = await prisma.role.findUnique({ where: { name: userData.role } });
-
-    if (!role) {
-      throw new Error(`Role not found: ${userData.role}`);
-    }
-
-    const hashedPassword = await bcrypt.hash(userData.password, 12);
-
-    const createdUser = await prisma.user.upsert({
-      where: { phone: userData.phone },
-      update: {
-        name: userData.name,
-        email: userData.email,
-        password: hashedPassword,
-        roleId: role.id,
-        isActive: true,
-        ...(userData.role === 'customer'
-          ? {
-              phoneVerified: true,
-              approvalStatus: 'APPROVED',
-            }
-          : {}),
-      },
-      create: {
-        name: userData.name,
-        phone: userData.phone,
-        email: userData.email,
-        password: hashedPassword,
-        roleId: role.id,
-        ...(userData.role === 'customer'
-          ? {
-              isActive: true,
-              phoneVerified: true,
-              approvalStatus: 'APPROVED',
-            }
-          : {}),
-      },
-    });
-
-    if (userData.role === 'vendor' && userData.storeName) {
-      await prisma.store.upsert({
-        where: { vendorId: createdUser.id },
-        update: {
-          name: userData.storeName,
-          isOpen: true,
-          isActive: true,
-        },
-        create: {
-          name: userData.storeName,
-          vendorId: createdUser.id,
-          isOpen: true,
-          isActive: true,
-        },
-      });
-    }
-
-    console.log(`✅ Seeded ${userData.role}: ${userData.phone} / ${userData.password}`);
+  if (new Set(accounts.map(({ phone }) => phone)).size !== accounts.length) {
+    throw new Error('Each demo account must use a different phone number');
   }
 
-  console.log('🎉 Seeding completed successfully!');
+  if (new Set(accounts.map(({ password }) => password)).size !== accounts.length) {
+    throw new Error('Each demo account must use a different password');
+  }
+
+  return accounts;
+}
+
+async function upsertDemoAccount(tx, account, roleId, passwordHash) {
+  const existingUser = await tx.user.findUnique({
+    where: { phone: account.phone },
+    select: { id: true, name: true, roleId: true },
+  });
+
+  if (
+    existingUser
+    && (existingUser.name !== account.name || existingUser.roleId !== roleId)
+  ) {
+    throw new Error(
+      `Phone number in ${account.phoneKey} is already used by a different account`,
+    );
+  }
+
+  const user = existingUser || await tx.user.create({
+    data: {
+      name: account.name,
+      phone: account.phone,
+      password: passwordHash,
+      roleId,
+      isActive: true,
+      phoneVerified: true,
+      approvalStatus: 'APPROVED',
+    },
+    select: { id: true, name: true, roleId: true },
+  });
+
+  if (account.role === 'admin') {
+    await tx.admin.upsert({
+      where: { userId: user.id },
+      update: {},
+      create: { userId: user.id },
+    });
+  }
+
+  if (account.role === 'delivery') {
+    await tx.deliveryProfile.upsert({
+      where: { userId: user.id },
+      update: { status: 'OFFLINE' },
+      create: { userId: user.id, status: 'OFFLINE' },
+    });
+  }
+
+  return user;
+}
+
+async function upsertDemoStore(tx, vendorId) {
+  const store = await tx.store.upsert({
+    where: { vendorId },
+    update: {
+      name: 'متجر NOW التجريبي',
+      description: 'متجر تجريبي لاختبار تطبيق NOW',
+      isOpen: true,
+      isActive: true,
+      approvalStatus: 'APPROVED',
+    },
+    create: {
+      vendorId,
+      name: 'متجر NOW التجريبي',
+      description: 'متجر تجريبي لاختبار تطبيق NOW',
+      isOpen: true,
+      isActive: true,
+      approvalStatus: 'APPROVED',
+    },
+  });
+
+  for (const [sortOrder, item] of demoMenuItems.entries()) {
+    const data = {
+      ...item,
+      storeId: store.id,
+      isAvailable: true,
+      isDemo: true,
+      sortOrder,
+      approvalStatus: 'APPROVED',
+    };
+    const existingItem = await tx.menuItem.findFirst({
+      where: { storeId: store.id, name: item.name },
+      select: { id: true },
+    });
+
+    if (existingItem) {
+      await tx.menuItem.update({
+        where: { id: existingItem.id },
+        data,
+      });
+    } else {
+      await tx.menuItem.create({ data });
+    }
+  }
+}
+
+async function main() {
+  const accounts = loadDemoAccounts();
+  const passwordHashes = await Promise.all(
+    accounts.map(({ password }) => bcrypt.hash(password, 12)),
+  );
+
+  await prisma.$transaction(async (tx) => {
+    await tx.role.createMany({
+      data: roles,
+      skipDuplicates: true,
+    });
+
+    const roleRecords = await tx.role.findMany({
+      where: { name: { in: roles.map(({ name }) => name) } },
+      select: { id: true, name: true },
+    });
+    const roleIds = new Map(roleRecords.map(({ id, name }) => [name, id]));
+
+    for (const [index, account] of accounts.entries()) {
+      const roleId = roleIds.get(account.role);
+      if (!roleId) {
+        throw new Error(`Required role is missing: ${account.role}`);
+      }
+
+      const user = await upsertDemoAccount(
+        tx,
+        account,
+        roleId,
+        passwordHashes[index],
+      );
+      if (account.role === 'vendor') {
+        await upsertDemoStore(tx, user.id);
+      }
+
+      console.log(`Seeded demo ${account.role} account.`);
+    }
+  });
+
+  console.log('Demo roles, accounts, store, and products are ready.');
 }
 
 main()
-  .catch((e) => {
-    console.error(e);
-    process.exit(1);
+  .catch((error) => {
+    console.error('Demo seed failed:', error);
+    process.exitCode = 1;
   })
   .finally(async () => {
     await prisma.$disconnect();
   });
-// مسودة المشروع - البشمهندس حسن ياسر
