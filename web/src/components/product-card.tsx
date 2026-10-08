@@ -1,5 +1,6 @@
 import Image from "next/image";
-import Link from "next/link";
+import { useLocale, useTranslations } from "next-intl";
+import { Link } from "@/i18n/navigation";
 import {
   formatPrice,
   getSafeImageUrl,
@@ -15,6 +16,8 @@ export function ProductCard({
   storeId: number;
   product: MenuItem;
 }) {
+  const t = useTranslations("product");
+  const locale = useLocale();
   const imageUrl = getSafeImageUrl(product.image);
   const productName = product.nameAr || product.name;
 
@@ -38,8 +41,8 @@ export function ProductCard({
       </div>
       <div className={styles.content}>
         <h3>{productName}</h3>
-        <p>{product.description || "منتج متاح للطلب من المتجر."}</p>
-        <strong>{formatPrice(product.price)}</strong>
+        <p>{product.description || t("fallbackDescription")}</p>
+        <strong>{formatPrice(product.price, locale)}</strong>
       </div>
     </Link>
   );

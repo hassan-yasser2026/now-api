@@ -1,20 +1,27 @@
 import type { Metadata } from "next";
 import type { ReactNode } from "react";
-import Link from "next/link";
+import { Link } from "@/i18n/navigation";
 import { redirect } from "next/navigation";
 import { Breadcrumbs } from "@/components/breadcrumbs";
 import { CustomerNavbar } from "@/components/customer-navbar";
 import { HomepageFooter } from "@/components/homepage-footer";
 import { getCustomerSession } from "@/lib/server-api";
+import { getLocale, getTranslations } from "next-intl/server";
 
-export const metadata: Metadata = {
-  title: "حسابي",
-  robots: { index: false, follow: false },
-};
+export async function generateMetadata(): Promise<Metadata> {
+  return {
+    title: (await getTranslations("account"))("title"),
+    robots: { index: false, follow: false },
+  };
+}
 
 export default async function AccountPage() {
+  const t = await getTranslations("account");
   const session = await getCustomerSession();
-  if (!session) redirect("/login?next=%2Faccount");
+  if (!session) {
+    const locale = await getLocale();
+    redirect(`${locale === "ar" ? "" : "/en"}/login?next=%2Faccount`);
+  }
   const { user } = session;
   const initials = user.name.trim().slice(0, 1) || "N";
 
@@ -23,7 +30,7 @@ export default async function AccountPage() {
       <CustomerNavbar signedIn />
       <main className="mx-auto min-h-[65vh] w-[min(1120px,calc(100%-32px))] pb-16 sm:w-[min(1120px,calc(100%-48px))] sm:pb-20">
         <Breadcrumbs
-          items={[{ label: "الرئيسية", href: "/" }, { label: "حسابي" }]}
+          items={[{ label: t("home"), href: "/" }, { label: t("title") }]}
         />
 
         <section className="relative isolate overflow-hidden rounded-[28px] bg-now-900 p-5 text-white shadow-[0_22px_60px_rgba(18,107,87,0.16)] sm:rounded-[36px] sm:p-8 lg:p-10">
@@ -37,13 +44,13 @@ export default async function AccountPage() {
             </span>
             <div className="min-w-0">
               <p className="text-xs font-extrabold text-now-100/75 sm:text-sm">
-                حساب العميل
+                {t("customerAccount")}
               </p>
               <h1 className="mt-1 break-words text-2xl font-black sm:text-3xl lg:text-4xl">
-                أهلاً {user.name}
+                {t("welcome", { name: user.name })}
               </h1>
               <p className="mt-2 text-sm leading-6 text-white/65">
-                إدارة حسابك ومتابعة طلباتك من مكان واحد.
+                {t("intro")}
               </p>
             </div>
           </div>
@@ -54,10 +61,10 @@ export default async function AccountPage() {
             <div className="mb-5 flex items-center justify-between gap-3">
               <div>
                 <p className="text-xs font-extrabold text-now-600">
-                  معلوماتك
+                  {t("yourInfo")}
                 </p>
                 <h2 className="mt-1 text-xl font-black text-now-900">
-                  بيانات الحساب
+                  {t("accountDetails")}
                 </h2>
               </div>
               <span className="grid size-10 place-items-center rounded-xl bg-now-50 text-now-700" aria-hidden="true">
@@ -65,66 +72,64 @@ export default async function AccountPage() {
               </span>
             </div>
             <div className="grid gap-3 sm:grid-cols-2">
-              <ProfileField label="الاسم" value={user.name} />
+              <ProfileField label={t("name")} value={user.name} />
               <ProfileField
                 direction="ltr"
-                label="رقم الهاتف"
+                label={t("phone")}
                 value={user.phone}
               />
             </div>
             <p className="mt-4 text-xs leading-6 text-now-900/45">
-              هذه البيانات المسجلة في حساب چودي ستار. تعديل بيانات الملف الشخصي غير
-              متاح من الموقع حاليًا.
+              {t("profileNote")}
             </p>
           </section>
 
           <aside className="rounded-3xl border border-now-900/[0.06] bg-white p-5 shadow-[0_10px_32px_rgba(24,51,45,0.06)] sm:p-6">
-            <p className="text-xs font-extrabold text-now-600">وصول سريع</p>
+            <p className="text-xs font-extrabold text-now-600">{t("quickAccess")}</p>
             <h2 className="mt-1 text-xl font-black text-now-900">
-              خدمات حسابك
+              {t("services")}
             </h2>
             <div className="mt-5 grid gap-3">
               <QuickLink
-                description="راجع حالة طلباتك السابقة والحالية."
+                description={t("ordersDescription")}
                 href="/orders"
                 icon={<OrdersIcon />}
-                title="طلباتي"
+                title={t("orders")}
               />
               <QuickLink
-                description="راجع سلتك وأدخل عنوان التوصيل عند إتمام الطلب."
+                description={t("deliveryDescription")}
                 href="/cart"
                 icon={<LocationIcon />}
-                title="السلة والتوصيل"
+                title={t("cartDelivery")}
               />
               <QuickLink
-                description="اكتشف المتاجر والمنتجات المتاحة."
+                description={t("storesDescription")}
                 href="/#stores"
                 icon={<ShopIcon />}
-                title="تصفح المتاجر"
+                title={t("browseStores")}
               />
             </div>
             <p className="mt-4 rounded-2xl bg-now-cream p-3 text-xs leading-6 text-now-900/50">
-              دفتر عناوين محفوظ غير متوفر حاليًا؛ عنوان التوصيل يُدخل عند إتمام
-              الطلب.
+              {t("savedAddresses")}
             </p>
           </aside>
         </div>
 
         <section className="mt-6 rounded-3xl border border-now-900/[0.06] bg-gradient-to-l from-now-50 to-white p-5 sm:flex sm:items-center sm:justify-between sm:gap-5 sm:p-7">
           <div>
-            <p className="text-xs font-extrabold text-now-600">جاهز تطلب؟</p>
+            <p className="text-xs font-extrabold text-now-600">{t("readyToOrder")}</p>
             <h2 className="mt-1 text-lg font-black text-now-900 sm:text-xl">
-              اختار من متاجرك المفضلة
+              {t("chooseStore")}
             </h2>
             <p className="mt-1 text-sm leading-6 text-now-900/55">
-              المنتجات والأسعار المعروضة يتم تحديثها من خدمة چودي ستار.
+              {t("freshData")}
             </p>
           </div>
           <Link
             className="mt-4 inline-flex min-h-12 w-full items-center justify-center rounded-xl bg-now-600 px-6 text-sm font-extrabold text-white shadow-md shadow-now-600/20 transition hover:-translate-y-0.5 hover:bg-now-700 sm:mt-0 sm:w-auto"
             href="/#stores"
           >
-            تصفح المتاجر
+            {t("browseStores")}
           </Link>
         </section>
       </main>

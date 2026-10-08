@@ -1,7 +1,8 @@
 "use client";
 
 import Image from "next/image";
-import Link from "next/link";
+import { Link } from "@/i18n/navigation";
+import { useLocale, useTranslations } from "next-intl";
 import { useMemo, useState } from "react";
 import {
   formatPrice,
@@ -19,9 +20,15 @@ function ProductTile({
   product: MenuItem;
   isFirstProduct: boolean;
 }) {
+  const t = useTranslations("product");
+  const locale = useLocale();
   const imageUrl = getSafeImageUrl(product.image);
-  const name = product.nameAr || product.name;
-  const category = product.category?.nameAr || product.category?.name;
+  const name =
+    locale === "en" ? product.name : product.nameAr || product.name;
+  const category =
+    locale === "en"
+      ? product.category?.name || product.category?.nameAr
+      : product.category?.nameAr || product.category?.name;
 
   return (
     <Link
@@ -52,7 +59,7 @@ function ProductTile({
         )}
         {Number(product.discountPercentage) > 0 && (
           <span className="absolute left-3 top-3 rounded-full bg-now-gold px-3 py-1.5 text-xs font-black text-now-900 shadow-sm">
-            خصم {Number(product.discountPercentage)}٪
+            {t("discount", { percentage: Number(product.discountPercentage) })}
           </span>
         )}
       </div>
@@ -61,16 +68,16 @@ function ProductTile({
           {name}
         </h3>
         <p className="mt-2 line-clamp-2 min-h-10 text-xs leading-5 text-now-700 sm:text-sm sm:leading-6">
-          {product.description || "منتج متاح للطلب من المتجر."}
+          {product.description || t("fallbackDescription")}
         </p>
         <div className="mt-4 flex items-center justify-between gap-2 border-t border-now-900/[0.06] pt-3">
           <div className="flex min-w-0 flex-wrap items-baseline gap-x-2">
             <span className="text-sm font-black text-now-700 sm:text-base">
-              {formatPrice(product.price)}
+              {formatPrice(product.price, locale)}
             </span>
             {Number(product.originalPrice) > Number(product.price) && (
               <span className="text-xs text-now-700 line-through">
-                {formatPrice(product.originalPrice || product.price)}
+                {formatPrice(product.originalPrice || product.price, locale)}
               </span>
             )}
           </div>
@@ -90,6 +97,7 @@ export function StoreCatalog({
   storeId: number;
   products: MenuItem[];
 }) {
+  const t = useTranslations("product");
   const [activeCategory, setActiveCategory] = useState("");
   const categories = useMemo(
     () =>
@@ -112,9 +120,9 @@ export function StoreCatalog({
     <>
       {categories.length > 0 && (
         <div className="mb-6 flex gap-2 overflow-x-auto pb-2 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
-          {["الكل", ...categories].map((category) => {
+          {[t("allCategories"), ...categories].map((category) => {
             const selected =
-              category === "الكل"
+              category === t("allCategories")
                 ? !activeCategory
                 : category === activeCategory;
             return (
@@ -127,7 +135,7 @@ export function StoreCatalog({
                 }`}
                 key={category}
                 onClick={() =>
-                  setActiveCategory(category === "الكل" ? "" : category)
+                  setActiveCategory(category === t("allCategories") ? "" : category)
                 }
                 type="button"
               >
@@ -153,13 +161,13 @@ export function StoreCatalog({
           <span className="mx-auto grid size-14 place-items-center rounded-2xl bg-now-50 text-2xl text-now-600">⌕</span>
           <h3 className="mt-4 text-lg font-black text-now-900">
             {products.length > 0
-              ? "لا توجد منتجات في هذا التصنيف"
-              : "لا توجد منتجات متاحة"}
+              ? t("emptyCategory")
+              : t("emptyProducts")}
           </h3>
           <p className="mt-2 text-sm leading-6 text-now-900/55">
             {products.length > 0
-              ? "اختر تصنيفًا آخر لعرض المنتجات."
-              : "لا توجد منتجات متاحة في هذا المتجر حاليًا."}
+              ? t("chooseAnotherCategory")
+              : t("emptyStore")}
           </p>
         </div>
       )}

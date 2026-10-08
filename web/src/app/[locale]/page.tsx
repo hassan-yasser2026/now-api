@@ -1,28 +1,50 @@
 import type { Metadata } from "next";
-import Link from "next/link";
 import { connection } from "next/server";
+import { getLocale, getTranslations } from "next-intl/server";
+import { Link as LocalizedLink } from "@/i18n/navigation";
 import { CustomerNavbar } from "@/components/customer-navbar";
 import { HomepageDiscovery } from "@/components/homepage-discovery";
 import { HomepageFooter } from "@/components/homepage-footer";
 import { getStores, type Store } from "@/lib/api";
 import { getSiteUrl } from "@/lib/site-url";
 
-export const metadata: Metadata = {
-  title: "چودي ستار | تسوق من متاجرك المفضلة",
-  description:
-    "تصفح المتاجر والمنتجات واطلب بسهولة من چودي ستار (Goody Star).",
-  alternates: { canonical: "/" },
-  openGraph: {
-    title: "چودي ستار | تسوق من متاجرك المفضلة",
-    description: "اكتشف المتاجر والمنتجات واطلبها أونلاين.",
-    locale: "ar_EG",
-    type: "website",
-    url: getSiteUrl().toString(),
-    images: [{ url: "/opengraph-image", width: 1200, height: 630, alt: "چودي ستار - Goody Star" }],
-  },
-};
+type HomePageProps = { params: Promise<{ locale: string }> };
 
-export default async function HomePage() {
+export async function generateMetadata(): Promise<Metadata> {
+  const t = await getTranslations("home");
+  const metadataT = await getTranslations("metadata");
+  const locale = await getLocale();
+  const title = t("title");
+  const description = t("description");
+  const canonical = locale === "ar" ? "/" : "/en";
+
+  return {
+    title,
+    description,
+    alternates: {
+      canonical,
+      languages: { ar: "/", en: "/en" },
+    },
+    openGraph: {
+      title,
+      description: t("ogDescription"),
+      locale: locale === "ar" ? "ar_EG" : "en_US",
+      type: "website",
+      url: new URL(canonical, getSiteUrl()).toString(),
+      images: [{
+        url: "/opengraph-image",
+        width: 1200,
+        height: 630,
+        alt: metadataT("brandAlt"),
+      }],
+    },
+  };
+}
+
+export default async function HomePage({ params }: HomePageProps) {
+  const { locale } = await params;
+  const t = await getTranslations("home");
+  const common = await getTranslations("common");
   await connection();
 
   let stores: Store[] = [];
@@ -48,17 +70,17 @@ export default async function HomePage() {
               !
             </span>
             <h1 className="mt-5 text-2xl font-black text-now-900">
-              تعذر تحميل المتاجر
+              {t("loadErrorTitle")}
             </h1>
             <p className="mt-3 text-sm leading-7 text-now-700">
-              حصلت مشكلة في الاتصال بخدمة چودي ستار. حاول تحديث الصفحة بعد شوية.
+              {t("loadErrorDescription")}
             </p>
-            <Link
+            <LocalizedLink
               className="mt-6 inline-flex min-h-12 items-center justify-center rounded-xl bg-now-600 px-6 font-extrabold text-white transition hover:bg-now-700"
               href="/"
             >
-              إعادة المحاولة
-            </Link>
+              {common("retry")}
+            </LocalizedLink>
           </section>
         </main>
         <HomepageFooter />
@@ -79,37 +101,36 @@ export default async function HomePage() {
           <div className="relative z-10 max-w-2xl animate-[rise-in_.7s_ease-out_both]">
             <p className="inline-flex min-h-9 items-center gap-2 rounded-full border border-white/20 bg-white/10 px-4 text-xs font-extrabold text-now-100 backdrop-blur sm:text-sm">
               <span className="size-2 rounded-full bg-now-gold shadow-[0_0_14px_rgba(244,185,66,.8)]" />
-              طلبك، أسهل مع چودي ستار
+              {t("heroEyebrow")}
             </p>
             <h1 className="mt-5 max-w-xl text-[2.55rem] font-black leading-[1.2] tracking-tight sm:mt-6 sm:text-5xl lg:text-[3.65rem]">
-              كل اللي بتحبه،
-              <span className="mt-1 block text-now-gold">لحد عندك.</span>
+              {t("heroTitle")}
+              <span className="mt-1 block text-now-gold">{t("heroTitleAccent")}</span>
             </h1>
             <p className="mt-4 max-w-lg text-sm leading-7 text-white/75 sm:mt-5 sm:text-lg sm:leading-8">
-              اكتشف المتاجر القريبة منك، اختار منتجاتك المفضلة، وخلي طلبك يوصل
-              لحد بابك.
+              {t("heroDescription")}
             </p>
             <div className="mt-7 flex flex-col gap-3 sm:mt-9 sm:flex-row">
-              <Link
+              <LocalizedLink
                 className="inline-flex min-h-12 items-center justify-center gap-2 rounded-xl bg-now-gold px-6 text-sm font-black text-now-900 shadow-lg shadow-black/10 transition duration-200 hover:-translate-y-0.5 hover:bg-amber-300 hover:shadow-xl sm:min-h-14 sm:rounded-2xl sm:px-8 sm:text-base"
                 href="#stores"
               >
-                اكتشف المتاجر
+                {t("discoverStores")}
                 <span aria-hidden="true">←</span>
-              </Link>
-              <Link
+              </LocalizedLink>
+              <LocalizedLink
                 className="inline-flex min-h-12 items-center justify-center rounded-xl border border-white/25 bg-white/5 px-6 text-sm font-extrabold text-white transition hover:bg-white/10 sm:min-h-14 sm:rounded-2xl sm:px-7 sm:text-base"
                 href="/register"
               >
-                ابدأ حسابك
-              </Link>
+                {t("startAccount")}
+              </LocalizedLink>
             </div>
             <div className="mt-7 flex flex-wrap items-center gap-x-5 gap-y-2 text-xs font-semibold text-white/65 sm:mt-9 sm:text-sm">
               <span className="inline-flex items-center gap-2">
-                <span className="text-now-gold">✓</span> متاجر متنوعة
+                <span className="text-now-gold">✓</span> {t("diverseStores")}
               </span>
               <span className="inline-flex items-center gap-2">
-                <span className="text-now-gold">✓</span> طلب بخطوات بسيطة
+                <span className="text-now-gold">✓</span> {t("simpleOrder")}
               </span>
             </div>
           </div>
@@ -139,10 +160,10 @@ export default async function HomePage() {
                 ◌
               </span>
               <h2 className="mt-4 text-xl font-black text-now-900">
-                مفيش متاجر متاحة دلوقتي
+                {t("emptyTitle")}
               </h2>
               <p className="mt-2 text-sm leading-7 text-now-700">
-                ارجع تاني قريب، المتاجر هتظهر هنا أول ما تكون متاحة.
+                {t("emptyDescription")}
               </p>
             </div>
           </section>
@@ -155,11 +176,10 @@ export default async function HomePage() {
           __html: JSON.stringify({
             "@context": "https://schema.org",
             "@type": "OnlineStore",
-            name: "Goody Star (چودي ستار)",
-            url: getSiteUrl().toString(),
-            description:
-              "اكتشف المتاجر والمنتجات واطلبها أونلاين مع چودي ستار (Goody Star).",
-            inLanguage: "ar-EG",
+            name: locale === "ar" ? "چودي ستار (Goody Star)" : "Goody Star",
+            url: new URL(locale === "ar" ? "/" : "/en", getSiteUrl()).toString(),
+            description: t("description"),
+            inLanguage: locale === "ar" ? "ar-EG" : "en",
           }).replace(/</g, "\\u003c"),
         }}
       />

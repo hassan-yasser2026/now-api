@@ -10,6 +10,7 @@ import {
   type ReactNode,
 } from "react";
 import type { MenuItem } from "@/lib/api";
+import { useTranslations } from "next-intl";
 
 const CART_STORAGE_KEY = "now_customer_web_cart_v1";
 
@@ -18,10 +19,18 @@ export type CartItem = {
   storeId: number;
   storeName: string;
   name: string;
+  nameAr?: string;
+  nameEn?: string;
   price: number;
   image: string | null;
   quantity: number;
 };
+
+export function getCartItemName(item: CartItem, locale: string) {
+  return locale === "en"
+    ? item.nameEn || item.name
+    : item.nameAr || item.name;
+}
 
 type CartContextValue = {
   items: CartItem[];
@@ -48,6 +57,8 @@ function isCartItem(value: unknown): value is CartItem {
     Number(item.storeId) > 0 &&
     typeof item.storeName === "string" &&
     typeof item.name === "string" &&
+    (item.nameAr === undefined || typeof item.nameAr === "string") &&
+    (item.nameEn === undefined || typeof item.nameEn === "string") &&
     typeof item.price === "number" &&
     Number.isFinite(item.price) &&
     item.price >= 0 &&
@@ -61,7 +72,7 @@ function isCartItem(value: unknown): value is CartItem {
 function parseCart(serialized: string): CartItem[] {
   const parsed: unknown = JSON.parse(serialized);
   if (!Array.isArray(parsed) || !parsed.every(isCartItem)) {
-    throw new Error("بيانات السلة المحفوظة غير صالحة");
+    throw new Error("Saved cart data is invalid.");
   }
 
   const storeId = parsed[0]?.storeId;
@@ -70,13 +81,14 @@ function parseCart(serialized: string): CartItem[] {
     new Set(parsed.map((item: CartItem) => item.productId)).size !==
       parsed.length
   ) {
-    throw new Error("تركيبة السلة المحفوظة غير صالحة");
+    throw new Error("Saved cart contents are invalid.");
   }
 
   return parsed;
 }
 
 export function CartProvider({ children }: { children: ReactNode }) {
+  const t = useTranslations("cart");
   const [items, setItems] = useState<CartItem[]>([]);
   const [error, setError] = useState("");
 
@@ -91,9 +103,9 @@ export function CartProvider({ children }: { children: ReactNode }) {
       setError("");
     } catch (writeError) {
       console.error("Could not save the customer cart locally:", writeError);
-      setError("تعذر حفظ السلة على هذا الجهاز. تحقق من مساحة التخزين.");
+      setError(t("deviceSaveFailed"));
     }
-  }, []);
+  }, [t]);
 
   const readStorage = useCallback(() => {
     try {
@@ -103,9 +115,9 @@ export function CartProvider({ children }: { children: ReactNode }) {
     } catch (readError) {
       console.error("Could not read the locally saved cart:", readError);
       setItems([]);
-      setError("تعذر تحميل السلة المحفوظة. قد تكون بياناتها غير صالحة.");
+      setError(t("deviceLoadFailed"));
     }
-  }, []);
+  }, [t]);
 
   useEffect(() => {
     function syncStorage(event: StorageEvent) {
@@ -128,7 +140,7 @@ export function CartProvider({ children }: { children: ReactNode }) {
       product: MenuItem,
     ): "added" | "different-store" | "invalid-product" => {
       if (!Number.isFinite(Number(product.price))) {
-        setError("تعذر إضافة المنتج لأن سعره غير صالح.");
+        setError(t("invalidProductPrice"));
         return "invalid-product";
       }
 
@@ -152,6 +164,8 @@ export function CartProvider({ children }: { children: ReactNode }) {
               storeId: store.id,
               storeName: store.name,
               name: product.nameAr || product.name,
+              nameAr: product.nameAr || undefined,
+              nameEn: product.name,
               price,
               image: product.image || null,
               quantity: 1,
@@ -160,7 +174,7 @@ export function CartProvider({ children }: { children: ReactNode }) {
       saveItems(nextItems);
       return "added";
     },
-    [items, saveItems],
+    [items, saveItems, t],
   );
 
   const setQuantity = useCallback(

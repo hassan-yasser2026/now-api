@@ -1,6 +1,9 @@
-export default function Loading() {
+import { getTranslations } from "next-intl/server";
+
+export default async function Loading() {
+  const t = await getTranslations("common");
   return (
-    <main className="min-h-screen animate-pulse" aria-label="جارٍ تحميل الصفحة">
+    <main className="min-h-screen animate-pulse" aria-label={t("loading")}>
       <div className="mx-auto flex min-h-[72px] w-[min(1200px,calc(100%-32px))] items-center justify-between sm:w-[min(1200px,calc(100%-48px))]">
         <div className="h-10 w-28 rounded-xl bg-now-100" />
         <div className="hidden h-10 w-64 rounded-xl bg-now-100 sm:block" />

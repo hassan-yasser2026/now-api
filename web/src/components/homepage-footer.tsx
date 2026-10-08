@@ -1,12 +1,16 @@
-import Link from "next/link";
+import { useTranslations } from "next-intl";
+import { Link } from "@/i18n/navigation";
 
 export function HomepageFooter() {
+  const t = useTranslations("footer");
+  const nav = useTranslations("nav");
+
   return (
     <footer className="mt-20 bg-now-900 text-white">
       <div className="mx-auto grid w-[min(1200px,calc(100%-32px))] gap-10 py-12 sm:w-[min(1200px,calc(100%-48px))] md:grid-cols-[1.3fr_1fr_1fr] md:py-16">
         <div>
           <Link
-            aria-label="چودي ستار، Goody Star - الصفحة الرئيسية"
+            aria-label={nav("homeAria")}
             className="inline-flex items-center gap-3 text-white"
             href="/"
           >
@@ -36,38 +40,38 @@ export function HomepageFooter() {
               </svg>
             </span>
             <span className="grid leading-tight">
-              <span className="text-xl font-black sm:text-2xl">چودي ستار</span>
+              <span className="text-xl font-black sm:text-2xl">{t("brand")}</span>
               <span className="text-xs font-bold tracking-wide text-now-100">
                 Goody Star
               </span>
             </span>
           </Link>
           <p className="mt-4 max-w-sm text-sm leading-7 text-white/65">
-            اكتشف متاجرك المفضلة واطلب احتياجاتك اليومية بسهولة.
+            {t("tagline")}
           </p>
         </div>
 
         <div>
-          <h2 className="text-sm font-extrabold text-white">روابط سريعة</h2>
+          <h2 className="text-sm font-extrabold text-white">{t("quickLinks")}</h2>
           <ul className="mt-4 grid gap-3 text-sm text-white/70">
-            <li><Link className="transition-colors hover:text-now-gold" href="/#stores">تصفح المتاجر</Link></li>
-            <li><Link className="transition-colors hover:text-now-gold" href="/cart">السلة</Link></li>
-            <li><Link className="transition-colors hover:text-now-gold" href="/orders">طلباتي</Link></li>
+            <li><Link className="transition-colors hover:text-now-gold" href="/#stores">{t("stores")}</Link></li>
+            <li><Link className="transition-colors hover:text-now-gold" href="/cart">{t("cart")}</Link></li>
+            <li><Link className="transition-colors hover:text-now-gold" href="/orders">{t("orders")}</Link></li>
           </ul>
         </div>
 
         <div>
-          <h2 className="text-sm font-extrabold text-white">حسابك</h2>
+          <h2 className="text-sm font-extrabold text-white">{t("account")}</h2>
           <ul className="mt-4 grid gap-3 text-sm text-white/70">
-            <li><Link className="transition-colors hover:text-now-gold" href="/login">تسجيل الدخول</Link></li>
-            <li><Link className="transition-colors hover:text-now-gold" href="/register">إنشاء حساب</Link></li>
-            <li><Link className="transition-colors hover:text-now-gold" href="/account">حسابي</Link></li>
+            <li><Link className="transition-colors hover:text-now-gold" href="/login">{nav("login")}</Link></li>
+            <li><Link className="transition-colors hover:text-now-gold" href="/register">{nav("register")}</Link></li>
+            <li><Link className="transition-colors hover:text-now-gold" href="/account">{nav("account")}</Link></li>
           </ul>
         </div>
       </div>
       <div className="border-t border-white/10">
         <p className="mx-auto w-[min(1200px,calc(100%-32px))] py-5 text-xs text-white/50 sm:w-[min(1200px,calc(100%-48px))]">
-          © {new Date().getFullYear()} چودي ستار (Goody Star). جميع الحقوق محفوظة.
+          © {new Date().getFullYear()} Goody Star. {t("rights")}
         </p>
       </div>
     </footer>

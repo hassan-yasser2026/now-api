@@ -1,16 +1,16 @@
 "use client";
 
 import Image from "next/image";
-import Link from "next/link";
-import { useRouter } from "next/navigation";
+import { Link, useRouter } from "@/i18n/navigation";
 import { useEffect, useMemo, useState } from "react";
 import type { FormEvent } from "react";
+import { useLocale, useTranslations } from "next-intl";
 import {
   formatPrice,
   getSafeImageUrl,
   shouldUnoptimizeImage,
 } from "@/lib/api";
-import { useCart } from "@/components/cart-provider";
+import { getCartItemName, useCart } from "@/components/cart-provider";
 import { Breadcrumbs } from "@/components/breadcrumbs";
 import { CustomerNavbar } from "@/components/customer-navbar";
 import { HomepageFooter } from "@/components/homepage-footer";
@@ -67,6 +67,8 @@ function parseDeliveryInfo(value: string | null): DeliveryInfo {
 
 export function CheckoutForm() {
   const router = useRouter();
+  const locale = useLocale();
+  const t = useTranslations("checkout");
   const { items, error: cartError, clearCart } = useCart();
   const [delivery, setDelivery] = useState<DeliveryInfo>({
     address: "",
@@ -94,13 +96,13 @@ export function CheckoutForm() {
         );
       } catch (loadError) {
         console.error("Could not read saved customer delivery details:", loadError);
-        setError("تعذر تحميل العنوان المحفوظ. أدخل العنوان وحدد الموقع مجددًا.");
+        setError(t("locationLoadFailed"));
       } finally {
         setReady(true);
       }
     }, 0);
     return () => window.clearTimeout(timer);
-  }, []);
+  }, [t]);
 
   function updateDelivery(next: DeliveryInfo) {
     setDelivery(next);
@@ -109,13 +111,13 @@ export function CheckoutForm() {
       setError("");
     } catch (storageError) {
       console.error("Could not save customer delivery details:", storageError);
-      setError("تعذر حفظ العنوان على هذا الجهاز.");
+      setError(t("locationSaveFailed"));
     }
   }
 
   function requestLocation() {
     if (!navigator.geolocation) {
-      setError("المتصفح لا يدعم تحديد الموقع. جرّب متصفحًا آخر.");
+      setError(t("locationUnsupported"));
       return;
     }
 
@@ -134,8 +136,8 @@ export function CheckoutForm() {
         console.error("Browser location request failed:", locationError);
         setError(
           locationError.code === locationError.PERMISSION_DENIED
-            ? "يلزم السماح للموقع بالوصول إلى موقعك لإتمام الطلب."
-            : "تعذر تحديد الموقع. تحقق من إعدادات الجهاز وحاول مرة أخرى.",
+            ? t("permissionDenied")
+            : t("locationFailed"),
         );
         setLocationBusy(false);
       },
@@ -149,15 +151,15 @@ export function CheckoutForm() {
 
     const cleanAddress = delivery.address.trim();
     if (!cleanAddress || cleanAddress.length < 5 || cleanAddress.length > 500) {
-      setError("اكتب عنوان توصيل صحيحًا بين 5 و500 حرف.");
+      setError(t("emptyAddress"));
       return;
     }
     if (!locationSelected) {
-      setError("حدد موقع التوصيل من المتصفح قبل تأكيد الطلب.");
+      setError(t("selectLocation"));
       return;
     }
     if (!storeId || items.length === 0) {
-      setError("السلة فارغة. أضف منتجات قبل إتمام الطلب.");
+      setError(t("emptyCart"));
       return;
     }
 
@@ -184,14 +186,14 @@ export function CheckoutForm() {
       try {
         envelope = (await response.json()) as ApiEnvelope<{ id?: number }>;
       } catch {
-        throw new Error("استجابة غير صالحة من خدمة چودي ستار");
+        throw new Error(t("invalidResponse"));
       }
 
       if (!response.ok || envelope.success === false) {
-        throw new Error(envelope.message || "تعذر إنشاء الطلب. حاول مرة أخرى.");
+        throw new Error(envelope.message || t("createFailed"));
       }
       if (!Number.isSafeInteger(envelope.data?.id) || !envelope.data?.id) {
-        throw new Error("لم يصل رقم الطلب من خدمة چودي ستار.");
+        throw new Error(t("missingOrder"));
       }
 
       clearCart();
@@ -202,7 +204,7 @@ export function CheckoutForm() {
       setError(
         submitError instanceof Error
           ? submitError.message
-          : "حدث خطأ أثناء إرسال الطلب. حاول مرة أخرى.",
+          : t("submitError"),
       );
       setSubmitting(false);
     }
@@ -214,9 +216,9 @@ export function CheckoutForm() {
       <main className="mx-auto min-h-[65vh] w-[min(1120px,calc(100%-32px))] pb-16 sm:w-[min(1120px,calc(100%-48px))] sm:pb-20">
         <Breadcrumbs
           items={[
-            { label: "الرئيسية", href: "/" },
-            { label: "السلة", href: "/cart" },
-            { label: "إتمام الطلب" },
+            { label: t("home"), href: "/" },
+            { label: t("cart"), href: "/cart" },
+            { label: t("title") },
           ]}
         />
 
@@ -226,13 +228,13 @@ export function CheckoutForm() {
         >
           <div className="lg:col-span-2">
             <p className="text-xs font-extrabold text-now-600 sm:text-sm">
-              الخطوة الأخيرة
+              {t("step")}
             </p>
             <h1 className="mt-1 text-3xl font-black tracking-tight text-now-900 sm:text-4xl">
-              إتمام الطلب
+              {t("title")}
             </h1>
             <p className="mt-2 text-sm leading-6 text-now-900/55">
-              راجع طلبك وأدخل عنوان التوصيل لتأكيده.
+              {t("intro")}
             </p>
           </div>
 
@@ -247,7 +249,7 @@ export function CheckoutForm() {
 
           {!ready ? (
             <div
-              aria-label="جارٍ تحميل بيانات التوصيل"
+              aria-label={t("loading")}
               className="grid gap-4 lg:col-span-2 lg:grid-cols-[minmax(0,1fr)_360px]"
             >
               <div className="h-72 animate-pulse rounded-3xl bg-now-100" />
@@ -255,15 +257,15 @@ export function CheckoutForm() {
             </div>
           ) : items.length === 0 ? (
             <section className="grid justify-items-center gap-3 rounded-3xl border border-now-900/[0.06] bg-white px-6 py-12 text-center shadow-sm lg:col-span-2">
-              <h2 className="text-xl font-black text-now-900">سلتك فارغة</h2>
+              <h2 className="text-xl font-black text-now-900">{t("emptyTitle")}</h2>
               <p className="text-sm text-now-900/55">
-                أضف منتجات إلى السلة قبل إتمام الطلب.
+                {t("emptyDescription")}
               </p>
               <Link
                 className="inline-flex min-h-12 items-center justify-center rounded-xl bg-now-600 px-6 font-extrabold text-white transition hover:bg-now-700"
                 href="/#stores"
               >
-                تصفح المتاجر
+                {t("browseStores")}
               </Link>
             </section>
           ) : (
@@ -276,17 +278,19 @@ export function CheckoutForm() {
                   <div className="flex items-start justify-between gap-3">
                     <div>
                       <p className="text-xs font-extrabold text-now-600">
-                        من متجر {items[0].storeName}
+                        {t("fromStore", { store: items[0].storeName })}
                       </p>
                       <h2
                         className="mt-1 text-lg font-black text-now-900 sm:text-xl"
                         id="items-title"
                       >
-                        محتويات الطلب
+                        {t("items")}
                       </h2>
                     </div>
                     <span className="rounded-full bg-now-50 px-3 py-1 text-xs font-extrabold text-now-700">
-                      {items.reduce((count, item) => count + item.quantity, 0)} قطعة
+                      {t("quantity", {
+                        count: items.reduce((count, item) => count + item.quantity, 0),
+                      })}
                     </span>
                   </div>
                   <div className="mt-5 grid gap-4">
@@ -309,20 +313,20 @@ export function CheckoutForm() {
                               />
                             ) : (
                               <span className="absolute inset-0 grid place-items-center text-sm font-black text-now-600">
-                                {item.name.slice(0, 1)}
+                                {getCartItemName(item, locale).slice(0, 1)}
                               </span>
                             )}
                           </div>
                           <div className="min-w-0">
                             <h3 className="truncate text-sm font-extrabold text-now-900 sm:text-base">
-                              {item.name}
+                              {getCartItemName(item, locale)}
                             </h3>
                             <p className="mt-1 text-xs text-now-900/50">
-                              {formatPrice(item.price)} × {item.quantity}
+                              {formatPrice(item.price, locale)} × {item.quantity}
                             </p>
                           </div>
                           <strong className="col-start-2 text-sm font-black text-now-700 sm:col-start-auto">
-                            {formatPrice(item.price * item.quantity)}
+                            {formatPrice(item.price * item.quantity, locale)}
                           </strong>
                         </article>
                       );
@@ -336,24 +340,24 @@ export function CheckoutForm() {
                 >
                   <div className="mb-5">
                     <p className="text-xs font-extrabold text-now-600">
-                      أين نوصّل طلبك؟
+                      {t("whereDeliver")}
                     </p>
                     <h2
                       className="mt-1 text-lg font-black text-now-900 sm:text-xl"
                       id="address-title"
                     >
-                      عنوان التوصيل
+                      {t("addressTitle")}
                     </h2>
                   </div>
                   <UITextarea
                     autoComplete="street-address"
-                    label="العنوان بالتفصيل"
+                    label={t("address")}
                     maxLength={500}
                     minLength={5}
                     onChange={(event) =>
                       updateDelivery({ ...delivery, address: event.target.value })
                     }
-                    placeholder="المنطقة، الشارع، رقم المبنى، وأي علامة مميزة"
+                    placeholder={t("addressPlaceholder")}
                     required
                     rows={4}
                     value={delivery.address}
@@ -365,7 +369,7 @@ export function CheckoutForm() {
                       </span>
                       <div>
                         <p className="text-sm font-extrabold text-now-900">
-                          موقع التوصيل
+                          {t("location")}
                         </p>
                         <p
                           className={`mt-1 text-xs leading-5 ${
@@ -376,8 +380,8 @@ export function CheckoutForm() {
                           role="status"
                         >
                           {locationSelected
-                            ? "تم تحديد الإحداثيات لهذا الطلب."
-                            : "حدد موقعك على الخريطة لإتمام الطلب."}
+                            ? t("coordinatesSelected")
+                            : t("selectMapLocation")}
                         </p>
                       </div>
                     </div>
@@ -389,15 +393,14 @@ export function CheckoutForm() {
                       variant="outline"
                     >
                       {locationBusy
-                        ? "جارٍ تحديد الموقع…"
+                        ? t("gettingLocation")
                         : locationSelected
-                          ? "تحديث موقعي"
-                          : "تحديد موقعي"}
+                          ? t("updateLocation")
+                          : t("getLocation")}
                     </UIButton>
                   </div>
                   <p className="mt-4 text-xs leading-6 text-now-900/50">
-                    العنوان والإحداثيات محفوظة محليًا في هذا المتصفح وتُرسل مع
-                    الطلب. لا يتوفر حاليًا API لحفظ دفتر عناوين العميل.
+                    {t("localAddressNote")}
                   </p>
                 </section>
 
@@ -406,63 +409,66 @@ export function CheckoutForm() {
                   className="rounded-3xl border border-now-900/[0.06] bg-white p-5 shadow-[0_10px_32px_rgba(24,51,45,0.06)] sm:p-6"
                 >
                   <p className="text-xs font-extrabold text-now-600">
-                    طريقة الدفع
+                    {t("payment")}
                   </p>
                   <h2
                     className="mt-1 text-lg font-black text-now-900 sm:text-xl"
                     id="payment-title"
                   >
-                    الدفع عند الاستلام
+                    {t("cash")}
                   </h2>
                   <div className="mt-4 flex items-center gap-4 rounded-2xl border border-now-600/15 bg-now-50 p-4">
                     <span className="grid size-11 shrink-0 place-items-center rounded-xl bg-white text-xl text-now-700 shadow-sm" aria-hidden="true">
-                      ج
+                      {t("cashIcon")}
                     </span>
                     <div>
                       <p className="text-sm font-extrabold text-now-900">
-                        نقدًا عند الاستلام
+                        {t("cashShort")}
                       </p>
                       <p className="mt-1 text-xs leading-5 text-now-900/55">
-                        طريقة الدفع المتاحة حاليًا.
+                        {t("paymentAvailable")}
                       </p>
                     </div>
-                    <span className="mr-auto grid size-5 place-items-center rounded-full border-[6px] border-now-600 bg-white" aria-label="محدد" />
+                    <span
+                      aria-label={t("selected")}
+                      className="ms-auto grid size-5 place-items-center rounded-full border-[6px] border-now-600 bg-white"
+                    />
                   </div>
                 </section>
               </div>
 
               <aside
-                aria-label="ملخص الطلب"
+                aria-label={t("summary")}
                 className="rounded-3xl border border-now-900/[0.06] bg-white p-5 shadow-[0_14px_36px_rgba(24,51,45,0.08)] sm:p-6 lg:sticky lg:top-24"
               >
                 <div className="mb-5 flex items-center justify-between">
-                  <h2 className="text-lg font-black text-now-900">ملخص الطلب</h2>
+                  <h2 className="text-lg font-black text-now-900">{t("summary")}</h2>
                   <span className="rounded-full bg-now-50 px-3 py-1 text-xs font-extrabold text-now-700">
-                    {items.length} منتج
+                    {t("productCount", { count: items.length })}
                   </span>
                 </div>
                 <div className="grid gap-4 border-b border-now-900/[0.07] pb-5 text-sm">
                   <div className="flex items-center justify-between gap-3 text-now-900/65">
-                    <span>مجموع المنتجات التقديري</span>
-                    <strong className="text-now-900">{formatPrice(subtotal)}</strong>
+                    <span>{t("estimatedSubtotal")}</span>
+                    <strong className="text-now-900">{formatPrice(subtotal, locale)}</strong>
                   </div>
                   <div className="flex items-start justify-between gap-3 text-now-900/65">
-                    <span>رسوم التوصيل</span>
-                    <strong className="max-w-36 text-left text-xs font-bold leading-5 text-now-900/50">
-                      يحددها النظام عند التأكيد
+                    <span>{t("deliveryFee")}</span>
+                    <strong className="max-w-36 text-start text-xs font-bold leading-5 text-now-900/50">
+                      {t("deliveryCalculated")}
                     </strong>
                   </div>
                 </div>
                 <div className="flex items-center justify-between gap-3 py-5">
                   <span className="font-extrabold text-now-900">
-                    الإجمالي التقديري
+                    {t("total")}
                   </span>
                   <strong className="text-xl font-black text-now-700">
-                    {formatPrice(subtotal)}
+                    {formatPrice(subtotal, locale)}
                   </strong>
                 </div>
                 <p className="mb-5 text-xs leading-6 text-now-900/50">
-                  يحسب الخادم السعر النهائي ورسوم التوصيل عند إنشاء الطلب.
+                  {t("totalNote")}
                 </p>
                 <UIButton
                   className="min-h-14 w-full rounded-2xl text-base"
@@ -474,18 +480,18 @@ export function CheckoutForm() {
                   }
                   type="submit"
                 >
-                  {submitting ? "جارٍ تأكيد الطلب…" : "تأكيد الطلب"}
+                  {submitting ? t("confirming") : t("confirm")}
                 </UIButton>
                 {!locationSelected && (
                   <p className="mt-3 text-center text-xs leading-5 text-now-900/50">
-                    حدد موقع التوصيل لتفعيل تأكيد الطلب.
+                    {t("locationRequired")}
                   </p>
                 )}
                 <Link
                   className="mt-3 inline-flex min-h-11 w-full items-center justify-center rounded-xl text-sm font-extrabold text-now-700 transition hover:bg-now-50"
                   href="/cart"
                 >
-                  الرجوع للسلة
+                  {t("backToCart")}
                 </Link>
               </aside>
             </>

@@ -1,6 +1,6 @@
 "use client";
 
-import Link from "next/link";
+import { Link } from "@/i18n/navigation";
 import { useMemo, useState } from "react";
 import { ProductCard } from "@/components/product-card";
 import { StoreCard } from "@/components/store-card";

@@ -1,4 +1,5 @@
-import Link from "next/link";
+import { useTranslations } from "next-intl";
+import { Link } from "@/i18n/navigation";
 
 export type BreadcrumbItem = {
   label: string;
@@ -6,8 +7,9 @@ export type BreadcrumbItem = {
 };
 
 export function Breadcrumbs({ items }: { items: BreadcrumbItem[] }) {
+  const t = useTranslations("breadcrumbs");
   return (
-    <nav aria-label="مسار الصفحة" className="py-4">
+    <nav aria-label={t("region")} className="py-4">
       <ol className="flex flex-nowrap items-center gap-x-1 overflow-hidden text-xs font-bold text-now-900/50 sm:gap-x-2 sm:text-sm">
         {items.map((item, index) => (
           <li

@@ -1,8 +1,9 @@
 import type { Metadata } from "next";
 import Image from "next/image";
-import Link from "next/link";
+import { Link } from "@/i18n/navigation";
 import { notFound } from "next/navigation";
 import { connection } from "next/server";
+import { getTranslations } from "next-intl/server";
 import { Breadcrumbs } from "@/components/breadcrumbs";
 import { CustomerNavbar } from "@/components/customer-navbar";
 import { HomepageFooter } from "@/components/homepage-footer";
@@ -17,7 +18,7 @@ import {
 import { getSiteUrl } from "@/lib/site-url";
 
 type StorePageProps = {
-  params: Promise<{ storeId: string }>;
+  params: Promise<{ locale: string; storeId: string }>;
 };
 
 async function loadStorePage(storeId: string) {
@@ -34,36 +35,44 @@ async function loadStorePage(storeId: string) {
 export async function generateMetadata({
   params,
 }: StorePageProps): Promise<Metadata> {
-  const { storeId } = await params;
+  const { locale, storeId } = await params;
+  const t = await getTranslations({ locale, namespace: "store" });
   const id = Number(storeId);
-  if (!Number.isSafeInteger(id) || id <= 0) return { title: "المتجر غير موجود" };
+  if (!Number.isSafeInteger(id) || id <= 0) return { title: t("notFound") };
 
   try {
     const store = await getStore(id);
-    if (!store) return { title: "المتجر غير موجود" };
+    if (!store) return { title: t("notFound") };
+    const pathname = `/stores/${store.id}`;
+    const localizedPath = locale === "ar" ? pathname : `/en${pathname}`;
     return {
       title: store.name,
       description:
-        store.description || `تصفح منتجات ${store.name} واطلبها أونلاين من چودي ستار.`,
-      alternates: { canonical: `/stores/${store.id}` },
+        store.description || t("metadataDescription", { name: store.name }),
+      alternates: {
+        canonical: localizedPath,
+        languages: { ar: pathname, en: `/en${pathname}` },
+      },
       openGraph: {
-        title: `${store.name} | چودي ستار`,
+        title: `${store.name} | Goody Star`,
         description:
-          store.description || `تصفح منتجات ${store.name} واطلبها أونلاين.`,
+          store.description || t("metadataDescription", { name: store.name }),
         images: [{ url: getOpenGraphImageUrl(store.image) }],
         type: "website",
-        url: new URL(`/stores/${store.id}`, getSiteUrl()).toString(),
+        url: new URL(localizedPath, getSiteUrl()).toString(),
       },
     };
   } catch (error) {
     console.error("Failed to load store metadata:", error);
-    return { title: "متجر چودي ستار" };
+    return { title: t("metadataFallback") };
   }
 }
 
 export default async function StorePage({ params }: StorePageProps) {
   await connection();
-  const { storeId } = await params;
+  const { locale, storeId } = await params;
+  const t = await getTranslations("store");
+  const common = await getTranslations("common");
 
   let storePage: Awaited<ReturnType<typeof loadStorePage>> | undefined;
   let loadError = false;
@@ -80,12 +89,12 @@ export default async function StorePage({ params }: StorePageProps) {
         <CustomerNavbar />
         <main className="mx-auto grid min-h-[55vh] w-[min(680px,calc(100%-32px))] content-center text-center">
           <section className="rounded-3xl border border-now-900/[0.06] bg-white px-6 py-12 shadow-[0_14px_36px_rgba(29,63,52,0.08)] sm:px-10 sm:py-16" role="alert">
-            <h1 className="text-2xl font-black text-now-900">تعذر تحميل المتجر</h1>
+            <h1 className="text-2xl font-black text-now-900">{t("errorTitle")}</h1>
             <p className="mt-3 text-sm leading-7 text-now-700">
-              حصلت مشكلة في الاتصال بخدمة چودي ستار. حاول مرة أخرى.
+              {t("errorDescription")}
             </p>
             <Link className="mt-6 inline-flex min-h-12 items-center justify-center rounded-xl bg-now-600 px-6 font-extrabold text-white transition hover:bg-now-700" href="/">
-              العودة للمتاجر
+              {t("backToStores")}
             </Link>
           </section>
         </main>
@@ -105,7 +114,10 @@ export default async function StorePage({ params }: StorePageProps) {
     name: store.name,
     description: store.description || undefined,
     image: new URL(getOpenGraphImageUrl(store.image), getSiteUrl()).toString(),
-    url: new URL(`/stores/${store.id}`, getSiteUrl()).toString(),
+    url: new URL(
+      `${locale === "ar" ? "" : "/en"}/stores/${store.id}`,
+      getSiteUrl(),
+    ).toString(),
     ...(Number(store.ratingAverage) > 0 && Number(store.ratingCount) > 0
       ? {
           aggregateRating: {
@@ -123,8 +135,8 @@ export default async function StorePage({ params }: StorePageProps) {
       <main className="mx-auto min-h-screen w-[min(1200px,calc(100%-32px))] sm:w-[min(1200px,calc(100%-48px))]">
         <Breadcrumbs
           items={[
-            { label: "الرئيسية", href: "/" },
-            { label: "المتاجر", href: "/#stores" },
+            { label: common("home"), href: "/" },
+            { label: common("stores"), href: "/#stores" },
             { label: store.name },
           ]}
         />
@@ -134,7 +146,7 @@ export default async function StorePage({ params }: StorePageProps) {
             {imageUrl ? (
               <Image
                 src={imageUrl}
-                alt={`صورة متجر ${store.name}`}
+                alt={t("imageAlt", { name: store.name })}
                 className="object-cover"
                 fill
                 sizes="(max-width: 1023px) 100vw, 55vw"
@@ -150,18 +162,18 @@ export default async function StorePage({ params }: StorePageProps) {
             <div className="absolute inset-x-0 bottom-0 h-28 bg-gradient-to-t from-now-900/35 to-transparent" />
             <span className={`absolute right-4 top-4 inline-flex min-h-9 items-center gap-2 rounded-full border border-white/70 px-4 text-xs font-extrabold shadow-sm backdrop-blur sm:right-6 sm:top-6 sm:text-sm ${store.isOpen ? "bg-emerald-50/95 text-emerald-800" : "bg-white/95 text-now-900"}`}>
               <span className={`size-2 rounded-full ${store.isOpen ? "bg-emerald-500" : "bg-now-900/35"}`} />
-              {store.isOpen ? "مفتوح الآن" : "مغلق حاليًا"}
+              {store.isOpen ? t("open") : t("closed")}
             </span>
           </div>
           <div className="relative order-2 flex flex-col justify-center p-5 sm:p-8 lg:order-1 lg:p-12">
             <span className="w-fit rounded-full bg-now-50 px-3 py-1.5 text-xs font-extrabold text-now-700">
-              متجر على چودي ستار
+              {t("onGoodyStar")}
             </span>
             <h1 className="mt-4 text-3xl font-black leading-tight tracking-tight text-now-900 sm:text-4xl lg:text-5xl">
               {store.name}
             </h1>
             <p className="mt-3 max-w-xl text-sm leading-7 text-now-700 sm:mt-4 sm:text-base sm:leading-8">
-              {store.description || "تصفح المنتجات المتاحة واطلبها أونلاين."}
+              {store.description || t("browseDescription")}
             </p>
             <div className="mt-5 flex flex-wrap items-center gap-3">
               {Number(store.ratingAverage) > 0 && (
@@ -170,17 +182,17 @@ export default async function StorePage({ params }: StorePageProps) {
                   {Number(store.ratingAverage).toFixed(1)}
                   {Number(store.ratingCount) > 0 && (
                     <span className="text-xs font-semibold text-amber-900">
-                      ({Number(store.ratingCount)} تقييم)
+                      {t("ratingCount", { count: Number(store.ratingCount) })}
                     </span>
                   )}
                 </span>
               )}
               <span className="inline-flex min-h-10 items-center rounded-xl bg-now-50 px-3 text-sm font-bold text-now-700">
-                {products.length} منتج متاح
+                {t("availableProductCount", { count: products.length })}
               </span>
             </div>
             <a className="mt-6 inline-flex min-h-12 w-full items-center justify-center gap-2 rounded-xl bg-now-600 px-5 text-sm font-extrabold text-white shadow-md shadow-now-600/20 transition hover:-translate-y-0.5 hover:bg-now-700 sm:w-fit sm:px-6" href="#menu">
-              تصفح القائمة <span aria-hidden="true">↓</span>
+              {t("browseMenu")} <span aria-hidden="true">↓</span>
             </a>
           </div>
         </section>
@@ -188,13 +200,13 @@ export default async function StorePage({ params }: StorePageProps) {
         <section className="pb-16 pt-12 sm:pb-20 sm:pt-16" id="menu">
           <div className="mb-6 flex items-end justify-between gap-3 sm:mb-8">
             <div>
-              <p className="text-xs font-extrabold text-now-600 sm:text-sm">اختار طلبك</p>
+              <p className="text-xs font-extrabold text-now-600 sm:text-sm">{t("chooseOrder")}</p>
               <h2 className="mt-1 text-2xl font-black tracking-tight text-now-900 sm:text-3xl">
-                قائمة المنتجات
+                {t("productList")}
               </h2>
             </div>
             <span className="pb-1 text-xs font-bold text-now-700 sm:text-sm">
-              {products.length} منتج
+              {t("availableProductCount", { count: products.length })}
             </span>
           </div>
           <StoreCatalog storeId={store.id} products={products} />

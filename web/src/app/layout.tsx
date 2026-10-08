@@ -1,8 +1,6 @@
 import type { Metadata } from "next";
-import type { ReactNode } from "react";
 import localFont from "next/font/local";
-import { CartProvider } from "@/components/cart-provider";
-import { ToastProvider } from "@/components/toast-provider";
+import { getLocale } from "next-intl/server";
 import { getSiteUrl } from "@/lib/site-url";
 import "./globals.css";
 
@@ -22,66 +20,17 @@ const cairoLatin = localFont({
 
 export const metadata: Metadata = {
   metadataBase: getSiteUrl(),
-  title: {
-    default: "چودي ستار | تسوق من متاجرك المفضلة",
-    template: "%s | چودي ستار",
-  },
-  description:
-    "اكتشف المتاجر والمنتجات واطلبها أونلاين مع چودي ستار (Goody Star).",
-  applicationName: "Goody Star",
-  alternates: { canonical: "/" },
-  openGraph: {
-    type: "website",
-    locale: "ar_EG",
-    siteName: "Goody Star",
-    title: "چودي ستار | تسوق من متاجرك المفضلة",
-    description:
-      "اكتشف المتاجر والمنتجات واطلبها أونلاين مع چودي ستار (Goody Star).",
-    images: [
-      {
-        url: "/opengraph-image",
-        width: 1200,
-        height: 630,
-        alt: "چودي ستار - Goody Star",
-      },
-    ],
-  },
-  twitter: {
-    card: "summary_large_image",
-    title: "چودي ستار | تسوق من متاجرك المفضلة",
-    description:
-      "اكتشف المتاجر والمنتجات واطلبها أونلاين مع چودي ستار (Goody Star).",
-    images: ["/opengraph-image"],
-  },
-  robots: {
-    index: true,
-    follow: true,
-  },
 };
 
-export default function RootLayout({
+export default async function RootLayout({
   children,
-}: Readonly<{
-  children: ReactNode;
-}>) {
+}: Readonly<{ children: React.ReactNode }>) {
+  const locale = await getLocale();
+
   return (
-    <html lang="ar" dir="rtl">
+    <html lang={locale} dir={locale === "ar" ? "rtl" : "ltr"}>
       <body className={`${cairoArabic.variable} ${cairoLatin.variable}`}>
-        <ToastProvider>
-          <CartProvider>{children}</CartProvider>
-        </ToastProvider>
-        <script
-          type="application/ld+json"
-          dangerouslySetInnerHTML={{
-            __html: JSON.stringify({
-              "@context": "https://schema.org",
-              "@type": "WebSite",
-              name: "Goody Star (چودي ستار)",
-              url: getSiteUrl().toString(),
-              inLanguage: "ar-EG",
-            }).replace(/</g, "\\u003c"),
-          }}
-        />
+        {children}
       </body>
     </html>
   );

@@ -9,6 +9,7 @@ import {
   useState,
   type ReactNode,
 } from "react";
+import { useTranslations } from "next-intl";
 
 type ToastTone = "success" | "error" | "info";
 type ToastMessage = { id: number; message: string; tone: ToastTone };
@@ -19,6 +20,7 @@ type ToastContextValue = {
 const ToastContext = createContext<ToastContextValue | null>(null);
 
 export function ToastProvider({ children }: { children: ReactNode }) {
+  const t = useTranslations("toast");
   const [toasts, setToasts] = useState<ToastMessage[]>([]);
   const nextId = useRef(0);
   const timers = useRef(new Map<number, number>());
@@ -48,7 +50,7 @@ export function ToastProvider({ children }: { children: ReactNode }) {
     <ToastContext.Provider value={{ showToast }}>
       {children}
       <div
-        aria-label="الإشعارات"
+        aria-label={t("region")}
         aria-live="polite"
         className="pointer-events-none fixed inset-x-4 top-20 z-[100] mx-auto grid max-w-md gap-2"
         role="status"

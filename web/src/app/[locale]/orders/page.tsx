@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import Link from "next/link";
+import { Link } from "@/i18n/navigation";
 import { redirect } from "next/navigation";
 import { Breadcrumbs } from "@/components/breadcrumbs";
 import { CustomerNavbar } from "@/components/customer-navbar";
@@ -9,11 +9,14 @@ import {
   getCustomerOrders,
   getCustomerSession,
 } from "@/lib/server-api";
+import { getLocale, getTranslations } from "next-intl/server";
 
-export const metadata: Metadata = {
-  title: "طلباتي",
-  robots: { index: false, follow: false },
-};
+export async function generateMetadata(): Promise<Metadata> {
+  return {
+    title: (await getTranslations("orders"))("title"),
+    robots: { index: false, follow: false },
+  };
+}
 
 type OrderRecord = {
   id: number;
@@ -42,31 +45,36 @@ function asOrder(value: unknown): OrderRecord | null {
   return order as OrderRecord;
 }
 
-const ORDER_STATUS: Record<string, { label: string; style: string }> = {
-  PENDING: { label: "بانتظار قبول المتجر", style: "bg-amber-50 text-amber-800 ring-amber-200" },
-  ACCEPTED: { label: "تم قبول الطلب", style: "bg-sky-50 text-sky-800 ring-sky-200" },
-  PREPARING: { label: "جارٍ التحضير", style: "bg-violet-50 text-violet-800 ring-violet-200" },
-  READY: { label: "الطلب جاهز", style: "bg-indigo-50 text-indigo-800 ring-indigo-200" },
-  PICKED_UP: { label: "استلمه المندوب", style: "bg-cyan-50 text-cyan-800 ring-cyan-200" },
-  ON_THE_WAY: { label: "في الطريق إليك", style: "bg-blue-50 text-blue-800 ring-blue-200" },
-  DELIVERED: { label: "تم التوصيل", style: "bg-emerald-50 text-emerald-800 ring-emerald-200" },
-  CANCELLED: { label: "ملغي", style: "bg-red-50 text-red-800 ring-red-200" },
+const ORDER_STATUS: Record<string, { key: string; style: string }> = {
+  PENDING: { key: "pending", style: "bg-amber-50 text-amber-800 ring-amber-200" },
+  ACCEPTED: { key: "accepted", style: "bg-sky-50 text-sky-800 ring-sky-200" },
+  PREPARING: { key: "preparing", style: "bg-violet-50 text-violet-800 ring-violet-200" },
+  READY: { key: "ready", style: "bg-indigo-50 text-indigo-800 ring-indigo-200" },
+  PICKED_UP: { key: "pickedUp", style: "bg-cyan-50 text-cyan-800 ring-cyan-200" },
+  ON_THE_WAY: { key: "onTheWay", style: "bg-blue-50 text-blue-800 ring-blue-200" },
+  DELIVERED: { key: "delivered", style: "bg-emerald-50 text-emerald-800 ring-emerald-200" },
+  CANCELLED: { key: "cancelled", style: "bg-red-50 text-red-800 ring-red-200" },
 };
 
-function orderDate(value: string | undefined) {
-  if (!value) return "تاريخ غير متاح";
+function orderDate(value: string | undefined, locale: string, unavailable: string) {
+  if (!value) return unavailable;
   const date = new Date(value);
-  if (Number.isNaN(date.getTime())) return "تاريخ غير متاح";
+  if (Number.isNaN(date.getTime())) return unavailable;
 
-  return new Intl.DateTimeFormat("ar-EG", {
+  return new Intl.DateTimeFormat(locale === "ar" ? "ar-EG" : "en-EG", {
     dateStyle: "medium",
     timeStyle: "short",
   }).format(date);
 }
 
 export default async function OrdersPage() {
+  const t = await getTranslations("orders");
+  const statusTranslations = await getTranslations("status");
+  const locale = await getLocale();
   const session = await getCustomerSession();
-  if (!session) redirect("/login?next=%2Forders");
+  if (!session) {
+    redirect(`${locale === "ar" ? "" : "/en"}/login?next=%2Forders`);
+  }
 
   let orders: unknown[];
   let loadError: string | null = null;
@@ -78,7 +86,7 @@ export default async function OrdersPage() {
     loadError =
       error instanceof Error
         ? error.message
-        : "تعذر تحميل الطلبات. حاول مرة أخرى.";
+        : t("loadError");
   }
 
   const validOrders = orders.map(asOrder).filter((order) => order !== null);
@@ -89,27 +97,27 @@ export default async function OrdersPage() {
       <main className="mx-auto min-h-[65vh] w-[min(1120px,calc(100%-32px))] pb-16 sm:w-[min(1120px,calc(100%-48px))] sm:pb-20">
         <Breadcrumbs
           items={[
-            { label: "الرئيسية", href: "/" },
-            { label: "حسابي", href: "/account" },
-            { label: "طلباتي" },
+            { label: t("home"), href: "/" },
+            { label: t("account"), href: "/account" },
+            { label: t("title") },
           ]}
         />
 
         <section className="relative isolate overflow-hidden rounded-[28px] bg-now-900 p-5 text-white shadow-[0_22px_60px_rgba(18,107,87,0.15)] sm:rounded-[36px] sm:p-8 lg:p-10">
           <div className="absolute inset-0 -z-10 bg-[radial-gradient(ellipse_at_15%_90%,rgba(244,185,66,.18),transparent_24rem),radial-gradient(ellipse_at_90%_0%,rgba(33,134,110,.6),transparent_30rem),linear-gradient(125deg,#18332d,#105647_62%,#126b57)]" />
           <p className="text-xs font-extrabold text-white/65 sm:text-sm">
-            حساب العميل
+            {t("customerAccount")}
           </p>
           <div className="mt-2 flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
             <div className="min-w-0">
-              <h1 className="text-3xl font-black sm:text-4xl">طلباتي</h1>
+              <h1 className="text-3xl font-black sm:text-4xl">{t("title")}</h1>
               <p className="mt-2 text-sm leading-6 text-white/70 sm:text-base">
-                أهلاً {session.user.name}، تابع تفاصيل وحالة طلباتك من مكان واحد.
+                {t("welcome", { name: session.user.name })}
               </p>
             </div>
             <span className="inline-flex min-h-10 w-fit items-center gap-2 rounded-full border border-white/15 bg-white/10 px-4 text-sm font-bold text-white/85 backdrop-blur">
               <span className="size-2 rounded-full bg-now-gold" />
-              {validOrders.length} طلب
+              {t("count", { count: validOrders.length })}
             </span>
           </div>
         </section>
@@ -126,7 +134,7 @@ export default async function OrdersPage() {
                 </span>
                 <div>
                   <h2 className="text-lg font-black text-now-900">
-                    تعذر تحميل الطلبات
+                    {t("loadError")}
                   </h2>
                   <p className="mt-2 text-sm leading-6 text-red-900/75">
                     {loadError}
@@ -140,27 +148,26 @@ export default async function OrdersPage() {
                 <OrderIcon />
               </span>
               <p className="mt-5 text-xs font-extrabold text-now-600">
-                مساحة طلباتك
+                {t("emptyEyebrow")}
               </p>
               <h2 className="mt-1 text-xl font-black text-now-900 sm:text-2xl">
-                لسه ماعندكش طلبات
+                {t("emptyTitle")}
               </h2>
               <p className="mt-2 max-w-md text-sm leading-7 text-now-900/55">
-                لما تعمل طلب، هتلاقي رقمه وتفاصيله وحالته هنا. اختار متجرًا
-                وابدأ التسوق وقت ما تحب.
+                {t("emptyDescription")}
               </p>
               <Link
                 className="mt-6 inline-flex min-h-12 w-full items-center justify-center rounded-xl bg-now-600 px-6 text-sm font-extrabold text-white shadow-md shadow-now-600/20 transition hover:-translate-y-0.5 hover:bg-now-700 sm:w-auto"
                 href="/#stores"
               >
-                تصفح المتاجر
+                {t("browseStores")}
               </Link>
             </section>
           ) : (
             <div className="grid gap-4">
               {validOrders.map((order) => {
                 const status = ORDER_STATUS[order.status] || {
-                  label: order.status.replaceAll("_", " "),
+                  key: "",
                   style: "bg-slate-50 text-slate-700 ring-slate-200",
                 };
                 const items = Array.isArray(order.items) ? order.items : [];
@@ -176,69 +183,71 @@ export default async function OrdersPage() {
                         </span>
                         <div className="min-w-0">
                           <p className="text-xs font-bold text-now-900/45">
-                            طلب رقم
+                            {t("orderNumber")}
                           </p>
                           <h2 className="mt-0.5 truncate text-lg font-black text-now-900">
-                            #{order.id} · {order.store?.name || "متجر چودي ستار"}
+                            #{order.id} · {order.store?.name || t("storeFallback")}
                           </h2>
                         </div>
                       </div>
                       <span
                         className={`inline-flex min-h-9 w-fit items-center rounded-full px-3 text-xs font-extrabold ring-1 ring-inset sm:shrink-0 ${status.style}`}
                       >
-                        {status.label}
+                        {status.key ? statusTranslations(status.key) : order.status.replaceAll("_", " ")}
                       </span>
                     </div>
 
                     <div className="mt-5 grid gap-3 rounded-2xl bg-now-cream p-4 sm:grid-cols-3 sm:gap-4">
                       <div>
                         <p className="text-xs font-bold text-now-900/45">
-                          تاريخ الطلب
+                          {t("orderDate")}
                         </p>
                         <p className="mt-1 text-sm font-bold text-now-900">
-                          {orderDate(order.createdAt)}
+                          {orderDate(order.createdAt, locale, t("dateUnavailable"))}
                         </p>
                       </div>
                       <div>
                         <p className="text-xs font-bold text-now-900/45">
-                          المنتجات
+                          {t("products")}
                         </p>
                         <p className="mt-1 line-clamp-1 text-sm font-bold text-now-900">
                           {items.length
                             ? items
                                 .map(
                                   (item) =>
-                                    item.menuItem?.nameAr ||
-                                    item.menuItem?.name ||
-                                    "منتج",
+                                    (locale === "en"
+                                      ? item.menuItem?.name || item.menuItem?.nameAr
+                                      : item.menuItem?.nameAr || item.menuItem?.name) ||
+                                    t("productFallback"),
                                 )
-                                .join("، ")
-                            : "تفاصيل المنتجات غير متاحة"}
+                                .join(locale === "ar" ? "، " : ", ")
+                            : t("productsUnavailable")}
                         </p>
                       </div>
                       <div>
                         <p className="text-xs font-bold text-now-900/45">
-                          إجمالي الطلب
+                          {t("total")}
                         </p>
                         <p className="mt-1 text-base font-black text-now-700">
-                          {formatPrice(order.totalPrice)}
+                          {formatPrice(order.totalPrice, locale)}
                         </p>
                       </div>
                     </div>
 
                     <div className="mt-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
                       <p className="text-xs leading-5 text-now-900/45">
-                        {items.reduce(
-                          (total, item) => total + (Number(item.quantity) || 0),
-                          0,
-                        )}{" "}
-                        قطعة في هذا الطلب
+                        {t("quantity", {
+                          count: items.reduce(
+                            (total, item) => total + (Number(item.quantity) || 0),
+                            0,
+                          ),
+                        })}
                       </p>
                       <Link
                         className="inline-flex min-h-12 w-full items-center justify-center gap-2 rounded-xl border border-now-600/20 bg-white px-5 text-sm font-extrabold text-now-700 transition hover:border-now-600 hover:bg-now-50 sm:w-auto"
                         href={`/orders/${order.id}`}
                       >
-                        عرض التفاصيل
+                        {t("details")}
                         <span aria-hidden="true">←</span>
                       </Link>
                     </div>

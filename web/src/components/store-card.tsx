@@ -1,5 +1,6 @@
 import Image from "next/image";
-import Link from "next/link";
+import { useTranslations } from "next-intl";
+import { Link } from "@/i18n/navigation";
 import {
   getSafeImageUrl,
   shouldUnoptimizeImage,
@@ -14,6 +15,7 @@ export function StoreCard({
   store: Store;
   distanceKm?: number;
 }) {
+  const t = useTranslations("store");
   const imageUrl = getSafeImageUrl(store.image);
 
   return (
@@ -22,7 +24,7 @@ export function StoreCard({
         {imageUrl ? (
           <Image
             src={imageUrl}
-            alt={`صورة متجر ${store.name}`}
+            alt={t("imageAlt", { name: store.name })}
             fill
             sizes="(max-width: 480px) 100vw, (max-width: 760px) 50vw, 33vw"
             unoptimized={shouldUnoptimizeImage(imageUrl)}
@@ -32,7 +34,7 @@ export function StoreCard({
             {store.name.slice(0, 1)}
           </span>
         )}
-        {store.isOpen && <span className={styles.openBadge}>مفتوح الآن</span>}
+        {store.isOpen && <span className={styles.openBadge}>{t("open")}</span>}
       </div>
       <div className={styles.content}>
         <div className={styles.titleRow}>
@@ -43,14 +45,19 @@ export function StoreCard({
             </span>
           )}
         </div>
-        <p>{store.description || "اكتشف المنتجات المتاحة واطلب أونلاين."}</p>
+        <p>{store.description || t("fallbackDescription")}</p>
         {distanceKm !== undefined && (
           <span className={styles.distance}>
-            على بُعد {distanceKm < 1 ? `${Math.round(distanceKm * 1000)} م` : `${distanceKm.toFixed(1)} كم`}
+            {t("distance", {
+              distance:
+                distanceKm < 1
+                  ? t("meters", { distance: Math.round(distanceKm * 1000) })
+                  : t("kilometers", { distance: distanceKm.toFixed(1) }),
+            })}
           </span>
         )}
         <span className={styles.linkText}>
-          تصفح المنتجات <span aria-hidden="true">←</span>
+          {t("browseProducts")} <span aria-hidden="true">←</span>
         </span>
       </div>
     </Link>

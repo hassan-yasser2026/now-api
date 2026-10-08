@@ -1,8 +1,9 @@
 "use client";
 
-import Link from "next/link";
-import { useRouter } from "next/navigation";
+import { useTranslations } from "next-intl";
 import { useState } from "react";
+import { Link, useRouter } from "@/i18n/navigation";
+import { LanguageSwitcher } from "./language-switcher";
 import { useCart } from "./cart-provider";
 
 export function CustomerNavbar({
@@ -15,6 +16,7 @@ export function CustomerNavbar({
   const [loggingOut, setLoggingOut] = useState(false);
   const { itemCount } = useCart();
   const router = useRouter();
+  const t = useTranslations("nav");
 
   async function logout() {
     setLoggingOut(true);
@@ -22,22 +24,22 @@ export function CustomerNavbar({
     try {
       const response = await fetch("/api/auth/logout", { method: "POST" });
       if (!response.ok) {
-        setLogoutError("تعذر تسجيل الخروج. حاول مرة أخرى.");
+        setLogoutError(t("logoutError"));
         return;
       }
       router.replace("/");
       router.refresh();
     } catch {
-      setLogoutError("تعذر الاتصال. حاول تسجيل الخروج مرة أخرى.");
+      setLogoutError(t("logoutNetworkError"));
     } finally {
       setLoggingOut(false);
     }
   }
 
   const links = [
-    { href: "/#stores", label: "المتاجر" },
-    { href: "/orders", label: "طلباتي" },
-    { href: "/account", label: "حسابي" },
+    { href: "/#stores", label: t("stores") },
+    { href: "/orders", label: t("orders") },
+    { href: "/account", label: t("account") },
   ];
 
   return (
@@ -45,7 +47,7 @@ export function CustomerNavbar({
       <div className="mx-auto flex min-h-[72px] w-[min(1200px,calc(100%-32px))] items-center justify-between gap-4 sm:w-[min(1200px,calc(100%-48px))]">
         <Link
           href="/"
-          aria-label="چودي ستار، Goody Star - الصفحة الرئيسية"
+          aria-label={t("homeAria")}
           className="flex shrink-0 items-center gap-2 text-now-700"
         >
           <span aria-hidden="true" className="grid size-11 place-items-center rounded-2xl bg-now-600 text-white shadow-lg shadow-now-600/20">
@@ -74,14 +76,14 @@ export function CustomerNavbar({
             </svg>
           </span>
           <span className="grid leading-tight">
-            <span className="text-base font-black sm:text-lg">چودي ستار</span>
-            <span className="text-[10px] font-bold tracking-wide text-now-700 sm:text-xs">
+            <span className="text-base font-black sm:text-lg">{t("brand")}</span>
+            <span className="hidden text-[10px] font-bold tracking-wide text-now-700 sm:block sm:text-xs">
               Goody Star
             </span>
           </span>
         </Link>
 
-        <nav className="hidden items-center gap-1 lg:flex" aria-label="التنقل الرئيسي">
+        <nav className="hidden items-center gap-1 lg:flex" aria-label={t("main")}>
           {links.map((link) => (
             <Link
               className="rounded-xl px-4 py-3 text-sm font-bold text-now-900 transition-colors hover:bg-now-100 hover:text-now-700"
@@ -94,13 +96,14 @@ export function CustomerNavbar({
         </nav>
 
         <div className="hidden items-center gap-2 lg:flex">
+          <LanguageSwitcher />
           <Link
             className="inline-flex min-h-11 items-center justify-center gap-2 rounded-xl px-4 text-sm font-extrabold text-now-700 transition-colors hover:bg-now-100"
             href="/cart"
-            aria-label={`السلة، ${itemCount} منتج`}
+            aria-label={t("cartCount", { count: itemCount })}
           >
             <CartIcon />
-            السلة
+            {t("cart")}
             <span className="grid size-6 place-items-center rounded-full bg-now-100 text-xs font-black text-now-700">
               {itemCount}
             </span>
@@ -112,7 +115,7 @@ export function CustomerNavbar({
               onClick={() => void logout()}
               type="button"
             >
-              {loggingOut ? "جارٍ الخروج…" : "تسجيل الخروج"}
+              {loggingOut ? t("loggingOut") : t("logout")}
             </button>
           ) : (
             <>
@@ -120,23 +123,24 @@ export function CustomerNavbar({
                 className="inline-flex min-h-11 items-center justify-center rounded-xl px-4 text-sm font-extrabold text-now-700 transition-colors hover:bg-now-100"
                 href="/login"
               >
-                تسجيل الدخول
+                {t("login")}
               </Link>
               <Link
                 className="inline-flex min-h-11 items-center justify-center rounded-xl bg-now-600 px-5 text-sm font-extrabold text-white shadow-md shadow-now-600/20 transition duration-200 hover:-translate-y-0.5 hover:bg-now-700 hover:shadow-lg"
                 href="/register"
               >
-                حساب جديد
+                {t("register")}
               </Link>
             </>
           )}
         </div>
 
-        <div className="flex items-center gap-2 lg:hidden">
+        <div className="flex items-center gap-1 lg:hidden sm:gap-2">
+          <LanguageSwitcher />
           <Link
             className="relative grid size-11 place-items-center rounded-xl bg-white text-now-700 shadow-sm ring-1 ring-now-900/5"
             href="/cart"
-            aria-label={`السلة، ${itemCount} منتج`}
+            aria-label={t("cartCount", { count: itemCount })}
           >
             <CartIcon />
             <span className="absolute -right-1 -top-1 grid size-5 place-items-center rounded-full bg-now-gold text-[10px] font-black text-now-900">
@@ -146,7 +150,7 @@ export function CustomerNavbar({
           <button
             aria-controls="mobile-customer-menu"
             aria-expanded={menuOpen}
-            aria-label={menuOpen ? "إغلاق القائمة" : "فتح القائمة"}
+            aria-label={menuOpen ? t("closeMenu") : t("openMenu")}
             className="grid size-11 place-items-center rounded-xl border border-now-900/10 bg-white text-now-900 shadow-sm transition hover:bg-now-50"
             onClick={() => setMenuOpen((open) => !open)}
             type="button"
@@ -160,7 +164,7 @@ export function CustomerNavbar({
         <nav
           className="absolute inset-x-0 top-full border-t border-now-900/5 bg-now-cream px-4 pb-5 pt-3 shadow-xl lg:hidden"
           id="mobile-customer-menu"
-          aria-label="التنقل الرئيسي"
+          aria-label={t("main")}
         >
           <div className="mx-auto grid max-w-xl gap-2">
             {links.map((link) => (
@@ -180,7 +184,7 @@ export function CustomerNavbar({
                 onClick={() => void logout()}
                 type="button"
               >
-                {loggingOut ? "جارٍ الخروج…" : "تسجيل الخروج"}
+                {loggingOut ? t("loggingOut") : t("logout")}
               </button>
             ) : (
               <>
@@ -189,14 +193,14 @@ export function CustomerNavbar({
                   href="/login"
                   onClick={() => setMenuOpen(false)}
                 >
-                  تسجيل الدخول
+                  {t("login")}
                 </Link>
                 <Link
                   className="flex min-h-12 items-center justify-center rounded-xl bg-now-100 px-4 font-extrabold text-now-700 transition-colors hover:bg-now-100/70"
                   href="/register"
                   onClick={() => setMenuOpen(false)}
                 >
-                  إنشاء حساب جديد
+                  {t("register")}
                 </Link>
               </>
             )}

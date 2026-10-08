@@ -1,7 +1,8 @@
 "use client";
 
 import Image from "next/image";
-import Link from "next/link";
+import { Link } from "@/i18n/navigation";
+import { useLocale, useTranslations } from "next-intl";
 import { useMemo, useState } from "react";
 import {
   formatPrice,
@@ -15,12 +16,20 @@ import { useCart } from "./cart-provider";
 type LocationPoint = { latitude: number; longitude: number };
 type NearbyStore = { store: Store; distance: number };
 
-function getCategoryName(category: MenuItem["category"] | Store["category"]) {
-  return category?.nameAr?.trim() || category?.name?.trim() || "";
+function getCategoryName(
+  category: MenuItem["category"] | Store["category"],
+  locale: string,
+) {
+  return (
+    (locale === "en" ? category?.name?.trim() : category?.nameAr?.trim()) ||
+    category?.name?.trim() ||
+    category?.nameAr?.trim() ||
+    ""
+  );
 }
 
-function getProductName(product: MenuItem) {
-  return product.nameAr || product.name;
+function getProductName(product: MenuItem, locale: string) {
+  return locale === "en" ? product.name : product.nameAr || product.name;
 }
 
 function distanceBetween(first: LocationPoint, second: LocationPoint) {
@@ -38,6 +47,8 @@ function distanceBetween(first: LocationPoint, second: LocationPoint) {
 }
 
 function StoreTile({ store, distanceKm }: { store: Store; distanceKm?: number }) {
+  const t = useTranslations("store");
+  const locale = useLocale();
   const imageUrl = getSafeImageUrl(store.image);
   return (
     <Link
@@ -47,7 +58,7 @@ function StoreTile({ store, distanceKm }: { store: Store; distanceKm?: number })
       <div className="relative aspect-[1.8] overflow-hidden bg-gradient-to-br from-now-100 to-emerald-50">
         {imageUrl ? (
           <Image
-            alt={`صورة متجر ${store.name}`}
+            alt={t("imageAlt", { name: store.name })}
             className="object-cover transition duration-500 group-hover:scale-105"
             fill
             sizes="(max-width: 639px) 100vw, (max-width: 1023px) 50vw, 33vw"
@@ -63,17 +74,17 @@ function StoreTile({ store, distanceKm }: { store: Store; distanceKm?: number })
         <div className="absolute right-3 top-3 flex items-center gap-2">
           {store.isOpen ? (
             <span className="rounded-full border border-white/70 bg-white/95 px-3 py-1.5 text-xs font-extrabold text-now-700 shadow-sm">
-              مفتوح الآن
+              {t("open")}
             </span>
           ) : (
             <span className="rounded-full border border-white/70 bg-white/95 px-3 py-1.5 text-xs font-bold text-now-900 shadow-sm">
-              مغلق الآن
+              {t("closed")}
             </span>
           )}
         </div>
         {store.category && (
           <span className="absolute bottom-3 right-4 text-xs font-bold text-white drop-shadow">
-            {getCategoryName(store.category)}
+            {getCategoryName(store.category, locale)}
           </span>
         )}
       </div>
@@ -90,23 +101,25 @@ function StoreTile({ store, distanceKm }: { store: Store; distanceKm?: number })
           )}
         </div>
         <p className="mt-2 line-clamp-2 min-h-11 text-sm leading-6 text-now-700">
-          {store.description || "اكتشف المنتجات المتاحة واطلب أونلاين."}
+          {store.description || t("fallbackDescription")}
         </p>
         <div className="mt-4 flex items-center justify-between gap-2 border-t border-now-900/[0.06] pt-3 text-sm">
           {distanceKm !== undefined ? (
             <span className="text-xs font-bold text-now-700">
-              على بُعد{" "}
-              {distanceKm < 1
-                ? `${Math.round(distanceKm * 1000)} م`
-                : `${distanceKm.toFixed(1)} كم`}
+              {t("distance", {
+                distance:
+                  distanceKm < 1
+                    ? t("meters", { distance: Math.round(distanceKm * 1000) })
+                    : t("kilometers", { distance: distanceKm.toFixed(1) }),
+              })}
             </span>
           ) : (
             <span className="text-xs font-bold text-now-700">
-              {(store.menuItems || []).length} منتج
+              {t("productCount", { count: (store.menuItems || []).length })}
             </span>
           )}
           <span className="inline-flex items-center gap-2 font-extrabold text-now-600 transition group-hover:gap-3">
-            تصفح المتجر <span aria-hidden="true">←</span>
+            {t("browseStore")} <span aria-hidden="true">←</span>
           </span>
         </div>
       </div>
@@ -115,6 +128,8 @@ function StoreTile({ store, distanceKm }: { store: Store; distanceKm?: number })
 }
 
 function ProductTile({ store, product }: { store: Store; product: MenuItem }) {
+  const t = useTranslations("discovery");
+  const locale = useLocale();
   const imageUrl = getSafeImageUrl(product.image);
   return (
     <Link
@@ -133,19 +148,19 @@ function ProductTile({ store, product }: { store: Store; product: MenuItem }) {
           />
         ) : (
           <div className="absolute inset-0 grid place-items-center text-2xl font-black text-now-600">
-            {getProductName(product).slice(0, 1)}
+            {getProductName(product, locale).slice(0, 1)}
           </div>
         )}
       </div>
       <div className="flex min-w-0 flex-1 flex-col justify-center">
         <span className="truncate text-sm font-extrabold text-now-900">
-          {getProductName(product)}
+          {getProductName(product, locale)}
         </span>
         <span className="mt-1 truncate text-xs text-now-700">
-          من {store.name}
+          {t("fromStore", { name: store.name })}
         </span>
         <span className="mt-2 text-sm font-black text-now-600">
-          {formatPrice(product.price)}
+          {formatPrice(product.price, locale)}
         </span>
       </div>
       <span className="self-center rounded-xl bg-now-50 px-3 py-2 text-lg font-bold text-now-700 transition group-hover:bg-now-600 group-hover:text-white" aria-hidden="true">
@@ -156,28 +171,30 @@ function ProductTile({ store, product }: { store: Store; product: MenuItem }) {
 }
 
 export function HomepageDiscovery({ stores }: { stores: Store[] }) {
+  const t = useTranslations("discovery");
+  const locale = useLocale();
   const [search, setSearch] = useState("");
   const [activeCategory, setActiveCategory] = useState("");
   const [location, setLocation] = useState<LocationPoint | null>(null);
   const [locationError, setLocationError] = useState("");
   const [locationLoading, setLocationLoading] = useState(false);
   const { itemCount } = useCart();
-  const normalizedSearch = search.trim().toLocaleLowerCase("ar");
+  const normalizedSearch = search.trim().toLocaleLowerCase(locale);
 
   const categories = useMemo(() => {
     const labels = new Set<string>();
     for (const store of stores) {
-      const storeCategory = getCategoryName(store.category);
+      const storeCategory = getCategoryName(store.category, locale);
       if (storeCategory) labels.add(storeCategory);
       for (const item of store.menuItems || []) {
-        const itemCategory = getCategoryName(item.category);
+        const itemCategory = getCategoryName(item.category, locale);
         if (itemCategory) labels.add(itemCategory);
       }
     }
     return [...labels].sort((first, second) =>
-      first.localeCompare(second, "ar"),
+      first.localeCompare(second, locale),
     );
-  }, [stores]);
+  }, [locale, stores]);
 
   const featuredStores = useMemo(
     () =>
@@ -202,24 +219,24 @@ export function HomepageDiscovery({ stores }: { stores: Store[] }) {
       stores.filter((store) => {
         const categoryMatches =
           !activeCategory ||
-          getCategoryName(store.category) === activeCategory ||
+          getCategoryName(store.category, locale) === activeCategory ||
           (store.menuItems || []).some(
-            (item) => getCategoryName(item.category) === activeCategory,
+            (item) => getCategoryName(item.category, locale) === activeCategory,
           );
         if (!categoryMatches || !normalizedSearch) return categoryMatches;
         const searchable = [
           store.name,
           store.description || "",
           ...(store.menuItems || []).flatMap((item) => [
-            getProductName(item),
+            getProductName(item, locale),
             item.description || "",
           ]),
         ]
           .join(" ")
-          .toLocaleLowerCase("ar");
+          .toLocaleLowerCase(locale);
         return searchable.includes(normalizedSearch);
       }),
-    [activeCategory, normalizedSearch, stores],
+    [activeCategory, locale, normalizedSearch, stores],
   );
 
   const matchingProducts = useMemo(
@@ -230,18 +247,18 @@ export function HomepageDiscovery({ stores }: { stores: Store[] }) {
               .filter((product) => {
                 const categoryMatches =
                   !activeCategory ||
-                  getCategoryName(product.category) === activeCategory ||
-                  getCategoryName(store.category) === activeCategory;
+                  getCategoryName(product.category, locale) === activeCategory ||
+                  getCategoryName(store.category, locale) === activeCategory;
                 const text =
-                  `${getProductName(product)} ${product.description || ""}`.toLocaleLowerCase(
-                    "ar",
+                  `${getProductName(product, locale)} ${product.description || ""}`.toLocaleLowerCase(
+                    locale,
                   );
                 return categoryMatches && text.includes(normalizedSearch);
               })
               .map((product) => ({ store, product })),
           )
         : [],
-    [activeCategory, normalizedSearch, stores],
+    [activeCategory, locale, normalizedSearch, stores],
   );
 
   const nearbyStores: NearbyStore[] = useMemo(() => {
@@ -276,7 +293,7 @@ export function HomepageDiscovery({ stores }: { stores: Store[] }) {
 
   function requestLocation() {
     if (!navigator.geolocation) {
-      setLocationError("المتصفح لا يدعم تحديد الموقع.");
+      setLocationError(t("locationUnsupported"));
       return;
     }
     setLocationLoading(true);
@@ -293,8 +310,8 @@ export function HomepageDiscovery({ stores }: { stores: Store[] }) {
         console.error("Homepage location request failed:", error);
         setLocationError(
           error.code === error.PERMISSION_DENIED
-            ? "لم يتم السماح بالوصول إلى موقعك."
-            : "تعذر تحديد موقعك الآن. حاول مرة أخرى.",
+            ? t("locationDenied")
+            : t("locationFailed"),
         );
         setLocationLoading(false);
       },
@@ -305,22 +322,22 @@ export function HomepageDiscovery({ stores }: { stores: Store[] }) {
   return (
     <>
       <section className="relative z-10 mx-auto -mt-8 w-[min(1040px,calc(100%-32px))] sm:w-[min(1040px,calc(100%-48px))]">
-        <label className="flex min-h-14 items-center gap-3 rounded-2xl border border-now-900/[0.07] bg-white px-4 shadow-[0_16px_45px_rgba(24,51,45,0.12)] transition focus-within:border-now-500 focus-within:ring-4 focus-within:ring-now-500/10 sm:min-h-16 sm:gap-4 sm:rounded-3xl sm:px-6">
+        <label aria-label={t("searchRegion")} className="flex min-h-14 items-center gap-3 rounded-2xl border border-now-900/[0.07] bg-white px-4 shadow-[0_16px_45px_rgba(24,51,45,0.12)] transition focus-within:border-now-500 focus-within:ring-4 focus-within:ring-now-500/10 sm:min-h-16 sm:gap-4 sm:rounded-3xl sm:px-6">
           <svg aria-hidden="true" className="size-6 shrink-0 text-now-600" fill="none" viewBox="0 0 24 24">
             <circle cx="10.8" cy="10.8" r="6.8" stroke="currentColor" strokeWidth="1.8" />
             <path d="m16 16 4.5 4.5" stroke="currentColor" strokeLinecap="round" strokeWidth="1.8" />
           </svg>
           <input
-            aria-label="ابحث عن متجر أو منتج"
+            aria-label={t("searchLabel")}
             className="min-w-0 flex-1 bg-transparent text-sm font-semibold text-now-900 outline-none placeholder:text-now-900/40 sm:text-base"
             onChange={(event) => setSearch(event.target.value)}
-            placeholder="بتدور على إيه؟ متجر أو منتج..."
+            placeholder={t("searchPlaceholder")}
             type="search"
             value={search}
           />
           {search && (
             <button
-              aria-label="مسح البحث"
+              aria-label={t("clearSearch")}
               className="grid size-10 shrink-0 place-items-center rounded-xl text-xl text-now-900/45 hover:bg-now-50 hover:text-now-700"
               onClick={() => setSearch("")}
               type="button"
@@ -332,7 +349,7 @@ export function HomepageDiscovery({ stores }: { stores: Store[] }) {
             className="hidden min-h-11 items-center justify-center rounded-xl bg-now-600 px-5 text-sm font-extrabold text-white transition hover:bg-now-700 sm:inline-flex"
             href="#stores"
           >
-            ابحث
+            {t("search")}
           </Link>
         </label>
 
@@ -340,19 +357,19 @@ export function HomepageDiscovery({ stores }: { stores: Store[] }) {
           <div className="mt-8">
             <div className="mb-4 flex items-end justify-between gap-3">
               <div>
-                <p className="text-xs font-extrabold text-now-600">اختار بسرعة</p>
+                <p className="text-xs font-extrabold text-now-600">{t("chooseQuickly")}</p>
                 <h2 className="mt-1 text-lg font-black text-now-900 sm:text-xl">
-                  تصفح حسب التصنيف
+                  {t("browseByCategory")}
                 </h2>
               </div>
               <span className="text-xs font-semibold text-now-700">
-                {categories.length} تصنيف
+                {t("categoryCount", { count: categories.length })}
               </span>
             </div>
             <div className="flex gap-2 overflow-x-auto pb-2 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
-              {["الكل", ...categories].map((category) => {
+              {[t("all"), ...categories].map((category) => {
                 const selected =
-                  category === "الكل"
+                  category === t("all")
                     ? !activeCategory
                     : category === activeCategory;
                 return (
@@ -365,7 +382,7 @@ export function HomepageDiscovery({ stores }: { stores: Store[] }) {
                     }`}
                     key={category}
                     onClick={() =>
-                      setActiveCategory(category === "الكل" ? "" : category)
+                      setActiveCategory(category === t("all") ? "" : category)
                     }
                     type="button"
                   >
@@ -381,9 +398,9 @@ export function HomepageDiscovery({ stores }: { stores: Store[] }) {
       {!normalizedSearch && !activeCategory && featuredStores.length > 0 && (
         <section className="mx-auto mt-14 w-[min(1200px,calc(100%-32px))] sm:mt-20 sm:w-[min(1200px,calc(100%-48px))]">
           <SectionHeading
-            eyebrow="اختيارات العملاء"
-            title="الأعلى تقييمًا"
-            trailing="حسب تقييمات العملاء"
+            eyebrow={t("customerPicks")}
+            title={t("topRated")}
+            trailing={t("ratedByCustomers")}
           />
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 sm:gap-5 xl:grid-cols-3">
             {featuredStores.map((store) => (
@@ -396,8 +413,8 @@ export function HomepageDiscovery({ stores }: { stores: Store[] }) {
       <section className="mx-auto mt-14 w-[min(1200px,calc(100%-32px))] sm:mt-20 sm:w-[min(1200px,calc(100%-48px))]">
         <div className="mb-5 flex flex-col gap-4 sm:mb-6 sm:flex-row sm:items-end sm:justify-between">
           <SectionHeading
-            eyebrow="قريبة منك"
-            title="متاجر بالقرب منك"
+            eyebrow={t("nearby")}
+            title={t("nearbyStores")}
           />
           <button
             className="inline-flex min-h-11 w-full items-center justify-center gap-2 rounded-xl border border-now-600/25 bg-white px-4 text-sm font-extrabold text-now-700 shadow-sm transition hover:border-now-600 hover:bg-now-50 disabled:cursor-wait disabled:opacity-60 sm:w-auto"
@@ -407,10 +424,10 @@ export function HomepageDiscovery({ stores }: { stores: Store[] }) {
           >
             <LocationIcon />
             {locationLoading
-              ? "جارٍ تحديد الموقع…"
+              ? t("locating")
               : location
-                ? "تحديث موقعي"
-                : "استخدم موقعي"}
+                ? t("updateLocation")
+                : t("useLocation")}
           </button>
         </div>
         {locationError && (
@@ -431,7 +448,7 @@ export function HomepageDiscovery({ stores }: { stores: Store[] }) {
             </div>
           ) : (
             <p className="rounded-2xl border border-now-900/[0.06] bg-white p-5 text-sm leading-7 text-now-700">
-              لا توجد متاجر بإحداثيات متاحة لترتيبها حسب المسافة.
+              {t("noCoordinates")}
             </p>
           )
         ) : (
@@ -440,8 +457,7 @@ export function HomepageDiscovery({ stores }: { stores: Store[] }) {
               <LocationIcon />
             </span>
             <p className="text-sm leading-7 text-now-700">
-              اسمح بالوصول إلى موقعك لعرض أقرب المتاجر. تُحسب المسافة بخط مستقيم،
-              وليست تقديرًا لوقت الطريق.
+              {t("locationHint")}
             </p>
           </div>
         )}
@@ -452,23 +468,21 @@ export function HomepageDiscovery({ stores }: { stores: Store[] }) {
         id="stores"
       >
         <SectionHeading
-          eyebrow={normalizedSearch ? "نتائج البحث" : "اختار اللي على مزاجك"}
+          eyebrow={normalizedSearch ? t("searchResults") : t("pickWhatYouLike")}
           title={
             normalizedSearch
-              ? "المتاجر والمنتجات"
+              ? t("storesAndProducts")
               : activeCategory
-                ? "متاجر التصنيف"
-                : "متاجر متاحة الآن"
+                ? t("storesAndProducts")
+                : t("availableStores")
           }
-          trailing={`${matchingStores.length} متجر${
-            normalizedSearch ? ` · ${matchingProducts.length} منتج` : ""
-          }${itemCount > 0 ? ` · ${itemCount} في السلة` : ""}`}
+          trailing={`${t("storeCount", { count: matchingStores.length })}${normalizedSearch ? ` · ${t("productCount", { count: matchingProducts.length })}` : ""}${itemCount > 0 ? ` · ${t("inCart", { count: itemCount })}` : ""}`}
         />
 
         {normalizedSearch && matchingProducts.length > 0 && (
           <div className="mb-8">
             <h3 className="mb-3 text-sm font-extrabold text-now-900">
-              منتجات مطابقة
+              {t("matchingProducts")}
             </h3>
             <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-3">
               {matchingProducts.slice(0, 8).map(({ store, product }) => (
@@ -494,10 +508,10 @@ export function HomepageDiscovery({ stores }: { stores: Store[] }) {
              ⌕
             </span>
             <h3 className="mt-4 text-lg font-black text-now-900">
-              لا توجد نتائج مطابقة
+              {t("noResults")}
             </h3>
             <p className="mt-2 text-sm leading-6 text-now-700">
-              جرّب اسمًا آخر أو اختر تصنيفًا مختلفًا.
+              {t("tryAnotherSearch")}
             </p>
           </div>
         ) : null}

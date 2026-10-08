@@ -135,13 +135,13 @@ export function shouldUnoptimizeImage(value: string): boolean {
   }
 }
 
-export function formatPrice(price: number | string): string {
+export function formatPrice(price: number | string, locale = "ar"): string {
   const amount = Number(price);
   if (!Number.isFinite(amount)) {
     throw new Error("السعر المستلم من الخادم غير صالح");
   }
 
-  return new Intl.NumberFormat("ar-EG", {
+  return new Intl.NumberFormat(locale === "ar" ? "ar-EG" : "en-EG", {
     style: "currency",
     currency: "EGP",
     maximumFractionDigits: 2,

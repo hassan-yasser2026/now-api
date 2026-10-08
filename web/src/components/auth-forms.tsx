@@ -1,7 +1,8 @@
 "use client";
 
-import Link from "next/link";
-import { useRouter, useSearchParams } from "next/navigation";
+import { useSearchParams } from "next/navigation";
+import { useTranslations } from "next-intl";
+import { Link, useRouter } from "@/i18n/navigation";
 import type { FormEvent, ReactNode } from "react";
 import { useState } from "react";
 import { UIInput } from "@/components/ui-input";
@@ -23,6 +24,7 @@ type ApiResult = {
 export function AuthForm({ mode }: AuthFormProps) {
   const router = useRouter();
   const searchParams = useSearchParams();
+  const t = useTranslations("auth");
   const isRegister = mode === "register";
   const [pending, setPending] = useState(false);
   const [message, setMessage] = useState("");
@@ -43,7 +45,7 @@ export function AuthForm({ mode }: AuthFormProps) {
       isRegister &&
       String(payload.password) !== String(payload.confirmPassword)
     ) {
-      setError("كلمتا المرور غير متطابقتين");
+      setError(t("passwordMismatch"));
       setPending(false);
       return;
     }
@@ -60,7 +62,7 @@ export function AuthForm({ mode }: AuthFormProps) {
       const result = (await response.json()) as ApiResult;
 
       if (!response.ok || !result.success) {
-        setError(result.message || "تعذر إتمام العملية. حاول مرة أخرى.");
+        setError(result.message || t("operationFailed"));
         return;
       }
 
@@ -71,8 +73,8 @@ export function AuthForm({ mode }: AuthFormProps) {
         setMessage(
           result.data.message ||
             (result.data.phoneVerificationRequired
-              ? "تم استلام التسجيل. اتبع تعليمات التحقق لإكمال إنشاء الحساب."
-              : "تم استلام التسجيل، وسيتم إشعارك بعد مراجعة الحساب."),
+              ? t("registeredVerified")
+              : t("registeredReview")),
         );
         return;
       }
@@ -85,7 +87,7 @@ export function AuthForm({ mode }: AuthFormProps) {
       router.replace(nextPath);
       router.refresh();
     } catch {
-      setError("تعذر الاتصال بخدمة چودي ستار. حاول مرة أخرى.");
+      setError(t("connectionFailed"));
     } finally {
       setPending(false);
     }
@@ -97,11 +99,11 @@ export function AuthForm({ mode }: AuthFormProps) {
         <UIInput
           autoComplete="name"
           icon={<PersonIcon />}
-          label="الاسم الكامل"
+          label={t("fullName")}
           maxLength={100}
           minLength={2}
           name="name"
-          placeholder="اكتب اسمك"
+          placeholder={t("namePlaceholder")}
           required
           type="text"
         />
@@ -109,10 +111,10 @@ export function AuthForm({ mode }: AuthFormProps) {
 
       <UIInput
         autoComplete="tel"
-        hint="استخدم رقم الهاتف المسجل في حسابك."
+        hint={t("phoneHint")}
         icon={<PhoneIcon />}
         inputMode="tel"
-        label="رقم الموبايل"
+        label={t("phone")}
         name="phone"
         placeholder="+201xxxxxxxxx"
         required
@@ -123,7 +125,7 @@ export function AuthForm({ mode }: AuthFormProps) {
         <UIInput
           autoComplete="email"
           icon={<MailIcon />}
-          label="البريد الإلكتروني (اختياري)"
+          label={t("email")}
           name="email"
           placeholder="name@example.com"
           type="email"
@@ -132,12 +134,12 @@ export function AuthForm({ mode }: AuthFormProps) {
 
       <UIInput
         autoComplete={isRegister ? "new-password" : "current-password"}
-        hint={isRegister ? "استخدم 8 أحرف على الأقل." : undefined}
+        hint={isRegister ? t("passwordHint") : undefined}
         icon={<LockIcon />}
-        label="كلمة المرور"
+        label={t("password")}
         minLength={isRegister ? 8 : undefined}
         name="password"
-        placeholder={isRegister ? "8 أحرف على الأقل" : "أدخل كلمة المرور"}
+        placeholder={isRegister ? t("passwordPlaceholder") : t("enterPassword")}
         required
         type="password"
       />
@@ -146,10 +148,10 @@ export function AuthForm({ mode }: AuthFormProps) {
         <UIInput
           autoComplete="new-password"
           icon={<LockIcon />}
-          label="تأكيد كلمة المرور"
+          label={t("confirmPassword")}
           minLength={8}
           name="confirmPassword"
-          placeholder="أعد كتابة كلمة المرور"
+          placeholder={t("confirmPlaceholder")}
           required
           type="password"
         />
@@ -184,19 +186,19 @@ export function AuthForm({ mode }: AuthFormProps) {
           />
         )}
         {pending
-          ? "جارٍ المعالجة..."
+          ? t("processing")
           : isRegister
-            ? "إنشاء حساب عميل"
-            : "تسجيل الدخول"}
+            ? t("createCustomerAccount")
+            : t("login")}
       </button>
 
       <p className="pt-1 text-center text-sm text-now-900/55">
-        {isRegister ? "عندك حساب بالفعل؟ " : "لسه ماعندكش حساب؟ "}
+        {isRegister ? t("haveAccount") : t("needAccount")}
         <Link
           className="font-extrabold text-now-700 underline decoration-now-600/30 underline-offset-4 transition hover:text-now-900"
           href={isRegister ? "/login" : "/register"}
         >
-          {isRegister ? "سجل الدخول" : "إنشاء حساب"}
+          {isRegister ? t("loginLink") : t("createAccountLink")}
         </Link>
       </p>
     </form>

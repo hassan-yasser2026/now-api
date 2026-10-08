@@ -1,5 +1,6 @@
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
+import { getLocale } from "next-intl/server";
 import { API_BASE_URL } from "@/lib/api";
 
 export const CUSTOMER_SESSION_COOKIE = "now_customer_session";
@@ -114,7 +115,10 @@ export async function getCustomerSession() {
 export async function requireCustomer(nextPath: string) {
   const session = await getCustomerSession();
   if (!session) {
-    redirect(`/login?next=${encodeURIComponent(nextPath)}`);
+    const locale = await getLocale();
+    redirect(
+      `${locale === "ar" ? "" : "/en"}/login?next=${encodeURIComponent(nextPath)}`,
+    );
   }
   return session;
 }
