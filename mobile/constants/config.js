@@ -11,7 +11,7 @@ export const CONFIG = {
 
   APP_VERSION: '1.0.0',
 
-  ADMIN_DASHBOARD_URL: 'https://admin-now-wzto.vercel.app',
+  ADMIN_DASHBOARD_URL: 'https://goody-star-admin.vercel.app',
 
   // رابط الـ API — يُستبدل عبر متغير البيئة EXPO_PUBLIC_API_URL
   API_URL: configuredApiUrl && (!isLocalApiUrl || __DEV__)
