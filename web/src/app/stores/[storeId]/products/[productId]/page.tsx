@@ -4,14 +4,18 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { connection } from "next/server";
 import { AddToCartButton } from "@/components/add-to-cart-button";
-import { CartLink } from "@/components/cart-link";
+import { Breadcrumbs } from "@/components/breadcrumbs";
+import { CustomerNavbar } from "@/components/customer-navbar";
+import { HomepageFooter } from "@/components/homepage-footer";
 import {
   formatPrice,
+  getOpenGraphImageUrl,
   getSafeImageUrl,
   getStore,
   getStoreMenu,
+  shouldUnoptimizeImage,
 } from "@/lib/api";
-import styles from "./product-page.module.css";
+import { getSiteUrl } from "@/lib/site-url";
 
 type ProductPageProps = {
   params: Promise<{ storeId: string; productId: string }>;
@@ -53,19 +57,25 @@ export async function generateMetadata({
     if (!result) return { title: "المنتج غير موجود" };
     const { store, product } = result;
     const name = product.nameAr || product.name;
-    const imageUrl = getSafeImageUrl(product.image);
 
     return {
       title: `${name} من ${store.name}`,
       description:
         product.description ||
         `اطلب ${name} من ${store.name} أونلاين مع NOW بسعر ${formatPrice(product.price)}.`,
+      alternates: {
+        canonical: `/stores/${store.id}/products/${product.id}`,
+      },
       openGraph: {
         title: `${name} | ${store.name} - NOW`,
         description:
           product.description || `اطلب ${name} أونلاين من ${store.name}.`,
-        images: imageUrl ? [{ url: imageUrl }] : undefined,
+        images: [{ url: getOpenGraphImageUrl(product.image) }],
         type: "website",
+        url: new URL(
+          `/stores/${store.id}/products/${product.id}`,
+          getSiteUrl(),
+        ).toString(),
       },
     };
   } catch (error) {
@@ -89,11 +99,21 @@ export default async function ProductPage({ params }: ProductPageProps) {
 
   if (loadError) {
     return (
-      <main className={styles.errorState} role="alert">
-        <h1>تعذر تحميل المنتج</h1>
-        <p>حصلت مشكلة في الاتصال بخدمة NOW. حاول مرة أخرى.</p>
-        <Link href="/">العودة للمتاجر</Link>
-      </main>
+      <>
+        <CustomerNavbar />
+        <main className="mx-auto grid min-h-[55vh] w-[min(680px,calc(100%-32px))] content-center text-center">
+          <section className="rounded-3xl border border-now-900/[0.06] bg-white px-6 py-12 shadow-[0_14px_36px_rgba(29,63,52,0.08)] sm:px-10 sm:py-16" role="alert">
+            <h1 className="text-2xl font-black text-now-900">تعذر تحميل المنتج</h1>
+            <p className="mt-3 text-sm leading-7 text-now-700">
+              حصلت مشكلة في الاتصال بخدمة NOW. حاول مرة أخرى.
+            </p>
+            <Link className="mt-6 inline-flex min-h-12 items-center justify-center rounded-xl bg-now-600 px-6 font-extrabold text-white transition hover:bg-now-700" href="/">
+              العودة للمتاجر
+            </Link>
+          </section>
+        </main>
+        <HomepageFooter />
+      </>
     );
   }
 
@@ -114,7 +134,10 @@ export default async function ProductPage({ params }: ProductPageProps) {
     "@type": "Product",
     name: productName,
     description: product.description || undefined,
-    image: imageUrl || undefined,
+    image: new URL(
+      getOpenGraphImageUrl(product.image),
+      getSiteUrl(),
+    ).toString(),
     sku: String(product.id),
     category: categoryName || undefined,
     offers: {
@@ -122,7 +145,10 @@ export default async function ProductPage({ params }: ProductPageProps) {
       price: currentPrice,
       priceCurrency: "EGP",
       availability: "https://schema.org/InStock",
-      url: `${process.env.NEXT_PUBLIC_SITE_URL || "https://now-eg.com"}/stores/${store.id}/products/${product.id}`,
+      url: new URL(
+        `/stores/${store.id}/products/${product.id}`,
+        getSiteUrl(),
+      ).toString(),
     },
     ...(ratingCount > 0 && rating > 0
       ? {
@@ -136,99 +162,163 @@ export default async function ProductPage({ params }: ProductPageProps) {
   };
 
   return (
-    <main className={styles.page}>
-      <header className={styles.header}>
-        <Link className={styles.brand} href="/">
-          NOW
-        </Link>
-        <Link className={styles.backLink} href={`/stores/${store.id}`}>
-          الرجوع إلى {store.name}
-        </Link>
-        <CartLink />
-      </header>
+    <>
+      <CustomerNavbar />
+      <main className="mx-auto min-h-screen w-[min(1200px,calc(100%-32px))] sm:w-[min(1200px,calc(100%-48px))]">
+        <Breadcrumbs
+          items={[
+            { label: "الرئيسية", href: "/" },
+            { label: "المتاجر", href: "/#stores" },
+            { label: store.name, href: `/stores/${store.id}` },
+            { label: productName },
+          ]}
+        />
 
-      <article className={styles.product}>
-        <div className={styles.image}>
-          {imageUrl ? (
-            <Image
-              src={imageUrl}
-              alt={`صورة ${productName}`}
-              fill
-              priority
-              sizes="(max-width: 700px) 100vw, 50vw"
-              unoptimized
-            />
-          ) : (
-            <span aria-hidden="true">{productName.slice(0, 1)}</span>
-          )}
-        </div>
-        <div className={styles.details}>
-          <p className={styles.storeName}>{store.name}</p>
-          {categoryName && <p className={styles.category}>{categoryName}</p>}
-          <h1>{productName}</h1>
-          <p className={styles.description}>
-            {product.description || "لا يوجد وصف إضافي لهذا المنتج."}
-          </p>
-          <div className={styles.priceRow}>
-            <p className={styles.price}>{formatPrice(product.price)}</p>
-            {hasDiscount && (
-              <p className={styles.originalPrice}>
-                {formatPrice(originalPrice)}
-              </p>
+        <article className="grid overflow-hidden rounded-[28px] border border-now-900/[0.06] bg-white shadow-[0_18px_55px_rgba(24,51,45,0.08)] sm:rounded-[36px] lg:grid-cols-2">
+          <div className="relative order-1 aspect-square max-h-[620px] overflow-hidden bg-gradient-to-br from-now-100 via-emerald-50 to-now-100 lg:order-2">
+            {imageUrl ? (
+              <Image
+                src={imageUrl}
+                alt={`صورة ${productName}`}
+                className="object-cover"
+                fetchPriority="high"
+                fill
+                preload
+                sizes="(max-width: 1023px) 100vw, 50vw"
+                unoptimized={shouldUnoptimizeImage(imageUrl)}
+              />
+            ) : (
+              <div className="absolute inset-0 grid place-items-center bg-[radial-gradient(circle_at_25%_25%,rgba(255,255,255,.9),transparent_40%),linear-gradient(135deg,#ddf3e8,#afdcc8)]">
+                <span className="grid size-40 place-items-center rounded-[2.5rem] border border-white/80 bg-white/55 text-7xl font-black text-now-600 shadow-xl backdrop-blur sm:size-52 sm:text-8xl">
+                  {productName.slice(0, 1)}
+                </span>
+              </div>
             )}
-            {Number(product.discountPercentage) > 0 && (
-              <span className={styles.discount}>
+            {hasDiscount && Number(product.discountPercentage) > 0 && (
+              <span className="absolute right-4 top-4 rounded-full bg-now-gold px-4 py-2 text-sm font-black text-now-900 shadow-lg sm:right-6 sm:top-6">
                 خصم {Number(product.discountPercentage)}٪
               </span>
             )}
-          </div>
-          <div className={styles.productFacts}>
-            <span className={styles.available}>متاح للطلب</span>
-            {ratingCount > 0 && rating > 0 ? (
-              <span className={styles.rating}>
-                ★ {rating.toFixed(1)} ({ratingCount} تقييم)
+            {ratingCount > 0 && rating > 0 && (
+              <span className="absolute bottom-4 right-4 inline-flex min-h-11 items-center gap-2 rounded-xl border border-white/70 bg-white/95 px-4 text-sm font-extrabold text-amber-800 shadow-lg sm:bottom-6 sm:right-6">
+                <span aria-hidden="true">★</span> {rating.toFixed(1)}
+                <span className="text-xs font-semibold text-now-700">
+                  ({ratingCount})
+                </span>
               </span>
-            ) : (
-              <span className={styles.noRating}>لا توجد تقييمات بعد</span>
             )}
           </div>
-          <div className={styles.actions}>
-            <AddToCartButton store={{ id: store.id, name: store.name }} product={product} />
-            <Link className={styles.backButton} href={`/stores/${store.id}`}>
-              استكشف منتجات المتجر
+
+          <div className="order-2 flex flex-col justify-center p-5 sm:p-8 lg:order-1 lg:p-12">
+            <Link
+              className="inline-flex min-h-10 w-fit items-center gap-2 rounded-full bg-now-50 px-4 text-xs font-extrabold text-now-700 transition hover:bg-now-100 sm:text-sm"
+              href={`/stores/${store.id}`}
+            >
+              <span aria-hidden="true">←</span>
+              {store.name}
             </Link>
-          </div>
-        </div>
-      </article>
+            {categoryName && (
+              <p className="mt-5 text-xs font-extrabold text-now-600 sm:mt-7 sm:text-sm">
+                {categoryName}
+              </p>
+            )}
+            <h1 className="mt-2 text-3xl font-black leading-tight tracking-tight text-now-900 sm:text-4xl lg:text-5xl">
+              {productName}
+            </h1>
+            <p className="mt-4 text-sm leading-7 text-now-700 sm:text-base sm:leading-8">
+              {product.description || "لا يوجد وصف إضافي لهذا المنتج."}
+            </p>
 
-      {Array.isArray(product.ratingDetails) &&
-        product.ratingDetails.some((review) => review.comment) && (
-          <section className={styles.reviews} aria-labelledby="reviews-title">
-            <h2 id="reviews-title">آراء العملاء</h2>
-            <div className={styles.reviewList}>
-              {product.ratingDetails
-                .filter((review) => review.comment)
-                .slice(0, 5)
-                .map((review, index) => (
-                  <article
-                    className={styles.review}
-                    key={`${review.createdAt || "review"}-${index}`}
-                  >
-                    <strong>{review.customerName || "عميل NOW"}</strong>
-                    <span>★ {review.stars}/5</span>
-                    <p>{review.comment}</p>
-                  </article>
-                ))}
+            <div className="mt-6 flex flex-wrap items-center gap-x-3 gap-y-2 border-y border-now-900/[0.06] py-5">
+              <p className="text-2xl font-black text-now-700 sm:text-3xl">
+                {formatPrice(product.price)}
+              </p>
+              {hasDiscount && (
+                <p className="text-sm font-bold text-now-700 line-through sm:text-base">
+                  {formatPrice(originalPrice)}
+                </p>
+              )}
+              {Number(product.discountPercentage) > 0 && (
+                <span className="rounded-full bg-amber-50 px-3 py-1 text-xs font-extrabold text-amber-800">
+                  وفّر مع العرض
+                </span>
+              )}
             </div>
-          </section>
-        )}
 
+            <div className="mt-5 flex flex-wrap items-center gap-3 text-xs font-bold sm:text-sm">
+              <span className="inline-flex min-h-10 items-center gap-2 rounded-xl bg-emerald-50 px-3 text-emerald-800">
+                <span className="size-2 rounded-full bg-emerald-500" />
+                متاح للطلب
+              </span>
+              {ratingCount > 0 && rating > 0 ? (
+                <span className="inline-flex min-h-10 items-center gap-2 rounded-xl bg-amber-50 px-3 text-amber-800">
+                  <span aria-hidden="true">★</span>
+                  {rating.toFixed(1)} ({ratingCount} تقييم)
+                </span>
+              ) : (
+                <span className="inline-flex min-h-10 items-center rounded-xl bg-now-50 px-3 text-now-700">
+                  لا توجد تقييمات بعد
+                </span>
+              )}
+            </div>
+
+            <div className="mt-7 grid gap-3 sm:mt-8 sm:grid-cols-2">
+              <AddToCartButton
+                store={{ id: store.id, name: store.name }}
+                product={product}
+              />
+              <Link
+                className="inline-flex min-h-12 items-center justify-center rounded-xl border border-now-600/25 bg-white px-5 text-sm font-extrabold text-now-700 transition hover:border-now-600 hover:bg-now-50 sm:min-h-14"
+                href={`/stores/${store.id}`}
+              >
+                استكشف منتجات المتجر
+              </Link>
+            </div>
+          </div>
+        </article>
+
+        {Array.isArray(product.ratingDetails) &&
+          product.ratingDetails.some((review) => review.comment) && (
+            <section className="pb-16 pt-12 sm:pb-20 sm:pt-16" aria-labelledby="reviews-title">
+              <div className="mb-6">
+                <p className="text-xs font-extrabold text-now-600 sm:text-sm">تجارب العملاء</p>
+                <h2 className="mt-1 text-2xl font-black text-now-900 sm:text-3xl" id="reviews-title">
+                  آراء العملاء
+                </h2>
+              </div>
+              <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-3">
+                {product.ratingDetails
+                  .filter((review) => review.comment)
+                  .slice(0, 5)
+                  .map((review, index) => (
+                    <article
+                      className="grid content-start gap-3 rounded-2xl border border-now-900/[0.06] bg-white p-5 shadow-sm"
+                      key={`${review.createdAt || "review"}-${index}`}
+                    >
+                      <div className="flex items-center justify-between gap-3">
+                        <strong className="text-sm font-extrabold text-now-900">
+                          {review.customerName || "عميل NOW"}
+                        </strong>
+                        <span className="rounded-lg bg-amber-50 px-2 py-1 text-xs font-extrabold text-amber-800">
+                          ★ {review.stars}/5
+                        </span>
+                      </div>
+                      <p className="text-sm leading-7 text-now-700">
+                        {review.comment}
+                      </p>
+                    </article>
+                  ))}
+              </div>
+            </section>
+          )}
+      </main>
+      <HomepageFooter />
       <script
         type="application/ld+json"
         dangerouslySetInnerHTML={{
           __html: JSON.stringify(structuredData).replace(/</g, "\\u003c"),
         }}
       />
-    </main>
+    </>
   );
 }

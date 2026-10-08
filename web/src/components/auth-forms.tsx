@@ -1,9 +1,10 @@
 "use client";
 
-import { useRouter, useSearchParams } from "next/navigation";
-import { FormEvent, useState } from "react";
 import Link from "next/link";
-import styles from "./auth-forms.module.css";
+import { useRouter, useSearchParams } from "next/navigation";
+import type { FormEvent, ReactNode } from "react";
+import { useState } from "react";
+import { UIInput } from "@/components/ui-input";
 
 type AuthFormProps = {
   mode: "login" | "register";
@@ -63,10 +64,15 @@ export function AuthForm({ mode }: AuthFormProps) {
         return;
       }
 
-      if (result.data?.pendingApproval || result.data?.phoneVerificationRequired) {
+      if (
+        result.data?.pendingApproval ||
+        result.data?.phoneVerificationRequired
+      ) {
         setMessage(
           result.data.message ||
-            "تم استلام التسجيل. راجع بريدك الإلكتروني لإكمال التحقق.",
+            (result.data.phoneVerificationRequired
+              ? "تم استلام التسجيل. اتبع تعليمات التحقق لإكمال إنشاء الحساب."
+              : "تم استلام التسجيل، وسيتم إشعارك بعد مراجعة الحساب."),
         );
         return;
       }
@@ -86,84 +92,97 @@ export function AuthForm({ mode }: AuthFormProps) {
   }
 
   return (
-    <form className={styles.form} onSubmit={handleSubmit}>
-      <div>
-        <label htmlFor={`${mode}-phone`}>رقم الهاتف</label>
-        <input
-          id={`${mode}-phone`}
-          name="phone"
-          type="tel"
-          autoComplete="tel"
-          inputMode="tel"
-          placeholder="+201xxxxxxxxx"
-          required
-        />
-      </div>
-
+    <form className="grid gap-4" onSubmit={handleSubmit}>
       {isRegister && (
-        <>
-          <div>
-            <label htmlFor="register-name">الاسم الكامل</label>
-            <input
-              id="register-name"
-              name="name"
-              type="text"
-              autoComplete="name"
-              minLength={2}
-              maxLength={100}
-              required
-            />
-          </div>
-          <div>
-            <label htmlFor="register-email">البريد الإلكتروني (اختياري)</label>
-            <input
-              id="register-email"
-              name="email"
-              type="email"
-              autoComplete="email"
-            />
-          </div>
-        </>
+        <UIInput
+          autoComplete="name"
+          icon={<PersonIcon />}
+          label="الاسم الكامل"
+          maxLength={100}
+          minLength={2}
+          name="name"
+          placeholder="اكتب اسمك"
+          required
+          type="text"
+        />
       )}
 
-      <div>
-        <label htmlFor={`${mode}-password`}>كلمة المرور</label>
-        <input
-          id={`${mode}-password`}
-          name="password"
-          type="password"
-          autoComplete={isRegister ? "new-password" : "current-password"}
-          minLength={isRegister ? 8 : undefined}
-          required
-        />
-      </div>
+      <UIInput
+        autoComplete="tel"
+        hint="استخدم رقم الهاتف المسجل في حسابك."
+        icon={<PhoneIcon />}
+        inputMode="tel"
+        label="رقم الموبايل"
+        name="phone"
+        placeholder="+201xxxxxxxxx"
+        required
+        type="tel"
+      />
 
       {isRegister && (
-        <div>
-          <label htmlFor="register-confirm-password">تأكيد كلمة المرور</label>
-          <input
-            id="register-confirm-password"
-            name="confirmPassword"
-            type="password"
-            autoComplete="new-password"
-            minLength={8}
-            required
-          />
-        </div>
+        <UIInput
+          autoComplete="email"
+          icon={<MailIcon />}
+          label="البريد الإلكتروني (اختياري)"
+          name="email"
+          placeholder="name@example.com"
+          type="email"
+        />
+      )}
+
+      <UIInput
+        autoComplete={isRegister ? "new-password" : "current-password"}
+        hint={isRegister ? "استخدم 8 أحرف على الأقل." : undefined}
+        icon={<LockIcon />}
+        label="كلمة المرور"
+        minLength={isRegister ? 8 : undefined}
+        name="password"
+        placeholder={isRegister ? "8 أحرف على الأقل" : "أدخل كلمة المرور"}
+        required
+        type="password"
+      />
+
+      {isRegister && (
+        <UIInput
+          autoComplete="new-password"
+          icon={<LockIcon />}
+          label="تأكيد كلمة المرور"
+          minLength={8}
+          name="confirmPassword"
+          placeholder="أعد كتابة كلمة المرور"
+          required
+          type="password"
+        />
       )}
 
       {error && (
-        <p className={styles.error} role="alert">
+        <p
+          className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm font-bold leading-6 text-red-800"
+          role="alert"
+        >
           {error}
         </p>
       )}
       {message && (
-        <p className={styles.notice} role="status">
+        <p
+          className="rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm font-bold leading-6 text-emerald-900"
+          role="status"
+        >
           {message}
         </p>
       )}
 
-      <button className={styles.submit} type="submit" disabled={pending}>
+      <button
+        className="mt-1 inline-flex min-h-12 w-full items-center justify-center gap-2 rounded-xl bg-now-600 px-5 text-sm font-extrabold text-white shadow-[0_10px_22px_rgba(18,107,87,0.2)] transition duration-200 hover:-translate-y-0.5 hover:bg-now-700 hover:shadow-lg disabled:cursor-wait disabled:opacity-70"
+        disabled={pending}
+        type="submit"
+      >
+        {pending && (
+          <span
+            aria-hidden="true"
+            className="size-4 animate-spin rounded-full border-2 border-white/35 border-t-white"
+          />
+        )}
         {pending
           ? "جارٍ المعالجة..."
           : isRegister
@@ -171,12 +190,68 @@ export function AuthForm({ mode }: AuthFormProps) {
             : "تسجيل الدخول"}
       </button>
 
-      <p className={styles.switch}>
+      <p className="pt-1 text-center text-sm text-now-900/55">
         {isRegister ? "عندك حساب بالفعل؟ " : "لسه ماعندكش حساب؟ "}
-        <Link href={isRegister ? "/login" : "/register"}>
+        <Link
+          className="font-extrabold text-now-700 underline decoration-now-600/30 underline-offset-4 transition hover:text-now-900"
+          href={isRegister ? "/login" : "/register"}
+        >
           {isRegister ? "سجل الدخول" : "إنشاء حساب"}
         </Link>
       </p>
     </form>
+  );
+}
+
+function IconFrame({ children }: { children: ReactNode }) {
+  return (
+    <svg
+      aria-hidden="true"
+      className="size-5"
+      fill="none"
+      stroke="currentColor"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      strokeWidth="1.7"
+      viewBox="0 0 24 24"
+    >
+      {children}
+    </svg>
+  );
+}
+
+function PersonIcon() {
+  return (
+    <IconFrame>
+      <circle cx="12" cy="8" r="3.5" />
+      <path d="M5 20a7 7 0 0 1 14 0" />
+    </IconFrame>
+  );
+}
+
+function PhoneIcon() {
+  return (
+    <IconFrame>
+      <path d="M7 3h10a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2Z" />
+      <path d="M10 17h4" />
+    </IconFrame>
+  );
+}
+
+function MailIcon() {
+  return (
+    <IconFrame>
+      <rect height="14" rx="2" width="18" x="3" y="5" />
+      <path d="m4 7 8 6 8-6" />
+    </IconFrame>
+  );
+}
+
+function LockIcon() {
+  return (
+    <IconFrame>
+      <rect height="10" rx="2" width="14" x="5" y="11" />
+      <path d="M8 11V7a4 4 0 0 1 8 0v4m-4 4v2" />
+    </IconFrame>
   );
 }

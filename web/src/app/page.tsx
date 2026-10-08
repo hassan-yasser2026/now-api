@@ -1,20 +1,24 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { connection } from "next/server";
-import { CustomerNav } from "@/components/customer-nav";
-import { HomepageExperience } from "@/components/homepage-experience";
+import { CustomerNavbar } from "@/components/customer-navbar";
+import { HomepageDiscovery } from "@/components/homepage-discovery";
+import { HomepageFooter } from "@/components/homepage-footer";
 import { getStores, type Store } from "@/lib/api";
-import styles from "./page.module.css";
+import { getSiteUrl } from "@/lib/site-url";
 
 export const metadata: Metadata = {
   title: "NOW | اطلب من متاجرك المفضلة",
   description:
     "تصفح المتاجر والمنتجات واطلب بسهولة من NOW. توصيل طلباتك إلى باب البيت.",
+  alternates: { canonical: "/" },
   openGraph: {
     title: "NOW | اطلب من متاجرك المفضلة",
     description: "اكتشف المتاجر والمنتجات واطلبها أونلاين.",
     locale: "ar_EG",
     type: "website",
+    url: getSiteUrl().toString(),
+    images: [{ url: "/opengraph-image", width: 1200, height: 630, alt: "NOW" }],
   },
 };
 
@@ -33,65 +37,132 @@ export default async function HomePage() {
 
   if (loadError) {
     return (
-      <main className={styles.page}>
-        <section className={styles.errorState} role="alert">
-          <h1>تعذر تحميل المتاجر</h1>
-          <p>
-            حصلت مشكلة في الاتصال بخدمة NOW. حاول تحديث الصفحة بعد شوية.
-          </p>
-          <Link className={styles.heroButton} href="/">
-            إعادة المحاولة
-          </Link>
-        </section>
-      </main>
+      <>
+        <CustomerNavbar />
+        <main className="mx-auto grid min-h-[55vh] w-[min(680px,calc(100%-32px))] content-center text-center">
+          <section
+            className="rounded-3xl border border-now-900/[0.06] bg-white px-6 py-12 shadow-[0_14px_36px_rgba(29,63,52,0.08)] sm:px-10 sm:py-16"
+            role="alert"
+          >
+            <span className="mx-auto grid size-14 place-items-center rounded-2xl bg-amber-50 text-2xl text-amber-700">
+              !
+            </span>
+            <h1 className="mt-5 text-2xl font-black text-now-900">
+              تعذر تحميل المتاجر
+            </h1>
+            <p className="mt-3 text-sm leading-7 text-now-700">
+              حصلت مشكلة في الاتصال بخدمة NOW. حاول تحديث الصفحة بعد شوية.
+            </p>
+            <Link
+              className="mt-6 inline-flex min-h-12 items-center justify-center rounded-xl bg-now-600 px-6 font-extrabold text-white transition hover:bg-now-700"
+              href="/"
+            >
+              إعادة المحاولة
+            </Link>
+          </section>
+        </main>
+        <HomepageFooter />
+      </>
     );
   }
 
   return (
-    <main className={styles.page}>
-      <header className={styles.topbar}>
-        <Link className={styles.brand} href="/" aria-label="NOW - الصفحة الرئيسية">
-          NOW
-        </Link>
-        <CustomerNav />
-      </header>
-
-      <section className={styles.hero}>
-        <div className={styles.heroContent}>
-          <p className={styles.eyebrow}>طلبك، أسهل مع NOW</p>
-          <h1>كل اللي بتحبه، لحد عندك</h1>
-          <p className={styles.heroDescription}>
-            اكتشف المتاجر القريبة منك واطلب احتياجاتك بخطوات بسيطة.
-          </p>
-          <a className={styles.heroButton} href="#stores">
-            اكتشف المتاجر
-          </a>
-        </div>
-        <div className={styles.heroShape} aria-hidden="true">
-          <span>NOW</span>
-        </div>
-      </section>
-
-      {stores.length > 0 ? (
-        <HomepageExperience stores={stores} />
-      ) : (
-        <section className={styles.section} id="stores">
-          <div className={styles.emptyState}>
-            <span className={styles.emptyIcon} aria-hidden="true">
-              ◌
-            </span>
-            <h3>مفيش متاجر متاحة دلوقتي</h3>
-            <p>ارجع تاني قريب، المتاجر هتظهر هنا أول ما تكون متاحة.</p>
+    <>
+      <CustomerNavbar />
+      <main>
+        <section className="relative isolate mx-auto mt-4 grid min-h-[430px] w-[min(1200px,calc(100%-24px))] items-center overflow-hidden rounded-[28px] bg-now-900 px-5 py-12 text-white shadow-[0_28px_70px_rgba(18,107,87,0.2)] sm:mt-6 sm:min-h-[470px] sm:w-[min(1200px,calc(100%-48px))] sm:rounded-[36px] sm:px-10 sm:py-16 lg:min-h-[500px] lg:grid-cols-[1.05fr_.95fr] lg:px-16">
+          <div className="absolute inset-0 -z-10 bg-[radial-gradient(ellipse_at_15%_85%,rgba(244,185,66,.2),transparent_28rem),radial-gradient(ellipse_at_90%_15%,rgba(33,134,110,.65),transparent_34rem),linear-gradient(125deg,#18332d_5%,#105647_58%,#126b57_100%)]" />
+          <div aria-hidden="true" className="absolute -left-24 -top-28 -z-10 size-72 rounded-full border border-white/10 sm:left-[4%] sm:top-[-45%] sm:size-[28rem]">
+            <span className="absolute inset-8 rounded-full border border-white/10 sm:inset-12" />
+            <span className="absolute inset-16 rounded-full border border-white/10 sm:inset-24" />
           </div>
-        </section>
-      )}
+          <div className="relative z-10 max-w-2xl animate-[rise-in_.7s_ease-out_both]">
+            <p className="inline-flex min-h-9 items-center gap-2 rounded-full border border-white/20 bg-white/10 px-4 text-xs font-extrabold text-now-100 backdrop-blur sm:text-sm">
+              <span className="size-2 rounded-full bg-now-gold shadow-[0_0_14px_rgba(244,185,66,.8)]" />
+              طلبك، أسهل مع NOW
+            </p>
+            <h1 className="mt-5 max-w-xl text-[2.55rem] font-black leading-[1.2] tracking-tight sm:mt-6 sm:text-5xl lg:text-[3.65rem]">
+              كل اللي بتحبه،
+              <span className="mt-1 block text-now-gold">لحد عندك.</span>
+            </h1>
+            <p className="mt-4 max-w-lg text-sm leading-7 text-white/75 sm:mt-5 sm:text-lg sm:leading-8">
+              اكتشف المتاجر القريبة منك، اختار منتجاتك المفضلة، وخلي طلبك يوصل
+              لحد بابك.
+            </p>
+            <div className="mt-7 flex flex-col gap-3 sm:mt-9 sm:flex-row">
+              <Link
+                className="inline-flex min-h-12 items-center justify-center gap-2 rounded-xl bg-now-gold px-6 text-sm font-black text-now-900 shadow-lg shadow-black/10 transition duration-200 hover:-translate-y-0.5 hover:bg-amber-300 hover:shadow-xl sm:min-h-14 sm:rounded-2xl sm:px-8 sm:text-base"
+                href="#stores"
+              >
+                اكتشف المتاجر
+                <span aria-hidden="true">←</span>
+              </Link>
+              <Link
+                className="inline-flex min-h-12 items-center justify-center rounded-xl border border-white/25 bg-white/5 px-6 text-sm font-extrabold text-white transition hover:bg-white/10 sm:min-h-14 sm:rounded-2xl sm:px-7 sm:text-base"
+                href="/register"
+              >
+                ابدأ حسابك
+              </Link>
+            </div>
+            <div className="mt-7 flex flex-wrap items-center gap-x-5 gap-y-2 text-xs font-semibold text-white/65 sm:mt-9 sm:text-sm">
+              <span className="inline-flex items-center gap-2">
+                <span className="text-now-gold">✓</span> متاجر متنوعة
+              </span>
+              <span className="inline-flex items-center gap-2">
+                <span className="text-now-gold">✓</span> طلب بخطوات بسيطة
+              </span>
+            </div>
+          </div>
 
-      <footer className={styles.footer}>
-        <Link href="/" aria-label="NOW - الصفحة الرئيسية">
-          NOW
-        </Link>
-        <span>طلبك يوصل لك، بكل سهولة.</span>
-      </footer>
-    </main>
+          <div aria-hidden="true" className="relative mx-auto mt-8 hidden aspect-square w-full max-w-[390px] place-items-center lg:grid">
+            <div className="absolute inset-3 rounded-full border border-white/15" />
+            <div className="absolute inset-10 rounded-full border border-white/15" />
+            <div className="absolute inset-[4.5rem] rounded-full bg-white/5 blur-2xl" />
+            <div className="relative grid size-[66%] rotate-[-7deg] place-items-center rounded-[32%] border border-white/40 bg-gradient-to-br from-white via-now-100 to-now-100 text-now-700 shadow-[0_35px_80px_rgba(0,0,0,.22)]">
+              <span className="text-[5.5rem] font-black tracking-[-.12em]">NOW</span>
+              <span className="absolute -right-7 top-8 grid size-16 place-items-center rounded-2xl bg-now-gold text-3xl shadow-xl">✦</span>
+              <span className="absolute -bottom-6 -left-8 grid size-20 place-items-center rounded-3xl border border-white/70 bg-white/95 text-3xl shadow-xl">⌕</span>
+            </div>
+          </div>
+          <div aria-hidden="true" className="absolute -bottom-28 -left-12 size-52 rounded-full bg-now-gold/10 blur-3xl lg:hidden" />
+        </section>
+
+        {stores.length > 0 ? (
+          <HomepageDiscovery stores={stores} />
+        ) : (
+          <section
+            className="mx-auto mt-14 w-[min(1200px,calc(100%-32px))] scroll-mt-24 pb-16 sm:w-[min(1200px,calc(100%-48px))]"
+            id="stores"
+          >
+            <div className="rounded-3xl border border-now-900/[0.06] bg-white px-6 py-12 text-center shadow-sm sm:py-16">
+              <span className="mx-auto grid size-14 place-items-center rounded-2xl bg-now-50 text-2xl text-now-600">
+                ◌
+              </span>
+              <h2 className="mt-4 text-xl font-black text-now-900">
+                مفيش متاجر متاحة دلوقتي
+              </h2>
+              <p className="mt-2 text-sm leading-7 text-now-700">
+                ارجع تاني قريب، المتاجر هتظهر هنا أول ما تكون متاحة.
+              </p>
+            </div>
+          </section>
+        )}
+      </main>
+      <HomepageFooter />
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{
+          __html: JSON.stringify({
+            "@context": "https://schema.org",
+            "@type": "OnlineStore",
+            name: "NOW",
+            url: getSiteUrl().toString(),
+            description:
+              "اكتشف المتاجر والمنتجات واطلبها أونلاين مع NOW.",
+            inLanguage: "ar-EG",
+          }).replace(/</g, "\\u003c"),
+        }}
+      />
+    </>
   );
 }

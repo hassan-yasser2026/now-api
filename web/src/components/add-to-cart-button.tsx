@@ -1,9 +1,9 @@
 "use client";
 
-import { useState } from "react";
 import type { MenuItem } from "@/lib/api";
+import { useToast } from "./toast-provider";
+import { UIButton } from "./ui-button";
 import { useCart } from "./cart-provider";
-import styles from "./add-to-cart-button.module.css";
 
 export function AddToCartButton({
   store,
@@ -13,29 +13,27 @@ export function AddToCartButton({
   product: MenuItem;
 }) {
   const { addItem } = useCart();
-  const [message, setMessage] = useState("");
+  const { showToast } = useToast();
 
   function add() {
     const result = addItem(store, product);
-    setMessage(
-      result === "added"
-        ? "تمت إضافة المنتج إلى السلة."
-        : result === "different-store"
-          ? "السلة تحتوي على منتجات من متجر آخر. أفرغ السلة أولًا للطلب من هذا المتجر."
-          : "تعذر إضافة المنتج لأن بياناته غير صالحة.",
-    );
+    if (result === "added") {
+      showToast("تمت إضافة المنتج إلى السلة.", "success");
+    } else if (result === "different-store") {
+      showToast(
+        "السلة تحتوي على منتجات من متجر آخر. أفرغ السلة أولًا للطلب من هذا المتجر.",
+        "error",
+      );
+    } else {
+      showToast("تعذر إضافة المنتج لأن بياناته غير صالحة.", "error");
+    }
   }
 
   return (
-    <div className={styles.wrapper}>
-      <button className={styles.button} type="button" onClick={add}>
+    <div>
+      <UIButton className="min-h-12 w-full sm:min-h-14 sm:px-7 sm:text-base" type="button" onClick={add}>
         أضف إلى السلة
-      </button>
-      {message && (
-        <p className={styles.message} role="status">
-          {message}
-        </p>
-      )}
+      </UIButton>
     </div>
   );
 }

@@ -1,6 +1,10 @@
 import Image from "next/image";
 import Link from "next/link";
-import { getSafeImageUrl, type Store } from "@/lib/api";
+import {
+  getSafeImageUrl,
+  shouldUnoptimizeImage,
+  type Store,
+} from "@/lib/api";
 import styles from "./store-card.module.css";
 
 export function StoreCard({
@@ -21,7 +25,7 @@ export function StoreCard({
             alt={`صورة متجر ${store.name}`}
             fill
             sizes="(max-width: 480px) 100vw, (max-width: 760px) 50vw, 33vw"
-            unoptimized
+            unoptimized={shouldUnoptimizeImage(imageUrl)}
           />
         ) : (
           <span className={styles.imagePlaceholder} aria-hidden="true">

@@ -315,6 +315,29 @@
   }
 }
 
+@media (max-width: 360px) {
+  .topbar {
+    flex-wrap: wrap;
+    gap: 8px 12px;
+    padding: 10px 0;
+  }
+
+  .topbar nav {
+    flex: 0 0 100%;
+    justify-content: space-between;
+  }
+
+  .topbar nav a {
+    display: inline-flex;
+    min-height: 40px;
+    align-items: center;
+  }
+
+  .storeGrid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
 @media (prefers-reduced-motion: reduce) {
   .heroButton {
     transition: none;

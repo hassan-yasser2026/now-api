@@ -1,8 +1,7 @@
 import type { Metadata } from "next";
-import Link from "next/link";
 import { notFound } from "next/navigation";
+import { CustomerNavbar } from "@/components/customer-navbar";
 import { OrderDetails } from "./order-details";
-import styles from "./order-details.module.css";
 import { requireCustomer } from "@/lib/server-api";
 
 type OrderPageProps = {
@@ -23,16 +22,9 @@ export default async function OrderPage({ params }: OrderPageProps) {
   await requireCustomer(`/orders/${orderId}`);
 
   return (
-    <main className={styles.page}>
-      <header className={styles.header}>
-        <Link className={styles.brand} href="/">
-          NOW
-        </Link>
-        <Link className={styles.backLink} href="/orders">
-          كل طلباتي
-        </Link>
-      </header>
+    <>
+      <CustomerNavbar signedIn />
       <OrderDetails orderId={Number(orderId)} />
-    </main>
+    </>
   );
 }

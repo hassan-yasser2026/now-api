@@ -118,6 +118,23 @@ export function getSafeImageUrl(
   }
 }
 
+export function getOpenGraphImageUrl(value: string | null | undefined) {
+  const imageUrl = getSafeImageUrl(value);
+  if (imageUrl?.startsWith("https://")) return imageUrl;
+  return "/opengraph-image";
+}
+
+export function shouldUnoptimizeImage(value: string): boolean {
+  if (value.startsWith("data:")) return true;
+
+  try {
+    const url = new URL(value);
+    return url.hostname !== "images.unsplash.com" || url.protocol !== "https:";
+  } catch {
+    return true;
+  }
+}
+
 export function formatPrice(price: number | string): string {
   const amount = Number(price);
   if (!Number.isFinite(amount)) {
