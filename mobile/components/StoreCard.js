@@ -23,7 +23,7 @@ const styles = StyleSheet.create({
     backgroundColor: '#fff',
     borderRadius: 16,
     borderWidth: 1,
-    borderColor: '#E5EEF0',
+    borderColor: COLORS.border,
     marginBottom: 14,
     overflow: 'hidden',
     shadowColor: COLORS.shadow,
@@ -35,12 +35,12 @@ const styles = StyleSheet.create({
   storeImage: {
     width: '100%',
     height: 132,
-    backgroundColor: '#E9FAFD',
+    backgroundColor: COLORS.primaryLight,
   },
   storeImagePlaceholder: {
     width: '100%',
     height: 132,
-    backgroundColor: '#E9FAFD',
+    backgroundColor: COLORS.primaryLight,
   },
   storeName: {
     paddingHorizontal: 10,

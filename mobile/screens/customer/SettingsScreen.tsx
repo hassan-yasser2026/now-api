@@ -466,7 +466,7 @@ const styles = StyleSheet.create({
     paddingBottom: 32,
   },
   hero: {
-    backgroundColor: '#0B8FA3',
+    backgroundColor: COLORS.primary,
     borderRadius: 24,
     padding: 18,
     marginBottom: 22,

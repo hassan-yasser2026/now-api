@@ -10,7 +10,7 @@ const OPTIONS = [
     title: 'تسجيل دخول بائع',
     subtitle: 'إدارة متجرك ومنتجاتك',
     icon: 'storefront-outline',
-    color: '#0B8FA3',
+    color: COLORS.primary,
   },
   {
     role: 'delivery',

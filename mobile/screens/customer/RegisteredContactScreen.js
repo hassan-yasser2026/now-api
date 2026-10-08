@@ -1,6 +1,7 @@
 import React from 'react';
 import { Alert, Linking, SafeAreaView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import { COLORS } from '../../constants/colors';
 
 import useAppStore from '../../store/appStore';
 
@@ -24,14 +25,14 @@ const RegisteredContactScreen = () => {
     <SafeAreaView style={styles.container}>
       <View style={styles.card}>
         <View style={styles.icon}>
-          <Ionicons name="call-outline" size={34} color="#1684A0" />
+          <Ionicons name="call-outline" size={34} color={COLORS.primary} />
         </View>
         <Text style={styles.title}>رقم التواصل المسجل</Text>
         <Text style={styles.label}>رقم الهاتف المرتبط بحسابك</Text>
         <Text style={styles.phone}>{phone || 'غير متوفر'}</Text>
         {phone && (
           <TouchableOpacity style={styles.button} onPress={callContact}>
-            <Ionicons name="call" size={20} color="#fff" />
+            <Ionicons name="call" size={20} color={COLORS.white} />
             <Text style={styles.buttonText}>اتصال</Text>
           </TouchableOpacity>
         )}
@@ -41,10 +42,10 @@ const RegisteredContactScreen = () => {
 };
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#F4FBFC', padding: 20 },
+  container: { flex: 1, backgroundColor: COLORS.background, padding: 20 },
   card: {
     alignItems: 'center',
-    backgroundColor: '#fff',
+    backgroundColor: COLORS.surface,
     borderRadius: 20,
     padding: 28,
     marginTop: 36,
@@ -55,11 +56,11 @@ const styles = StyleSheet.create({
     borderRadius: 36,
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: '#E8FAFD',
+    backgroundColor: COLORS.primaryLight,
   },
-  title: { marginTop: 18, fontSize: 22, fontWeight: '800', color: '#111' },
-  label: { marginTop: 10, fontSize: 14, color: '#6B7280' },
-  phone: { marginTop: 10, fontSize: 22, fontWeight: '800', color: '#1684A0' },
+  title: { marginTop: 18, fontSize: 22, fontWeight: '800', color: COLORS.textPrimary },
+  label: { marginTop: 10, fontSize: 14, color: COLORS.secondaryText },
+  phone: { marginTop: 10, fontSize: 22, fontWeight: '800', color: COLORS.primary },
   button: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -68,9 +69,9 @@ const styles = StyleSheet.create({
     paddingHorizontal: 28,
     paddingVertical: 13,
     borderRadius: 12,
-    backgroundColor: '#1684A0',
+    backgroundColor: COLORS.primary,
   },
-  buttonText: { color: '#fff', fontSize: 16, fontWeight: '800' },
+  buttonText: { color: COLORS.white, fontSize: 16, fontWeight: '800' },
 });
 
 export default RegisteredContactScreen;

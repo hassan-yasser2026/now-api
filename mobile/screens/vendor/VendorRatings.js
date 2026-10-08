@@ -3,8 +3,9 @@ import { ActivityIndicator, FlatList, StyleSheet, Text, TouchableOpacity, View }
 import { useFocusEffect } from '@react-navigation/native';
 import { Ionicons } from '@expo/vector-icons';
 import api from '../../services/api';
+import { COLORS } from '../../constants/colors';
 
-const ACCENT = '#0B8FA3';
+const ACCENT = COLORS.primary;
 
 export default function VendorRatings({ navigation }) {
   const [data, setData] = useState({ ratings: [], average: 0, count: 0 });

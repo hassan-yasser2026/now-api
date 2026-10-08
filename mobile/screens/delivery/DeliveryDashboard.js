@@ -11,7 +11,6 @@ import {
   Alert,
   FlatList,
   Linking,
-  Platform,
   RefreshControl,
   StyleSheet,
   Text,
@@ -28,7 +27,6 @@ import { COLORS } from '../../constants/colors';
 import useAppStore from '../../store/appStore';
 import { authService } from '../../services/authService';
 import deliveryService from '../../services/deliveryService';
-import { CONFIG } from '../../constants/config';
 
 
 /* =========================================================
@@ -2792,7 +2790,7 @@ const styles = StyleSheet.create({
       'row-reverse',
     alignItems: 'center',
     backgroundColor:
-      '#F8FAFC',
+      COLORS.background,
     borderRadius: 10,
     paddingHorizontal: 9,
     paddingVertical: 7,
@@ -2853,7 +2851,7 @@ const styles = StyleSheet.create({
 
   itemsContainer: {
     backgroundColor:
-      '#F8FAFC',
+      COLORS.background,
     borderRadius: 13,
     padding: 12,
     marginBottom: 12,

@@ -18,6 +18,7 @@ import PasswordInput from '../../components/PasswordInput';
 import PhoneInput from '../../components/PhoneInput';
 import { authService } from '../../services/authService';
 import useAppStore from '../../store/appStore';
+import { COLORS } from '../../constants/colors';
 
 const AccountSettingsScreen = ({ navigation }) => {
   const user = useAppStore((state) => state.user);
@@ -118,11 +119,11 @@ const AccountSettingsScreen = ({ navigation }) => {
             <Image source={{ uri: profileImage }} style={styles.photo} />
           ) : (
             <View style={styles.photoPlaceholder}>
-              <Ionicons name="person-outline" size={42} color="#1684A0" />
+              <Ionicons name="person-outline" size={42} color={COLORS.primary} />
             </View>
           )}
           <View style={styles.cameraBadge}>
-            <Ionicons name="camera" size={17} color="#FFFFFF" />
+            <Ionicons name="camera" size={17} color={COLORS.textPrimary} />
           </View>
           <Text style={styles.photoLabel}>
             {profileImage ? 'تغيير الصورة الشخصية' : 'إضافة صورة شخصية'}
@@ -213,14 +214,14 @@ const AccountSettingsScreen = ({ navigation }) => {
 };
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#FFFFFF' },
+  container: { flex: 1, backgroundColor: COLORS.background },
   content: { paddingBottom: 30 },
   header: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
     padding: 16,
-    backgroundColor: '#0B8FA3',
+    backgroundColor: COLORS.primary,
   },
   backButton: { padding: 4 },
   spacer: { width: 32 },
@@ -233,13 +234,13 @@ const styles = StyleSheet.create({
     borderRadius: 58,
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: '#E8FAFD',
+    backgroundColor: COLORS.primaryLight,
   },
   cameraBadge: {
     width: 34,
     height: 34,
     borderRadius: 17,
-    backgroundColor: '#1684A0',
+    backgroundColor: COLORS.accent,
     alignItems: 'center',
     justifyContent: 'center',
     marginTop: -30,
@@ -247,27 +248,27 @@ const styles = StyleSheet.create({
     borderWidth: 3,
     borderColor: '#FFFFFF',
   },
-  photoLabel: { marginTop: 12, color: '#1684A0', fontSize: 15, fontWeight: '800' },
-  label: { color: '#172126', fontSize: 15, fontWeight: '800', textAlign: 'right', marginHorizontal: 18, marginTop: 12, marginBottom: 7 },
-  sectionTitle: { color: '#0B8FA3', fontSize: 19, fontWeight: '900', textAlign: 'right', marginHorizontal: 18, marginTop: 24, marginBottom: 2 },
+  photoLabel: { marginTop: 12, color: COLORS.primary, fontSize: 15, fontWeight: '800' },
+  label: { color: COLORS.textPrimary, fontSize: 15, fontWeight: '800', textAlign: 'right', marginHorizontal: 18, marginTop: 12, marginBottom: 7 },
+  sectionTitle: { color: COLORS.primary, fontSize: 19, fontWeight: '900', textAlign: 'right', marginHorizontal: 18, marginTop: 24, marginBottom: 2 },
   inputContainer: {
     minHeight: 56,
     marginHorizontal: 18,
     paddingHorizontal: 15,
     borderRadius: 15,
     borderWidth: 1,
-    borderColor: '#D8E7E9',
-    backgroundColor: '#F8FCFD',
+    borderColor: COLORS.border,
+    backgroundColor: COLORS.surface,
     flexDirection: 'row-reverse',
     alignItems: 'center',
     gap: 10,
   },
-  input: { flex: 1, color: '#172126', fontSize: 16, textAlign: 'right' },
+  input: { flex: 1, color: COLORS.textPrimary, fontSize: 16, textAlign: 'right' },
   saveButton: {
     minHeight: 56,
     margin: 24,
     borderRadius: 16,
-    backgroundColor: '#0B8FA3',
+    backgroundColor: COLORS.primary,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',

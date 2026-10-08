@@ -1,4 +1,4 @@
-﻿import React, { useCallback, useMemo, useState } from 'react';
+import React, { useCallback, useMemo, useState } from 'react';
 import {
   ActivityIndicator,
   FlatList,
@@ -15,7 +15,7 @@ import { useFocusEffect } from '@react-navigation/native';
 import { COLORS } from '../../constants/colors';
 import { orderService } from '../../services/orderService';
 
-const ACCENT = '#0B8FA3';
+const ACCENT = COLORS.primary;
 
 const statusMap = {
   ALL: { label: 'كل الطلبات', color: ACCENT },

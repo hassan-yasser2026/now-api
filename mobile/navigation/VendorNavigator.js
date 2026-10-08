@@ -1,4 +1,5 @@
 import React from 'react';
+import { useTheme } from '@react-navigation/native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 
 import VendorDashboard from '../screens/vendor/VendorDashboard';
@@ -22,6 +23,8 @@ import SupportScreen from '../screens/support/SupportScreen';
 const Stack = createNativeStackNavigator();
 
 const VendorNavigator = () => {
+  const { colors } = useTheme();
+
   return (
     <Stack.Navigator
       initialRouteName="VendorDashboard"
@@ -30,7 +33,7 @@ const VendorNavigator = () => {
         animation: 'slide_from_right',
         gestureEnabled: true,
         contentStyle: {
-          backgroundColor: '#FFFFFF',
+          backgroundColor: colors.background,
         },
       }}
     >

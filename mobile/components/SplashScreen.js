@@ -1,5 +1,6 @@
 import React from 'react';
 import { View, Text, Image, ActivityIndicator, StyleSheet } from 'react-native';
+import { COLORS } from '../constants/colors';
 
 export default function SplashScreen() {
   return (
@@ -12,7 +13,7 @@ export default function SplashScreen() {
       />
       <Text style={styles.brandAr}>چودي ستار</Text>
       <Text style={styles.brandEn}>Goody Star</Text>
-      <ActivityIndicator size="small" color="#126B57" style={styles.spinner} />
+      <ActivityIndicator size="small" color={COLORS.primary} style={styles.spinner} />
     </View>
   );
 }
@@ -20,7 +21,7 @@ export default function SplashScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#F8F7F2',
+    backgroundColor: COLORS.background,
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -30,13 +31,13 @@ const styles = StyleSheet.create({
     marginBottom: 12,
   },
   brandAr: {
-    color: '#126B57',
+    color: COLORS.primary,
     fontSize: 42,
     fontWeight: '900',
     textAlign: 'center',
   },
   brandEn: {
-    color: '#126B57',
+    color: COLORS.primary,
     fontSize: 20,
     fontWeight: '700',
     letterSpacing: 1.5,

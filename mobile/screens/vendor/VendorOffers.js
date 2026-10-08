@@ -1,7 +1,8 @@
 import React, { useCallback, useEffect, useState } from 'react';
 import { Alert, FlatList, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
+import { COLORS } from '../../constants/colors';
 import useAppStore from '../../store/appStore';
-import offerService from '../../services/offerService';
+import { offerService } from '../../services/offerService';
 
 const STATUS_LABELS = {
   PENDING_ADMIN_REVIEW: 'في انتظار مراجعة الإدارة',
@@ -90,20 +91,20 @@ export default function VendorOffers({ navigation }) {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#f5f7fa' },
-  header: { flexDirection: 'row-reverse', alignItems: 'center', justifyContent: 'space-between', padding: 16, backgroundColor: '#fff' },
-  back: { fontSize: 34, color: '#0b8fa3' },
-  title: { fontSize: 21, fontWeight: '800', color: '#172033' },
-  form: { padding: 16, backgroundColor: '#fff', marginBottom: 12 },
-  input: { borderWidth: 1, borderColor: '#dbe3ea', borderRadius: 10, padding: 12, marginBottom: 10, textAlign: 'right' },
-  button: { backgroundColor: '#0b8fa3', borderRadius: 10, padding: 14 },
-  buttonText: { color: '#fff', textAlign: 'center', fontWeight: '800' },
+  container: { flex: 1, backgroundColor: COLORS.background },
+  header: { flexDirection: 'row-reverse', alignItems: 'center', justifyContent: 'space-between', padding: 16, backgroundColor: COLORS.surface },
+  back: { fontSize: 34, color: COLORS.primary },
+  title: { fontSize: 21, fontWeight: '800', color: COLORS.textPrimary },
+  form: { padding: 16, backgroundColor: COLORS.surface, marginBottom: 12 },
+  input: { borderWidth: 1, borderColor: COLORS.border, borderRadius: 10, padding: 12, marginBottom: 10, textAlign: 'right', color: COLORS.textPrimary },
+  button: { backgroundColor: COLORS.primary, borderRadius: 10, padding: 14 },
+  buttonText: { color: COLORS.white, textAlign: 'center', fontWeight: '800' },
   list: { padding: 16 },
-  card: { backgroundColor: '#fff', borderRadius: 12, padding: 14, marginBottom: 10 },
+  card: { backgroundColor: COLORS.surface, borderRadius: 12, padding: 14, marginBottom: 10 },
   cardTitle: { fontSize: 17, fontWeight: '800', textAlign: 'right' },
-  cardText: { color: '#0b8fa3', textAlign: 'right', marginTop: 4 },
-  status: { color: '#6b7280', textAlign: 'right', marginTop: 6 },
+  cardText: { color: COLORS.primary, textAlign: 'right', marginTop: 4 },
+  status: { color: COLORS.secondaryText, textAlign: 'right', marginTop: 6 },
   reason: { color: '#c62828', textAlign: 'right', marginTop: 4 },
-  empty: { textAlign: 'center', color: '#6b7280', marginTop: 30 },
+  empty: { textAlign: 'center', color: COLORS.secondaryText, marginTop: 30 },
 });
 // مسودة المشروع - البشمهندس حسن ياسر

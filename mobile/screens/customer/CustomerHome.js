@@ -19,14 +19,14 @@ import { useFocusEffect } from '@react-navigation/native';
 import { COLORS } from '../../constants/colors';
 import useAppStore from '../../store/appStore';
 
-import storeService from '../../services/storeService';
+import { storeService } from '../../services/storeService';
 
 import Loading from '../../components/Loading';
 import LocationPickerModal from '../../components/LocationPickerModal';
 import { formatPrice } from '../../utils/formatters';
 
-const HOME_ACCENT = '#0B8FA3';
-const HOME_DARK = '#151515';
+const HOME_ACCENT = COLORS.primary;
+const HOME_DARK = COLORS.textPrimary;
 
 const CustomerHome = ({ navigation }) => {
   const {
@@ -319,8 +319,8 @@ const CustomerHome = ({ navigation }) => {
         </View>
         <View style={styles.brandLogo}>
           <Text style={styles.brandLogoText}>
-            <Text style={styles.logoRed}>N</Text>
-            <Text style={styles.logoDark}>OW</Text>
+            <Text style={styles.logoRed}>GS</Text>
+            <Text style={styles.logoDark}> ★</Text>
           </Text>
         </View>
         <LocationPickerModal
@@ -511,7 +511,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     position: 'relative',
     elevation: 4,
-    shadowColor: '#007A91',
+    shadowColor: COLORS.primary,
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.2,
     shadowRadius: 8,
@@ -549,9 +549,9 @@ const styles = StyleSheet.create({
     marginBottom: 4,
     padding: 15,
     borderRadius: 18,
-    backgroundColor: '#E9FAFD',
+    backgroundColor: COLORS.primaryLight,
     borderWidth: 1,
-    borderColor: '#B7EEF5',
+    borderColor: COLORS.border,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
@@ -593,7 +593,7 @@ const styles = StyleSheet.create({
     borderRadius: 14,
     backgroundColor: COLORS.surface,
     borderWidth: 1,
-    borderColor: '#D7D7D7',
+    borderColor: COLORS.border,
   },
   locationText: {
     marginHorizontal: 8,
@@ -626,7 +626,7 @@ const styles = StyleSheet.create({
     borderRadius: 14,
     backgroundColor: COLORS.surface,
     borderWidth: 1,
-    borderColor: '#D7EEF1',
+    borderColor: COLORS.border,
   },
   deliveryOptionText: {
     flex: 1,
@@ -802,7 +802,7 @@ const styles = StyleSheet.create({
     width: 34,
     height: 34,
     borderRadius: 17,
-    backgroundColor: '#E2F9FD',
+    backgroundColor: COLORS.primaryLight,
     alignItems: 'center',
     justifyContent: 'center',
     marginBottom: 8,
@@ -840,7 +840,7 @@ const styles = StyleSheet.create({
     width: 36,
     height: 36,
     borderRadius: 18,
-    backgroundColor: '#E2F9FD',
+    backgroundColor: COLORS.primaryLight,
     alignItems: 'center',
     justifyContent: 'center',
     marginBottom: 8,
@@ -872,10 +872,10 @@ const styles = StyleSheet.create({
     borderRadius: 18,
     backgroundColor: '#FFFFFF',
     borderWidth: 1,
-    borderColor: '#D7EEF1',
+    borderColor: COLORS.border,
     overflow: 'hidden',
     elevation: 2,
-    shadowColor: '#0B8FA3',
+    shadowColor: COLORS.primary,
     shadowOffset: { width: 0, height: 3 },
     shadowOpacity: 0.1,
     shadowRadius: 7,
@@ -883,7 +883,7 @@ const styles = StyleSheet.create({
   productImage: {
     width: '100%',
     aspectRatio: 1,
-    backgroundColor: '#E9FAFD',
+    backgroundColor: COLORS.primaryLight,
   },
   productImageFrame: {
     position: 'relative',
@@ -994,7 +994,7 @@ const styles = StyleSheet.create({
     width: 36,
     height: 36,
     borderRadius: 18,
-    backgroundColor: '#E2F9FD',
+    backgroundColor: COLORS.primaryLight,
     justifyContent: 'center',
     alignItems: 'center',
     marginRight: 9,
@@ -1042,7 +1042,7 @@ const styles = StyleSheet.create({
     backgroundColor: COLORS.surface,
     borderRadius: 22,
     borderWidth: 1,
-    borderColor: '#D9D9D9',
+    borderColor: COLORS.border,
     elevation: 10,
     shadowColor: '#6B2148',
     shadowOffset: { width: 0, height: 6 },

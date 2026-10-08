@@ -19,7 +19,7 @@ import {
 
 import { Ionicons } from '@expo/vector-icons';
 
-import { COLORS as BASE_COLORS } from '../../constants/colors';
+import { COLORS } from '../../constants/colors';
 import useAppStore from '../../store/appStore';
 import { storeService } from '../../services/storeService';
 import PrimaryButton from '../../components/PrimaryButton';
@@ -28,13 +28,6 @@ const MAX_NAME_LENGTH = 80;
 const MAX_DESCRIPTION_LENGTH = 500;
 const MIN_PRICE = 0.01;
 const MAX_PRICE = 1000000;
-
-const COLORS = {
-  ...BASE_COLORS,
-  primary: '#10C7E8',
-  primaryDark: '#0891B2',
-  primaryLight: '#CFFAFE',
-};
 
 const AddMenuItem = ({ navigation, route }) => {
   const { user } = useAppStore();
@@ -748,8 +741,7 @@ const styles = StyleSheet.create({
     borderRadius: 13,
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor:
-      COLORS.surface || '#F8FAFC',
+    backgroundColor: COLORS.surface,
   },
 
   disabledButton: {
@@ -829,8 +821,7 @@ const styles = StyleSheet.create({
     borderWidth: 1.5,
     borderStyle: 'dashed',
     borderColor: COLORS.border,
-    backgroundColor:
-      COLORS.surface || '#F8FAFC',
+    backgroundColor: COLORS.surface,
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -839,7 +830,7 @@ const styles = StyleSheet.create({
     width: 64,
     height: 64,
     borderRadius: 20,
-    backgroundColor: '#CFFAFE',
+    backgroundColor: COLORS.primaryLight,
     alignItems: 'center',
     justifyContent: 'center',
     marginBottom: 10,

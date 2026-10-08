@@ -1,4 +1,4 @@
-﻿import React, { useState, useEffect, useMemo, useCallback } from 'react';
+import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import {
   View,
   Text,
@@ -248,7 +248,7 @@ const styles = StyleSheet.create({
   categoryText: { fontSize: 12, color: COLORS.textSecondary, marginTop: 2 },
   favoriteBtn: { width: 32, height: 32, borderRadius: 16, backgroundColor: '#fff5f7', alignItems: 'center', justifyContent: 'center' },
   metaRow: { flexDirection: 'row', alignItems: 'center', flexWrap: 'wrap', gap: 8, marginBottom: 10 },
-  metaPill: { flexDirection: 'row', alignItems: 'center', backgroundColor: '#F8FAFC', borderRadius: 999, paddingHorizontal: 8, paddingVertical: 5, gap: 4 },
+  metaPill: { flexDirection: 'row', alignItems: 'center', backgroundColor: COLORS.background, borderRadius: 999, paddingHorizontal: 8, paddingVertical: 5, gap: 4 },
   metaText: { fontSize: 11, fontWeight: '700', color: COLORS.textSecondary },
   footerRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
   statusText: { fontSize: 12, fontWeight: '800' },

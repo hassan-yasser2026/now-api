@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { Alert, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
 import { authService } from '../../services/authService';
+import { COLORS } from '../../constants/colors';
 
 const VerifyPhoneScreen = ({ navigation, route }) => {
   const phone = route?.params?.phone;
@@ -52,14 +53,14 @@ const VerifyPhoneScreen = ({ navigation, route }) => {
 };
 
 const styles = StyleSheet.create({
-  container: { flex: 1, justifyContent: 'center', padding: 24, backgroundColor: '#f8fafc' },
-  title: { fontSize: 26, fontWeight: '900', textAlign: 'center', color: '#15345b' },
-  subtitle: { marginTop: 10, marginBottom: 24, textAlign: 'center', color: '#64748b' },
-  input: { backgroundColor: '#fff', borderWidth: 1, borderColor: '#dbe5ee', borderRadius: 14, padding: 16, fontSize: 24, letterSpacing: 8, textAlign: 'center' },
-  primary: { marginTop: 18, padding: 15, borderRadius: 13, backgroundColor: '#079bb9', alignItems: 'center' },
-  primaryText: { color: '#fff', fontWeight: '900' },
+  container: { flex: 1, justifyContent: 'center', padding: 24, backgroundColor: COLORS.background },
+  title: { fontSize: 26, fontWeight: '900', textAlign: 'center', color: COLORS.textPrimary },
+  subtitle: { marginTop: 10, marginBottom: 24, textAlign: 'center', color: COLORS.secondaryText },
+  input: { backgroundColor: COLORS.surface, borderWidth: 1, borderColor: COLORS.border, borderRadius: 14, padding: 16, fontSize: 24, letterSpacing: 8, textAlign: 'center', color: COLORS.textPrimary },
+  primary: { marginTop: 18, padding: 15, borderRadius: 13, backgroundColor: COLORS.primary, alignItems: 'center' },
+  primaryText: { color: COLORS.white, fontWeight: '900' },
   secondary: { padding: 15, alignItems: 'center' },
-  secondaryText: { color: '#079bb9', fontWeight: '800' },
+  secondaryText: { color: COLORS.primary, fontWeight: '800' },
 });
 
 export default VerifyPhoneScreen;

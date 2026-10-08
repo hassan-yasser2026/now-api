@@ -10,11 +10,12 @@ import {
   View,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import { COLORS } from '../../constants/colors';
 
 import { authService } from '../../services/authService';
 import useAppStore from '../../store/appStore';
 
-const PROFILE_ACCENT = '#9BEAF5';
+const PROFILE_ACCENT = COLORS.primaryLight;
 
 const CustomerProfile = ({ navigation }) => {
   const user = useAppStore((state) => state.user);
@@ -91,8 +92,8 @@ const CustomerProfile = ({ navigation }) => {
       <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.content}>
         <View style={styles.hero}>
           <Text style={styles.logo}>
-            <Text style={styles.logoNow}>N</Text>
-            <Text style={styles.logoRest}>OW</Text>
+            <Text style={styles.logoBrand}>GS</Text>
+            <Text style={styles.logoStar}> ★</Text>
           </Text>
         </View>
 
@@ -116,13 +117,13 @@ const CustomerProfile = ({ navigation }) => {
               activeOpacity={0.75}
             >
               <View style={styles.menuIcon}>
-                <Ionicons name={item.icon} size={31} color="#1684A0" />
+                <Ionicons name={item.icon} size={31} color={COLORS.primary} />
               </View>
               <View style={styles.menuTextWrap}>
                 <Text style={styles.menuLabel}>{item.label}</Text>
                 {item.value ? <Text style={styles.menuValue}>{item.value}</Text> : null}
               </View>
-              <Ionicons name="chevron-back" size={21} color="#8AA4AA" />
+              <Ionicons name="chevron-back" size={21} color={COLORS.secondaryText} />
             </TouchableOpacity>
           ))}
         </View>
@@ -133,7 +134,7 @@ const CustomerProfile = ({ navigation }) => {
         </TouchableOpacity>
 
         <TouchableOpacity style={styles.logoutButton} onPress={handleLogout}>
-          <Ionicons name="log-out-outline" size={20} color="#1684A0" />
+          <Ionicons name="log-out-outline" size={20} color={COLORS.primary} />
           <Text style={styles.logoutText}>تسجيل الخروج</Text>
         </TouchableOpacity>
       </ScrollView>
@@ -142,7 +143,7 @@ const CustomerProfile = ({ navigation }) => {
 };
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#FFFFFF' },
+  container: { flex: 1, backgroundColor: COLORS.background },
   content: { paddingBottom: 18 },
   hero: {
     height: 182,
@@ -152,8 +153,8 @@ const styles = StyleSheet.create({
     paddingTop: 22,
   },
   logo: { fontSize: 58, fontWeight: '900', letterSpacing: -6 },
-  logoNow: { color: '#050505' },
-  logoRest: { color: '#D9283E' },
+  logoBrand: { color: COLORS.primary },
+  logoStar: { color: COLORS.accent },
   profileSection: {
     alignItems: 'center',
     marginTop: -58,
@@ -164,7 +165,7 @@ const styles = StyleSheet.create({
     width: 156,
     height: 156,
     borderRadius: 78,
-    backgroundColor: '#DDF8FC',
+    backgroundColor: COLORS.primaryLight,
     borderWidth: 5,
     borderColor: '#FFFFFF',
     alignItems: 'center',
@@ -172,9 +173,9 @@ const styles = StyleSheet.create({
     overflow: 'hidden',
   },
   avatarImage: { width: '100%', height: '100%' },
-  avatarText: { fontSize: 62, fontWeight: '900', color: '#1684A0' },
+  avatarText: { fontSize: 62, fontWeight: '900', color: COLORS.primary },
   userName: {
-    color: '#050505',
+    color: COLORS.textPrimary,
     fontSize: 28,
     fontWeight: '900',
     marginTop: 5,
@@ -203,11 +204,11 @@ const styles = StyleSheet.create({
     marginTop: 12,
     paddingVertical: 13,
     borderRadius: 13,
-    backgroundColor: '#F2FCFD',
+    backgroundColor: COLORS.primaryLight,
     borderWidth: 1,
-    borderColor: '#1684A0',
+    borderColor: COLORS.primary,
   },
-  logoutText: { color: '#1684A0', fontSize: 15, fontWeight: '800' },
+  logoutText: { color: COLORS.primary, fontSize: 15, fontWeight: '800' },
   menu: { paddingHorizontal: 18, marginTop: 4 },
   menuItem: {
     minHeight: 82,
@@ -216,18 +217,18 @@ const styles = StyleSheet.create({
     gap: 13,
     paddingVertical: 9,
   },
-  menuDivider: { borderBottomWidth: 1, borderBottomColor: '#F0F4F5' },
+  menuDivider: { borderBottomWidth: 1, borderBottomColor: COLORS.border },
   menuIcon: {
     width: 58,
     height: 58,
     borderRadius: 18,
-    backgroundColor: '#E8FAFD',
+    backgroundColor: COLORS.primaryLight,
     alignItems: 'center',
     justifyContent: 'center',
   },
   menuTextWrap: { flex: 1, alignItems: 'flex-end' },
-  menuLabel: { color: '#050505', fontSize: 20, fontWeight: '900', textAlign: 'right' },
-  menuValue: { color: '#6C858B', fontSize: 14, marginTop: 2 },
+  menuLabel: { color: COLORS.textPrimary, fontSize: 20, fontWeight: '900', textAlign: 'right' },
+  menuValue: { color: COLORS.secondaryText, fontSize: 14, marginTop: 2 },
 });
 
 export default CustomerProfile;

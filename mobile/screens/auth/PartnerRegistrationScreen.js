@@ -25,7 +25,7 @@ const PARTNER_ROLES = {
     title: 'بائع چودي ستار',
     subtitle: 'سجّل متجرك واعرض منتجاتك للعملاء',
     icon: 'storefront-outline',
-    color: '#0B8FA3',
+    color: COLORS.primary,
   },
   delivery: {
     title: 'مندوب چودي ستار',
@@ -197,7 +197,7 @@ const PartnerRegistrationScreen = ({ navigation, route }) => {
           <Ionicons name="arrow-forward" size={24} color={COLORS.textPrimary} />
         </TouchableOpacity>
         <Text style={styles.logo}>
-          <Text style={styles.logoAccent}>N</Text>OW
+          GS <Text style={styles.logoAccent}>★</Text>
         </Text>
         <View style={styles.headerSpacer} />
       </View>
@@ -451,8 +451,8 @@ const styles = StyleSheet.create({
   },
   backButton: { padding: 6 },
   headerSpacer: { width: 36 },
-  logo: { fontSize: 34, fontWeight: '900', color: '#111827' },
-  logoAccent: { color: '#E11D48' },
+  logo: { fontSize: 34, fontWeight: '900', color: COLORS.primary },
+  logoAccent: { color: COLORS.accent },
   contentScroll: { flex: 1 },
   content: { flexGrow: 1, padding: 20, paddingBottom: 110 },
   title: {

@@ -171,7 +171,7 @@ const styles = StyleSheet.create({
   storeName: { fontSize: 17, fontWeight: '800', color: COLORS.textPrimary },
   metaText: { fontSize: 12, color: COLORS.textSecondary, marginTop: 4 },
   metaRow: { flexDirection: 'row', gap: 8, marginTop: 8 },
-  metaChip: { fontSize: 11, color: COLORS.textSecondary, backgroundColor: '#F8FAFC', borderRadius: 999, paddingHorizontal: 8, paddingVertical: 4, overflow: 'hidden' },
+  metaChip: { fontSize: 11, color: COLORS.textSecondary, backgroundColor: COLORS.background, borderRadius: 999, paddingHorizontal: 8, paddingVertical: 4, overflow: 'hidden' },
   favoriteBtn: { width: 34, height: 34, borderRadius: 17, backgroundColor: '#fff5f7', alignItems: 'center', justifyContent: 'center' },
   emptyState: { flex: 1, justifyContent: 'center', alignItems: 'center', paddingHorizontal: 24 },
   emptyText: { fontSize: 18, fontWeight: '700', color: COLORS.textSecondary, marginTop: 16 },

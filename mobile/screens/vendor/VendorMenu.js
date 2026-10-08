@@ -19,18 +19,11 @@ import {
 } from 'react-native';
 
 import { Ionicons } from '@expo/vector-icons';
-import { COLORS as BASE_COLORS } from '../../constants/colors';
+import { COLORS } from '../../constants/colors';
 import useAppStore from '../../store/appStore';
 import { storeService } from '../../services/storeService';
 import Loading from '../../components/Loading';
 import EmptyState from '../../components/EmptyState';
-
-const COLORS = {
-  ...BASE_COLORS,
-  primary: '#10C7E8',
-  primaryDark: '#0891B2',
-  primaryLight: '#CFFAFE',
-};
 
 const REJECTION_REASON_LABELS = {
   INVALID_INFORMATION: 'بيانات غير صحيحة',

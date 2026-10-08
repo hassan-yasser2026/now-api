@@ -21,7 +21,7 @@ import * as Localization from 'expo-localization';
 
 import RootNavigator from './navigation/RootNavigator';
 import useAppStore from './store/appStore';
-import installGlobalTranslation from './utils/globalTranslation';
+import { installGlobalTranslation } from './utils/globalTranslation';
 
 import {
   lightTheme,
@@ -101,6 +101,7 @@ export default function App() {
         <NavigationContainer key={`nav-${language}-${authMode}`} theme={theme}>
           <StatusBar
             style={isDark ? 'light' : 'dark'}
+            backgroundColor={theme.colors.background}
           />
 
           <RootNavigator />

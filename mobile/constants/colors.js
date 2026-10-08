@@ -1,36 +1,35 @@
-// constants/colors.ts
-// لوحة الألوان الرسمية لتطبيق NOW – متوافقة مع PRD v3.0
+// لوحة ألوان چودي ستار
 
 export const COLORS = {
-  // الأساسية
-  primary: '#06B6D4',
-  primaryDark: '#0E7490',
-  secondary: '#0891B2',
+  // Brand
+  primary: '#126B57',
+  primaryDark: '#0E5546',
+  secondary: '#F4B942',
+  accent: '#F4B942',
   white: '#FFFFFF',
 
-  // الخلفيات والأسطح
-  background: '#F8FAFC',
+  // Surfaces
+  background: '#F8F7F2',
   surface: '#FFFFFF',
 
-  // النصوص
-  text: '#111827',
-  textPrimary: '#111827',
-  secondaryText: '#6B7280',
-  textSecondary: '#6B7280',
-  inactive: '#9CA3AF',
+  // Text
+  text: '#18332D',
+  textPrimary: '#18332D',
+  secondaryText: '#52635D',
+  textSecondary: '#52635D',
+  inactive: '#718078',
 
-  // الحالات
+  // Status
   success: '#16A34A',
   error: '#DC2626',
   warning: '#F59E0B',
 
-  // حدود
-  border: '#E5E7EB',
+  // Borders and supporting colors
+  border: '#E2E5DC',
 
-  // ألوان إضافية يمكن استخدامها
-  primaryLight: '#CFFAFE',
-  secondaryLight: '#E0F2FE',
-  textLight: '#94A3B8',
+  primaryLight: '#E7F1ED',
+  secondaryLight: '#FFF4D6',
+  textLight: '#66766F',
   shadow: 'rgba(0,0,0,0.05)',
 };
 

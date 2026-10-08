@@ -1,5 +1,6 @@
 import React from 'react';
 import { TouchableOpacity, Text, StyleSheet } from 'react-native';
+import { COLORS } from '../constants/colors';
 
 export default function AIAssistantButton({ onPress }) {
   return (
@@ -19,8 +20,8 @@ const styles = StyleSheet.create({
     borderRadius: 30,
     justifyContent: 'center',
     alignItems: 'center',
-    backgroundColor: '#06B6D4',
-    shadowColor: '#06B6D4',
+    backgroundColor: COLORS.primary,
+    shadowColor: COLORS.primary,
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.35,
     shadowRadius: 8,

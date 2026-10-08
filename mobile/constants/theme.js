@@ -1,6 +1,5 @@
 // ==========================================
-// NOW Theme Colors
-// متوافقة مع PRD v3.0
+// Goody Star navigation themes
 // ==========================================
 
 const baseFonts = {
@@ -22,30 +21,30 @@ export const lightTheme = {
   dark: false,
   fonts: baseFonts,
   colors: {
-    // الألوان الأساسية
-    primary: '#06B6D4',
-    secondary: '#0891B2',
+    primary: '#126B57',
+    secondary: '#F4B942',
+    accent: '#F4B942',
 
     // الخلفيات والأسطح
-    background: '#F8FAFC',
+    background: '#F8F7F2',
     surface: '#FFFFFF',
 
     // النصوص
-    text: '#111827',
-    secondaryText: '#6B7280',
+    text: '#18332D',
+    secondaryText: '#52635D',
 
     // الحالات
     success: '#16A34A',
     error: '#DC2626',
     warning: '#F59E0B',
-    inactive: '#9CA3AF',
+    inactive: '#718078',
 
     // الحدود
-    border: '#E5E7EB',
+    border: '#E2E5DC',
 
     // ألوان إضافية لـ NavigationContainer
     card: '#FFFFFF',
-    notification: '#06B6D4',
+    notification: '#F4B942',
   },
 };
 
@@ -53,9 +52,10 @@ export const darkTheme = {
   dark: true,
   fonts: baseFonts,
   colors: {
-    // الألوان الأساسية (نفسها في الوضع الداكن)
-    primary: '#06B6D4',
-    secondary: '#0891B2',
+    // لون أخضر أفتح يحافظ على وضوح عناصر التنقل على الخلفية الداكنة.
+    primary: '#4CB59A',
+    secondary: '#F4B942',
+    accent: '#F4B942',
 
     // الخلفيات والأسطح (داكنة)
     background: '#111827',
@@ -63,20 +63,20 @@ export const darkTheme = {
 
     // النصوص
     text: '#F9FAFB',
-    secondaryText: '#9CA3AF',
+    secondaryText: '#B8C4BE',
 
     // الحالات (ممكن نفتحها قليلاً للوضوح)
     success: '#22C55E',
     error: '#EF4444',
     warning: '#FBBF24',
-    inactive: '#6B7280',
+    inactive: '#9CA3AF',
 
     // الحدود
     border: '#374151',
 
     // ألوان إضافية لـ NavigationContainer
     card: '#1F2937',
-    notification: '#06B6D4',
+    notification: '#F4B942',
   },
 };
 // مسودة المشروع - البشمهندس حسن ياسر

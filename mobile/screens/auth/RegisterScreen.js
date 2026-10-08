@@ -287,13 +287,13 @@ const RegisterScreen = ({ navigation, route }) => {
             disabled={loading}
             style={styles.backButton}
           >
-            <Ionicons name="arrow-forward" size={24} color="#111827" />
+            <Ionicons name="arrow-forward" size={24} color={COLORS.textPrimary} />
           </TouchableOpacity>
 
           <View style={styles.headerContent}>
             <Text style={styles.logoText}>
-              <Text style={styles.logoNow}>N</Text>
-              <Text style={styles.logoBlack}>OW</Text>
+              <Text style={styles.logoBrand}>GS</Text>
+              <Text style={styles.logoStar}> ★</Text>
             </Text>
           </View>
         </View>
@@ -782,13 +782,8 @@ const styles = StyleSheet.create({
     marginBottom: 12,
   },
 
-  logoNow: {
-    color: '#E51B2B',
-  },
-
-  logoBlack: {
-    color: '#0E1114',
-  },
+  logoBrand: { color: COLORS.primary },
+  logoStar: { color: COLORS.accent },
 
   // ========================================
   // FORM

@@ -130,7 +130,7 @@ const AboutScreen = ({ navigation }) => {
     <View style={styles.container}>
       {/* Header */}
       <LinearGradient
-        colors={[COLORS.primary, COLORS.secondary]}
+        colors={[COLORS.primary, COLORS.primaryDark]}
         style={styles.header}
       >
         <TouchableOpacity
@@ -164,7 +164,7 @@ const AboutScreen = ({ navigation }) => {
         <View style={styles.appIdentity}>
           <View style={styles.logoWrapper}>
             <LinearGradient
-              colors={[COLORS.primary, COLORS.secondary]}
+              colors={[COLORS.primary, COLORS.primaryDark]}
               style={styles.logo}
             >
               <Ionicons

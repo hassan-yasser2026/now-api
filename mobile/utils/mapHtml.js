@@ -8,9 +8,11 @@
  * In picker mode a tap moves the pin and posts { type: 'pick', lat, lng }.
  */
 
+import { COLORS } from '../constants/colors';
+
 const MARKER_COLORS = {
-  primary: '#0B8FA3',
-  cyan: '#00A6B8',
+  primary: COLORS.primary,
+  cyan: COLORS.accent,
   success: '#16A34A',
   blue: '#2563EB',
 };

@@ -189,7 +189,7 @@ const LoginScreen = ({ navigation, route }) => {
         <LinearGradient
           colors={[
             COLORS.primary,
-            COLORS.secondary,
+            COLORS.primaryDark,
           ]}
           start={{ x: 0, y: 0 }}
           end={{ x: 1, y: 1 }}
@@ -585,7 +585,7 @@ const styles = StyleSheet.create({
     alignSelf: 'center',
     width: 150,
     height: 58,
-    shadowColor: '#06B6D4',
+    shadowColor: COLORS.primary,
     shadowOffset: { width: 0, height: 8 },
     shadowOpacity: 0.28,
     shadowRadius: 12,

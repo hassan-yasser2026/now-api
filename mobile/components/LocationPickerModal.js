@@ -17,7 +17,7 @@ import { DEFAULT_CENTER } from '../utils/mapHtml';
 import LocationMap from './LocationMap';
 import useAppStore from '../store/appStore';
 import { getCurrentLocation } from '../utils/location';
-const MAP_ACCENT = '#00A6B8';
+const MAP_ACCENT = COLORS.primary;
 
 /**
  * Full-screen map picker used for the vendor store location and customer
@@ -330,7 +330,7 @@ const styles = StyleSheet.create({
   },
   scheduleButtonActive: {
     borderColor: MAP_ACCENT,
-    backgroundColor: '#E8FBFD',
+    backgroundColor: COLORS.secondaryLight,
   },
   scheduleButtonLabel: {
     color: COLORS.textPrimary,

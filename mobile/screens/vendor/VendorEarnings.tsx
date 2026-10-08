@@ -99,15 +99,15 @@ const VendorEarnings: React.FC = () => {
     <SafeAreaView style={styles.container}>
       <View style={styles.header}>
         <View style={styles.logo}>
-          <Text style={styles.logoRed}>N</Text>
-          <Text style={styles.logoBlack}>OW</Text>
+          <Text style={styles.logoRed}>GS</Text>
+          <Text style={styles.logoBlack}> ★</Text>
         </View>
         <Text style={styles.headerTitle}>إيرادات المتجر</Text>
         <TouchableOpacity
           style={styles.logoutButton}
           onPress={() => navigation.goBack()}
         >
-          <Ionicons name="arrow-forward-outline" size={18} color="#D92838" />
+          <Ionicons name="arrow-forward-outline" size={18} color={COLORS.primary} />
           <Text style={styles.logoutText}>خروج من اللوحة</Text>
         </TouchableOpacity>
       </View>
@@ -176,13 +176,13 @@ const VendorEarnings: React.FC = () => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#EEEEEE',
+    backgroundColor: COLORS.background,
   },
   header: {
     height: 148,
-    backgroundColor: '#10C7E8',
+    backgroundColor: COLORS.primary,
     borderBottomWidth: 7,
-    borderBottomColor: '#FFFFFF',
+    borderBottomColor: COLORS.primaryDark,
     alignItems: 'center',
     justifyContent: 'center',
     paddingHorizontal: 16,
@@ -193,13 +193,13 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   logoRed: {
-    color: '#D92838',
+    color: COLORS.white,
     fontSize: 58,
     fontWeight: '900',
     letterSpacing: -7,
   },
   logoBlack: {
-    color: '#050505',
+    color: COLORS.accent,
     fontSize: 58,
     fontWeight: '900',
     letterSpacing: -7,
@@ -208,7 +208,7 @@ const styles = StyleSheet.create({
     marginTop: 2,
     fontSize: 20,
     fontWeight: '800',
-    color: '#050505',
+    color: COLORS.white,
   },
   logoutButton: {
     position: 'absolute',
@@ -217,19 +217,19 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 6,
-    backgroundColor: '#FFFFFF',
+    backgroundColor: COLORS.surface,
     borderRadius: 5,
     paddingHorizontal: 12,
     paddingVertical: 8,
   },
   logoutText: {
-    color: '#D92838',
+    color: COLORS.primary,
     fontSize: 13,
     fontWeight: '800',
   },
   periodSelector: {
     flexDirection: 'row',
-    backgroundColor: '#FFFFFF',
+    backgroundColor: COLORS.surface,
     borderRadius: 4,
     padding: 5,
     margin: 16,
@@ -242,7 +242,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   periodButtonActive: {
-    backgroundColor: '#10C7E8',
+    backgroundColor: COLORS.primary,
   },
   periodText: {
     fontSize: 14,
@@ -250,7 +250,7 @@ const styles = StyleSheet.create({
     color: COLORS.secondaryText,
   },
   periodTextActive: {
-    color: '#FFFFFF',
+    color: COLORS.white,
   },
   center: {
     flex: 1,
@@ -271,7 +271,7 @@ const styles = StyleSheet.create({
     borderRadius: 8,
   },
   retryText: {
-    color: '#FFFFFF',
+    color: COLORS.white,
     fontWeight: '700',
   },
   summaryRow: {
@@ -282,11 +282,11 @@ const styles = StyleSheet.create({
   },
   summaryCard: {
     flex: 1,
-    backgroundColor: '#FFFFFF',
+    backgroundColor: COLORS.surface,
     borderRadius: 4,
     padding: 16,
     borderTopWidth: 5,
-    borderTopColor: '#10C7E8',
+    borderTopColor: COLORS.primary,
   },
   summaryLabel: {
     fontSize: 14,
@@ -310,12 +310,12 @@ const styles = StyleSheet.create({
     paddingBottom: 20,
   },
   itemCard: {
-    backgroundColor: '#FFFFFF',
+    backgroundColor: COLORS.surface,
     borderRadius: 4,
     padding: 16,
     marginBottom: 8,
     borderRightWidth: 5,
-    borderRightColor: '#10C7E8',
+    borderRightColor: COLORS.primary,
   },
   itemHeader: {
     flexDirection: 'row',

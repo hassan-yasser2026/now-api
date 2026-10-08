@@ -1,4 +1,5 @@
 import React from 'react';
+import { useTheme } from '@react-navigation/native';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { Ionicons } from '@expo/vector-icons';
@@ -24,63 +25,75 @@ import CustomerNotifications from '../screens/customer/CustomerNotifications';
 const Tab = createBottomTabNavigator();
 const Stack = createNativeStackNavigator();
 
-const CustomerTabs = () => (
-  <Tab.Navigator
-    screenOptions={{
-      headerShown: false,
-      tabBarStyle: { height: 68, paddingBottom: 8, paddingTop: 8 },
-    }}
-  >
-    <Tab.Screen
-      name="CustomerHome"
-      component={CustomerHome}
-      options={{
-        tabBarLabel: 'الرئيسية',
-        tabBarIcon: ({ color, size }) => <Ionicons name="home-outline" size={size} color={color} />,
+const CustomerTabs = () => {
+  const { colors } = useTheme();
+
+  return (
+    <Tab.Navigator
+      screenOptions={{
+        headerShown: false,
+        tabBarActiveTintColor: colors.primary,
+        tabBarInactiveTintColor: colors.secondaryText,
+        tabBarStyle: {
+          height: 68,
+          paddingBottom: 8,
+          paddingTop: 8,
+          backgroundColor: colors.card,
+          borderTopColor: colors.border,
+        },
       }}
-    />
-    <Tab.Screen
-      name="Orders"
-      component={OrdersScreen}
-      options={{
-        tabBarLabel: 'الطلبات',
-        tabBarIcon: ({ color, size }) => <Ionicons name="receipt-outline" size={size} color={color} />,
-      }}
-    />
-    <Tab.Screen
-      name="Favorites"
-      component={FavoritesScreen}
-      options={{
-        tabBarLabel: 'المفضلة',
-        tabBarIcon: ({ color, size }) => <Ionicons name="heart-outline" size={size} color={color} />,
-      }}
-    />
-    <Tab.Screen
-      name="RegisteredContact"
-      component={RegisteredContactScreen}
-      options={{
-        tabBarLabel: 'رقم التواصل',
-        tabBarIcon: ({ color, size }) => <Ionicons name="call-outline" size={size} color={color} />,
-      }}
-    />
-    <Tab.Screen
-      name="CustomerProfile"
-      component={CustomerProfile}
-      options={{
-        tabBarLabel: 'حسابي',
-        tabBarIcon: ({ color, size }) => <Ionicons name="person-outline" size={size} color={color} />,
-      }}
-    />
-    <Tab.Screen
-      name="About"
-      component={AboutScreen}
-      options={{
-        tabBarLabel: 'حول التطبيق',
-        tabBarIcon: ({ color, size }) => <Ionicons name="information-circle-outline" size={size} color={color} />,
-      }}
-    />
-  </Tab.Navigator>
-);
+    >
+      <Tab.Screen
+        name="CustomerHome"
+        component={CustomerHome}
+        options={{
+          tabBarLabel: 'الرئيسية',
+          tabBarIcon: ({ color, size }) => <Ionicons name="home-outline" size={size} color={color} />,
+        }}
+      />
+      <Tab.Screen
+        name="Orders"
+        component={OrdersScreen}
+        options={{
+          tabBarLabel: 'الطلبات',
+          tabBarIcon: ({ color, size }) => <Ionicons name="receipt-outline" size={size} color={color} />,
+        }}
+      />
+      <Tab.Screen
+        name="Favorites"
+        component={FavoritesScreen}
+        options={{
+          tabBarLabel: 'المفضلة',
+          tabBarIcon: ({ color, size }) => <Ionicons name="heart-outline" size={size} color={color} />,
+        }}
+      />
+      <Tab.Screen
+        name="RegisteredContact"
+        component={RegisteredContactScreen}
+        options={{
+          tabBarLabel: 'رقم التواصل',
+          tabBarIcon: ({ color, size }) => <Ionicons name="call-outline" size={size} color={color} />,
+        }}
+      />
+      <Tab.Screen
+        name="CustomerProfile"
+        component={CustomerProfile}
+        options={{
+          tabBarLabel: 'حسابي',
+          tabBarIcon: ({ color, size }) => <Ionicons name="person-outline" size={size} color={color} />,
+        }}
+      />
+      <Tab.Screen
+        name="About"
+        component={AboutScreen}
+        options={{
+          tabBarLabel: 'حول التطبيق',
+          tabBarIcon: ({ color, size }) => <Ionicons name="information-circle-outline" size={size} color={color} />,
+        }}
+      />
+    </Tab.Navigator>
+  );
+};
 
 const CustomerNavigator = () => (
   <Stack.Navigator screenOptions={{ headerShown: false }}>
