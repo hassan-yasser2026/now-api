@@ -2,7 +2,7 @@
   "expo": {
     "name": "Goody Star",
     "slug": "goody-star",
-    "version": "1.0.0",
+    "version": "1.0.1",
     "platforms": [
       "ios",
       "android",
@@ -26,7 +26,7 @@
     },
     "android": {
       "package": "com.now.delivery",
-      "versionCode": 13,
+      "versionCode": 14,
       "permissions": [
         "ACCESS_COARSE_LOCATION",
         "ACCESS_FINE_LOCATION",
@@ -49,9 +49,7 @@
       "expo-localization",
       [
         "expo-location",
-        {
-          "locationWhenInUsePermission": "يستخدم چودي ستار موقعك لتحديد عنوان الاستلام أو التوصيل وتحسين تجربة الطلب."
-        }
+        {}
       ],
       [
         "expo-splash-screen",
@@ -66,9 +64,9 @@
     ],
     "extra": {
       "eas": {
-        "projectId": "13a5b445-4140-4f6c-88c9-a38ca31b28ff"
+        "projectId": "ebda4db7-a7f3-463b-b290-73f9ac2e89d4"
       }
     },
-    "owner": "hassan-yasser2026"
+    "owner": "hassan1612"
   }
 }

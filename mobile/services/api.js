@@ -1,5 +1,4 @@
 import axios from 'axios';
-import { Platform } from 'react-native';
 import useAppStore from '../store/appStore';
 import { getAuthToken } from '../utils/authStorage';
 
@@ -10,20 +9,17 @@ const getApiBaseUrl = () => {
 
   if (configuredUrl) {
     const normalizedUrl = configuredUrl.replace(/\/+$/, '');
-    const isVercelProductionUrl = /^https:\/\/now-api-21yn\.vercel\.app\/api$/i.test(normalizedUrl);
-    if (isVercelProductionUrl) {
+    const isLocalUrl = /^https?:\/\/(?:localhost|127\.0\.0\.1|10\.0\.2\.2)(?::\d+)?(?:\/|$)/i.test(normalizedUrl);
+
+    // Localhost is valid only while developing against the local server.
+    // In a release build it points to the phone/emulator, not the API host.
+    if (!isLocalUrl || __DEV__) {
       return normalizedUrl;
     }
-
-    return normalizedUrl;
   }
 
-  // A missing Expo URL must never send the installed mobile app to an
-  // unreachable emulator/LAN address. The online app uses Vercel by default.
-  if (Platform.OS === 'android' || Platform.OS === 'ios') {
-    return PRODUCTION_API_URL;
-  }
-
+  // A missing or local-only Expo URL must use the reachable production API
+  // in installed builds.
   return PRODUCTION_API_URL;
 };
 

@@ -19,6 +19,9 @@
     },
     "production": {
       "autoIncrement": false,
+      "android": {
+        "credentialsSource": "local"
+      },
       "env": {
         "EXPO_PUBLIC_API_URL": "https://api.now-eg.com/api"
       }

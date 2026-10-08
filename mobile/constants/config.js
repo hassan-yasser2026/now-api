@@ -1,5 +1,9 @@
 // التكوينات العامة لتطبيق چودي ستار
 
+const configuredApiUrl = process.env.EXPO_PUBLIC_API_URL?.trim();
+const isLocalApiUrl = configuredApiUrl
+  && /^https?:\/\/(?:localhost|127\.0\.0\.1|10\.0\.2\.2)(?::\d+)?(?:\/|$)/i.test(configuredApiUrl);
+
 export const CONFIG = {
   APP_NAME_AR: 'چودي ستار',
   APP_NAME_EN: 'Goody Star',
@@ -8,8 +12,9 @@ export const CONFIG = {
   APP_VERSION: '1.0.0',
 
   // رابط الـ API — يُستبدل عبر متغير البيئة EXPO_PUBLIC_API_URL
-  API_URL: process.env.EXPO_PUBLIC_API_URL
-    || 'https://api.now-eg.com/api',
+  API_URL: configuredApiUrl && (!isLocalApiUrl || __DEV__)
+    ? configuredApiUrl.replace(/\/+$/, '')
+    : 'https://api.now-eg.com/api',
 
   API_TIMEOUT: 30000,
 
