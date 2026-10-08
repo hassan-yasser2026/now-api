@@ -2,6 +2,8 @@ export const API_BASE_URL = (
   process.env.NOW_API_URL || "https://api.now-eg.com/api"
 ).replace(/\/+$/, "");
 
+const deploymentCacheKey = process.env.VERCEL_GIT_COMMIT_SHA || "local";
+
 type ApiEnvelope<T> = {
   success?: boolean;
   data?: T;
@@ -51,7 +53,10 @@ export type Store = {
 
 async function getApiData<T>(path: string): Promise<T> {
   const response = await fetch(`${API_BASE_URL}${path}`, {
-    headers: { Accept: "application/json" },
+    headers: {
+      Accept: "application/json",
+      "x-goody-star-deployment": deploymentCacheKey,
+    },
     next: { revalidate: 60 },
   });
 

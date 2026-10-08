@@ -5,6 +5,7 @@ import { hasLocale } from "next-intl";
 import { NextIntlClientProvider } from "next-intl";
 import { getMessages, getTranslations, setRequestLocale } from "next-intl/server";
 import { CartProvider } from "@/components/cart-provider";
+import { LocaleDocumentAttributes } from "@/components/locale-document-attributes";
 import { ToastProvider } from "@/components/toast-provider";
 import { routing, type Locale } from "@/i18n/routing";
 import { getSiteUrl } from "@/lib/site-url";
@@ -85,6 +86,7 @@ export default async function LocaleLayout({
 
   return (
     <NextIntlClientProvider messages={messages}>
+      <LocaleDocumentAttributes locale={locale} />
       <ToastProvider>
         <CartProvider>{children}</CartProvider>
       </ToastProvider>
