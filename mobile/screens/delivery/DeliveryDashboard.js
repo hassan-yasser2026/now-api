@@ -267,6 +267,7 @@ const DeliveryDashboard = ({ navigation }) => {
   const isCompact = width < 720;
 
   const [orders, setOrders] = useState([]);
+  const [earnings, setEarnings] = useState({ totalEarnings: 0, completedOrders: 0 });
   const [filter, setFilter] = useState('all');
   const [search, setSearch] = useState('');
 
@@ -380,21 +381,32 @@ const DeliveryDashboard = ({ navigation }) => {
           return [];
         };
 
-        const [assignedResult, availableResult] = await Promise.all([
+        const [assignedResult, availableResult, earningsResult] = await Promise.all([
           deliveryService.getMyOrders().catch(() => null),
           deliveryService.getAvailableOrders().catch(() => null),
+          deliveryService.getEarnings().catch(() => null),
         ]);
 
         if (!mountedRef.current) {
           return;
         }
 
-        const mergedOrders = [...extractOrders(assignedResult), ...extractOrders(availableResult)];
+        const mergedOrders = [...extractOrders(assignedResult), ...extractOrders(availableResult)]
+          .filter((order) => (
+            order?.status !== ORDER_STATUS.READY
+            || !order?.deliveryId
+            || normalizeId(order.deliveryId) === normalizeId(user.id)
+          ));
         const uniqueOrders = Array.from(
           new Map(mergedOrders.map((order) => [String(order?.id), order])).values()
         );
 
         setOrders(uniqueOrders);
+        const earningsPayload = earningsResult?.data ?? earningsResult;
+        setEarnings({
+          totalEarnings: Number(earningsPayload?.totalEarnings) || 0,
+          completedOrders: Number(earningsPayload?.completedOrders) || 0,
+        });
 
         if (!uniqueOrders.length && !silent && !assignedResult?.success && !availableResult?.success) {
           Alert.alert(
@@ -510,10 +522,10 @@ const DeliveryDashboard = ({ navigation }) => {
       pending: pendingOrders.length,
       active: activeOrders.length,
       delivered: deliveredOrders.length,
-      deliveredTotal,
+      deliveredTotal: Number(earnings.totalEarnings) || deliveredTotal,
       total: orders.length,
     };
-  }, [orders, user?.id]);
+  }, [earnings, orders, user?.id]);
 
   /* =======================================================
      FILTER + SEARCH
@@ -1631,7 +1643,7 @@ const DeliveryDashboard = ({ navigation }) => {
       <View style={styles.dashboardWrap}>
         <View style={styles.topbar}>
           <View style={styles.topbarRight}>
-            <Text style={styles.brand}>NOW</Text>
+            <Text style={styles.brand}>چودي ستار</Text>
           </View>
 
           <View style={styles.topbarActions}>
@@ -1673,11 +1685,13 @@ const DeliveryDashboard = ({ navigation }) => {
               <View style={styles.onlineDot} />
               <Text style={styles.statusText}>متصل ويستقبل الطلبات</Text>
             </View>
-            <Text style={styles.heroMeta}>أرباح اليوم: 450.00 ج.م • 12 طلب</Text>
+            <Text style={styles.heroMeta}>
+              إجمالي الأرباح: {Number(earnings.totalEarnings || 0).toFixed(2)} ج.م • {earnings.completedOrders} طلب مكتمل
+            </Text>
           </View>
 
           <View style={styles.heroVisual}>
-            <Text style={styles.riderBadge}>NOW</Text>
+            <Text style={styles.riderBadge}>GS</Text>
             <Ionicons name="bicycle-outline" size={80} color={COLORS.primary} />
           </View>
         </View>
@@ -1758,6 +1772,9 @@ const DeliveryDashboard = ({ navigation }) => {
       navigation,
       handleShareLocation,
       sharingLocation,
+      handleLogout,
+      earnings.completedOrders,
+      earnings.totalEarnings,
       statistics,
       search,
       filter,
@@ -1813,7 +1830,7 @@ const DeliveryDashboard = ({ navigation }) => {
   return (
     <View style={[styles.shell, isCompact && styles.shellCompact]}>
       <View style={[styles.sidebar, isCompact && styles.sidebarCompact]}>
-        <Text style={styles.logo}>NOW</Text>
+        <Text style={styles.logo}>چودي ستار</Text>
 
         <View style={[styles.sidebarList, isCompact && styles.sidebarListCompact]}>
           {[

@@ -107,7 +107,7 @@ const SettingsScreen: React.FC<SettingsScreenProps> = ({ navigation }) => {
   };
 
   const userDisplayName = user?.name || t.settings.guest;
-  const userMeta = user?.phone || 'NOW Customer';
+  const userMeta = user?.phone || 'Goody Star Customer';
 
   if (isGuest) {
     return (
@@ -354,7 +354,7 @@ const GuestAccountView = ({
 }) => {
   const [countryPickerVisible, setCountryPickerVisible] = useState(false);
   const openSocial = (url: string) => Linking.openURL(url).catch(() => {
-    Alert.alert('NOW', 'تعذر فتح الرابط');
+    Alert.alert('چودي ستار', 'تعذر فتح الرابط');
   });
 
   const changeLanguage = async (nextLanguage: Language) => {
@@ -365,7 +365,7 @@ const GuestAccountView = ({
     <SafeAreaView style={styles.guestContainer}>
       <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.guestContent}>
         <View style={styles.guestBanner}>
-          <Image source={require('../../assets/images/now-logo.png')} style={styles.guestLogo} resizeMode="contain" />
+          <Image source={require('../../assets/images/goody-star-icon.png')} style={styles.guestLogo} resizeMode="contain" />
           <Text style={styles.guestBannerTitle}>أكثر من 100 مليون منتج</Text>
           <Text style={styles.guestBannerSubtitle}>من ماركات عالمية</Text>
           <Text style={styles.guestBannerCaption}>نوصل لك كل يوم باب جديد</Text>

@@ -73,7 +73,7 @@ export async function GET(
   } catch (error) {
     console.error("Customer order details API request failed:", error);
     return NextResponse.json(
-      { success: false, message: "تعذر الاتصال بخدمة NOW" },
+      { success: false, message: "تعذر الاتصال بخدمة چودي ستار" },
       { status: 502 },
     );
   }
@@ -98,7 +98,7 @@ export async function GET(
       typeof order.totalPrice !== "number")
   ) {
     return NextResponse.json(
-      { success: false, message: "استجابة تفاصيل الطلب من NOW غير صحيحة" },
+      { success: false, message: "استجابة تفاصيل الطلب من چودي ستار غير صحيحة" },
       { status: 502 },
     );
   }

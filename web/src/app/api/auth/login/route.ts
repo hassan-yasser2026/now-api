@@ -70,7 +70,7 @@ export async function POST(request: Request) {
   } catch (error) {
     console.error("Customer login API request failed:", error);
     return NextResponse.json(
-      { success: false, message: "تعذر الاتصال بخدمة NOW" },
+      { success: false, message: "تعذر الاتصال بخدمة چودي ستار" },
       { status: 502 },
     );
   }
@@ -90,7 +90,7 @@ export async function POST(request: Request) {
 
   if (!result?.token || !result.user?.id || !result.user.role) {
     return NextResponse.json(
-      { success: false, message: "استجابة تسجيل الدخول من NOW غير مكتملة" },
+      { success: false, message: "استجابة تسجيل الدخول من چودي ستار غير مكتملة" },
       { status: 502 },
     );
   }

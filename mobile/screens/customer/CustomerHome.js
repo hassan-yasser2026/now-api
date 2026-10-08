@@ -226,7 +226,7 @@ const CustomerHome = ({ navigation }) => {
       <View style={styles.hero}>
         <View style={styles.header}>
           <View style={styles.headerTextContainer}>
-            <Text style={styles.brandMark}>NOW</Text>
+            <Text style={styles.brandMark}>چودي ستار</Text>
             <Text style={styles.greeting}>
               {isGuest ? 'أهلاً بك 👋' : `أهلاً ${user?.name || ''}`}
             </Text>
@@ -393,7 +393,7 @@ const CustomerHome = ({ navigation }) => {
             { key: 'partner', label: 'انضم كشريك', icon: 'hand-left-outline' },
             { key: 'home', label: 'الرئيسية', icon: 'home', active: true },
             { key: 'orders', label: 'طلباتي', icon: 'receipt-outline' },
-            { key: 'about', label: 'حول تطبيق NOW', icon: 'information-circle-outline' },
+            { key: 'about', label: 'حول تطبيق چودي ستار', icon: 'information-circle-outline' },
           ].map((item) => (
             <Pressable
               key={item.key}

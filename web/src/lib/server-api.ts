@@ -43,7 +43,7 @@ export async function readApiResponse<T>(
     return { message: text };
   }
 
-  return { message: "استجابة غير صالحة من خدمة NOW" };
+  return { message: "استجابة غير صالحة من خدمة چودي ستار" };
 }
 
 export function apiErrorMessage<T>(
@@ -105,7 +105,7 @@ export async function getCustomerSession() {
     typeof user.role !== "string" ||
     !user.role
   ) {
-    throw new Error("استجابة المستخدم من خدمة NOW غير مكتملة");
+    throw new Error("استجابة المستخدم من خدمة چودي ستار غير مكتملة");
   }
 
   return user.role.toUpperCase() === "CUSTOMER" ? { user, token } : null;
@@ -135,7 +135,7 @@ export async function getCustomerOrders(
     throw new Error(apiErrorMessage(envelope, response.status));
   }
   if (!Array.isArray(envelope.data)) {
-    throw new Error("استجابة الطلبات من خدمة NOW غير صحيحة");
+    throw new Error("استجابة الطلبات من خدمة چودي ستار غير صحيحة");
   }
   return envelope.data;
 }

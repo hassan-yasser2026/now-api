@@ -1,7 +1,7 @@
 {
   "expo": {
-    "name": "NOW",
-    "slug": "now-server",
+    "name": "Goody Star",
+    "slug": "goody-star",
     "version": "1.0.0",
     "platforms": [
       "ios",
@@ -11,7 +11,7 @@
     "orientation": "portrait",
     "userInterfaceStyle": "automatic",
     "scheme": "now-delivery",
-    "icon": "./assets/images/now-logo.png",
+    "icon": "./assets/images/goody-star-icon.png",
     "assetBundlePatterns": [
       "**/*"
     ],
@@ -21,7 +21,7 @@
       "buildNumber": "1.0.0",
       "infoPlist": {
         "ITSAppUsesNonExemptEncryption": false,
-        "NSLocationWhenInUseUsageDescription": "يستخدم NOW موقعك لتحديد عنوان الاستلام أو التوصيل وتحسين تجربة الطلب."
+        "NSLocationWhenInUseUsageDescription": "يستخدم چودي ستار موقعك لتحديد عنوان الاستلام أو التوصيل وتحسين تجربة الطلب."
       }
     },
     "android": {
@@ -34,15 +34,15 @@
         "android.permission.ACCESS_FINE_LOCATION"
       ],
       "adaptiveIcon": {
-        "foregroundImage": "./assets/images/android-icon-foreground.png",
-        "backgroundImage": "./assets/images/android-icon-background.png",
-        "monochromeImage": "./assets/images/android-icon-monochrome.png"
+        "foregroundImage": "./assets/images/goody-star-foreground.png",
+        "backgroundImage": "./assets/images/goody-star-background.png",
+        "monochromeImage": "./assets/images/goody-star-monochrome.png"
       }
     },
     "web": {
       "bundler": "metro",
       "output": "single",
-      "favicon": "./assets/images/now-logo.png"
+      "favicon": "./assets/images/goody-star-icon.png"
     },
     "plugins": [
       "expo-status-bar",
@@ -50,15 +50,15 @@
       [
         "expo-location",
         {
-          "locationWhenInUsePermission": "يستخدم NOW موقعك لتحديد عنوان الاستلام أو التوصيل وتحسين تجربة الطلب."
+          "locationWhenInUsePermission": "يستخدم چودي ستار موقعك لتحديد عنوان الاستلام أو التوصيل وتحسين تجربة الطلب."
         }
       ],
       [
         "expo-splash-screen",
         {
-          "image": "./assets/images/splash-icon.png",
+          "image": "./assets/images/goody-star-splash.png",
           "resizeMode": "contain",
-          "backgroundColor": "#111827"
+          "backgroundColor": "#F8F7F2"
         }
       ],
       "expo-font",

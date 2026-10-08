@@ -103,7 +103,7 @@ export default function CartPage() {
 
         <div className="mb-6 flex flex-col gap-4 sm:mb-8 sm:flex-row sm:items-end sm:justify-between">
           <div>
-            <p className="text-xs font-extrabold text-now-600 sm:text-sm">طلبك على NOW</p>
+            <p className="text-xs font-extrabold text-now-600 sm:text-sm">طلبك على چودي ستار</p>
             <h1 className="mt-1 text-3xl font-black tracking-tight text-now-900 sm:text-4xl">
               سلة التسوق
             </h1>

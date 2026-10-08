@@ -23,7 +23,7 @@ const cases = [
   ['120.00 ج.م', 'EGP 120.00'],
 
   // untouched content
-  ['NOW', 'NOW'],
+  ['Goody Star', 'Goody Star'],
   ['+201012345678', '+201012345678'],
 ];
 

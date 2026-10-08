@@ -168,7 +168,7 @@ const OrdersScreen = ({ navigation }: OrdersScreenProps) => {
             <View style={styles.hero}>
               <View style={styles.heroTopRow}>
                 <View>
-                  <Text style={styles.brand}>NOW</Text>
+                  <Text style={styles.brand}>چودي ستار</Text>
                   <Text style={styles.title}>طلباتي</Text>
                   <Text style={styles.subtitle}>تابع كل طلباتك في مكان واحد</Text>
                 </View>

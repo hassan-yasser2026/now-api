@@ -85,7 +85,7 @@ export function AuthForm({ mode }: AuthFormProps) {
       router.replace(nextPath);
       router.refresh();
     } catch {
-      setError("تعذر الاتصال بخدمة NOW. حاول مرة أخرى.");
+      setError("تعذر الاتصال بخدمة چودي ستار. حاول مرة أخرى.");
     } finally {
       setPending(false);
     }

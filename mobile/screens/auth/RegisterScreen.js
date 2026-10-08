@@ -28,9 +28,9 @@ const RegisterScreen = ({ navigation, route }) => {
     ? route.params.role
     : 'customer';
   const roleTitle = role === 'vendor'
-    ? 'تسجيل بائع NOW'
+    ? 'تسجيل بائع چودي ستار'
     : role === 'delivery'
-      ? 'تسجيل مندوب NOW'
+      ? 'تسجيل مندوب چودي ستار'
       : 'إنشاء حساب جديد';
   const storeCountry = useAppStore((state) => state.country);
 
@@ -308,7 +308,7 @@ const RegisterScreen = ({ navigation, route }) => {
           </Text>
 
           <Text style={styles.sectionSubtitle}>
-            أدخل بياناتك لإنشاء حسابك في NOW
+            أدخل بياناتك لإنشاء حسابك في چودي ستار
           </Text>
 
           {/* ====================================

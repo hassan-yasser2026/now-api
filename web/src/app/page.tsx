@@ -8,17 +8,17 @@ import { getStores, type Store } from "@/lib/api";
 import { getSiteUrl } from "@/lib/site-url";
 
 export const metadata: Metadata = {
-  title: "NOW | اطلب من متاجرك المفضلة",
+  title: "چودي ستار | تسوق من متاجرك المفضلة",
   description:
-    "تصفح المتاجر والمنتجات واطلب بسهولة من NOW. توصيل طلباتك إلى باب البيت.",
+    "تصفح المتاجر والمنتجات واطلب بسهولة من چودي ستار (Goody Star).",
   alternates: { canonical: "/" },
   openGraph: {
-    title: "NOW | اطلب من متاجرك المفضلة",
+    title: "چودي ستار | تسوق من متاجرك المفضلة",
     description: "اكتشف المتاجر والمنتجات واطلبها أونلاين.",
     locale: "ar_EG",
     type: "website",
     url: getSiteUrl().toString(),
-    images: [{ url: "/opengraph-image", width: 1200, height: 630, alt: "NOW" }],
+    images: [{ url: "/opengraph-image", width: 1200, height: 630, alt: "چودي ستار - Goody Star" }],
   },
 };
 
@@ -51,7 +51,7 @@ export default async function HomePage() {
               تعذر تحميل المتاجر
             </h1>
             <p className="mt-3 text-sm leading-7 text-now-700">
-              حصلت مشكلة في الاتصال بخدمة NOW. حاول تحديث الصفحة بعد شوية.
+              حصلت مشكلة في الاتصال بخدمة چودي ستار. حاول تحديث الصفحة بعد شوية.
             </p>
             <Link
               className="mt-6 inline-flex min-h-12 items-center justify-center rounded-xl bg-now-600 px-6 font-extrabold text-white transition hover:bg-now-700"
@@ -79,7 +79,7 @@ export default async function HomePage() {
           <div className="relative z-10 max-w-2xl animate-[rise-in_.7s_ease-out_both]">
             <p className="inline-flex min-h-9 items-center gap-2 rounded-full border border-white/20 bg-white/10 px-4 text-xs font-extrabold text-now-100 backdrop-blur sm:text-sm">
               <span className="size-2 rounded-full bg-now-gold shadow-[0_0_14px_rgba(244,185,66,.8)]" />
-              طلبك، أسهل مع NOW
+              طلبك، أسهل مع چودي ستار
             </p>
             <h1 className="mt-5 max-w-xl text-[2.55rem] font-black leading-[1.2] tracking-tight sm:mt-6 sm:text-5xl lg:text-[3.65rem]">
               كل اللي بتحبه،
@@ -119,7 +119,7 @@ export default async function HomePage() {
             <div className="absolute inset-10 rounded-full border border-white/15" />
             <div className="absolute inset-[4.5rem] rounded-full bg-white/5 blur-2xl" />
             <div className="relative grid size-[66%] rotate-[-7deg] place-items-center rounded-[32%] border border-white/40 bg-gradient-to-br from-white via-now-100 to-now-100 text-now-700 shadow-[0_35px_80px_rgba(0,0,0,.22)]">
-              <span className="text-[5.5rem] font-black tracking-[-.12em]">NOW</span>
+              <span className="text-[5.5rem] font-black tracking-[-.12em]">GS</span>
               <span className="absolute -right-7 top-8 grid size-16 place-items-center rounded-2xl bg-now-gold text-3xl shadow-xl">✦</span>
               <span className="absolute -bottom-6 -left-8 grid size-20 place-items-center rounded-3xl border border-white/70 bg-white/95 text-3xl shadow-xl">⌕</span>
             </div>
@@ -155,10 +155,10 @@ export default async function HomePage() {
           __html: JSON.stringify({
             "@context": "https://schema.org",
             "@type": "OnlineStore",
-            name: "NOW",
+            name: "Goody Star (چودي ستار)",
             url: getSiteUrl().toString(),
             description:
-              "اكتشف المتاجر والمنتجات واطلبها أونلاين مع NOW.",
+              "اكتشف المتاجر والمنتجات واطلبها أونلاين مع چودي ستار (Goody Star).",
             inLanguage: "ar-EG",
           }).replace(/</g, "\\u003c"),
         }}

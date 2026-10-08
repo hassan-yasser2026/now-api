@@ -6,7 +6,7 @@ let html = await readFile(indexPath, 'utf8');
 const manifest = JSON.parse(await readFile(manifestPath, 'utf8'));
 manifest.icons = manifest.icons.map((icon) => ({
   ...icon,
-  src: '/now-logo.png',
+  src: '/goody-star-icon.png',
   type: 'image/png',
 }));
 await writeFile(manifestPath, `${JSON.stringify(manifest, null, 2)}\n`);

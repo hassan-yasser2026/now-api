@@ -131,7 +131,7 @@ export async function POST(request: Request) {
   } catch (error) {
     console.error("Customer order API request failed:", error);
     return NextResponse.json(
-      { success: false, message: "تعذر الاتصال بخدمة NOW" },
+      { success: false, message: "تعذر الاتصال بخدمة چودي ستار" },
       { status: 502 },
     );
   }
@@ -149,7 +149,7 @@ export async function POST(request: Request) {
 
   if (!envelope.data || !Number.isSafeInteger(envelope.data.id)) {
     return NextResponse.json(
-      { success: false, message: "استجابة إنشاء الطلب من NOW غير مكتملة" },
+      { success: false, message: "استجابة إنشاء الطلب من چودي ستار غير مكتملة" },
       { status: 502 },
     );
   }

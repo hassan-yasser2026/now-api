@@ -104,7 +104,7 @@ const CustomerProfile = ({ navigation }) => {
               <Text style={styles.avatarText}>{user?.name?.charAt(0)?.toUpperCase() || 'U'}</Text>
             )}
           </View>
-          <Text style={styles.userName}>{user?.name || 'مستخدم NOW'}</Text>
+          <Text style={styles.userName}>{user?.name || 'مستخدم چودي ستار'}</Text>
         </View>
 
         <View style={styles.menu}>

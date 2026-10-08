@@ -110,7 +110,7 @@ const demoCategories = [
       'وجبة برجر لشخصين', 'وجبة بيتزا عائلية', 'وجبة فراخ عائلية',
       'وجبة مشاوي لشخصين', 'وجبة سندوتشات مشكلة', 'وجبة أطباق شرقية',
       'وجبة كرسبي عائلية', 'وجبة بيتزا وبرجر', 'وجبة إفطار عائلية',
-      'بوكس مطعم NOW',
+      'بوكس مطعم چودي ستار',
     ],
   },
 ];
@@ -128,6 +128,8 @@ const demoMenuItems = demoCategories.flatMap((category, categoryIndex) =>
 );
 
 async function getDemoVendor(tx, vendorRoleId) {
+  const demoVendorName = 'بائع متجر چودي ستار التجريبي';
+  const legacyDemoVendorName = 'بائع متجر NOW التجريبي';
   const existingVendor = await tx.user.findUnique({
     where: { phone: demoVendorPhone },
     select: { id: true, name: true, roleId: true },
@@ -135,13 +137,20 @@ async function getDemoVendor(tx, vendorRoleId) {
 
   if (
     existingVendor
-    && (existingVendor.name !== 'بائع متجر NOW التجريبي'
+    && (![demoVendorName, legacyDemoVendorName].includes(existingVendor.name)
       || existingVendor.roleId !== vendorRoleId)
   ) {
     throw new Error('The reserved demo vendor identity is already in use.');
   }
 
   if (existingVendor) {
+    if (existingVendor.name === legacyDemoVendorName) {
+      return tx.user.update({
+        where: { id: existingVendor.id },
+        data: { name: demoVendorName },
+        select: { id: true, name: true, roleId: true },
+      });
+    }
     return existingVendor;
   }
 
@@ -150,7 +159,7 @@ async function getDemoVendor(tx, vendorRoleId) {
 
   return tx.user.create({
     data: {
-      name: 'بائع متجر NOW التجريبي',
+      name: demoVendorName,
       phone: demoVendorPhone,
       password: passwordHash,
       roleId: vendorRoleId,
@@ -178,7 +187,7 @@ async function main() {
     const store = await tx.store.upsert({
       where: { vendorId: vendor.id },
       update: {
-        name: 'متجر NOW التجريبي',
+        name: 'متجر چودي ستار التجريبي',
         description: 'متجر تجريبي؛ المنتجات والأسعار والصور للعرض فقط.',
         isOpen: true,
         isActive: true,
@@ -186,7 +195,7 @@ async function main() {
       },
       create: {
         vendorId: vendor.id,
-        name: 'متجر NOW التجريبي',
+        name: 'متجر چودي ستار التجريبي',
         description: 'متجر تجريبي؛ المنتجات والأسعار والصور للعرض فقط.',
         isOpen: true,
         isActive: true,

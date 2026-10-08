@@ -179,7 +179,7 @@ export default async function OrdersPage() {
                             طلب رقم
                           </p>
                           <h2 className="mt-0.5 truncate text-lg font-black text-now-900">
-                            #{order.id} · {order.store?.name || "متجر NOW"}
+                            #{order.id} · {order.store?.name || "متجر چودي ستار"}
                           </h2>
                         </div>
                       </div>

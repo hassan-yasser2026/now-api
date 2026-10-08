@@ -23,24 +23,34 @@ const cairoLatin = localFont({
 export const metadata: Metadata = {
   metadataBase: getSiteUrl(),
   title: {
-    default: "NOW | اطلب من متاجرك المفضلة",
-    template: "%s | NOW",
+    default: "چودي ستار | تسوق من متاجرك المفضلة",
+    template: "%s | چودي ستار",
   },
-  description: "اكتشف المتاجر والمنتجات واطلبها أونلاين مع NOW.",
-  applicationName: "NOW",
+  description:
+    "اكتشف المتاجر والمنتجات واطلبها أونلاين مع چودي ستار (Goody Star).",
+  applicationName: "Goody Star",
   alternates: { canonical: "/" },
   openGraph: {
     type: "website",
     locale: "ar_EG",
-    siteName: "NOW",
-    title: "NOW | اطلب من متاجرك المفضلة",
-    description: "اكتشف المتاجر والمنتجات واطلبها أونلاين مع NOW.",
-    images: [{ url: "/opengraph-image", width: 1200, height: 630, alt: "NOW" }],
+    siteName: "Goody Star",
+    title: "چودي ستار | تسوق من متاجرك المفضلة",
+    description:
+      "اكتشف المتاجر والمنتجات واطلبها أونلاين مع چودي ستار (Goody Star).",
+    images: [
+      {
+        url: "/opengraph-image",
+        width: 1200,
+        height: 630,
+        alt: "چودي ستار - Goody Star",
+      },
+    ],
   },
   twitter: {
     card: "summary_large_image",
-    title: "NOW | اطلب من متاجرك المفضلة",
-    description: "اكتشف المتاجر والمنتجات واطلبها أونلاين مع NOW.",
+    title: "چودي ستار | تسوق من متاجرك المفضلة",
+    description:
+      "اكتشف المتاجر والمنتجات واطلبها أونلاين مع چودي ستار (Goody Star).",
     images: ["/opengraph-image"],
   },
   robots: {
@@ -66,7 +76,7 @@ export default function RootLayout({
             __html: JSON.stringify({
               "@context": "https://schema.org",
               "@type": "WebSite",
-              name: "NOW",
+              name: "Goody Star (چودي ستار)",
               url: getSiteUrl().toString(),
               inLanguage: "ar-EG",
             }).replace(/</g, "\\u003c"),

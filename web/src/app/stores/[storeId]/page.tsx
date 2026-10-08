@@ -44,10 +44,10 @@ export async function generateMetadata({
     return {
       title: store.name,
       description:
-        store.description || `تصفح منتجات ${store.name} واطلبها أونلاين من NOW.`,
+        store.description || `تصفح منتجات ${store.name} واطلبها أونلاين من چودي ستار.`,
       alternates: { canonical: `/stores/${store.id}` },
       openGraph: {
-        title: `${store.name} | NOW`,
+        title: `${store.name} | چودي ستار`,
         description:
           store.description || `تصفح منتجات ${store.name} واطلبها أونلاين.`,
         images: [{ url: getOpenGraphImageUrl(store.image) }],
@@ -57,7 +57,7 @@ export async function generateMetadata({
     };
   } catch (error) {
     console.error("Failed to load store metadata:", error);
-    return { title: "متجر NOW" };
+    return { title: "متجر چودي ستار" };
   }
 }
 
@@ -82,7 +82,7 @@ export default async function StorePage({ params }: StorePageProps) {
           <section className="rounded-3xl border border-now-900/[0.06] bg-white px-6 py-12 shadow-[0_14px_36px_rgba(29,63,52,0.08)] sm:px-10 sm:py-16" role="alert">
             <h1 className="text-2xl font-black text-now-900">تعذر تحميل المتجر</h1>
             <p className="mt-3 text-sm leading-7 text-now-700">
-              حصلت مشكلة في الاتصال بخدمة NOW. حاول مرة أخرى.
+              حصلت مشكلة في الاتصال بخدمة چودي ستار. حاول مرة أخرى.
             </p>
             <Link className="mt-6 inline-flex min-h-12 items-center justify-center rounded-xl bg-now-600 px-6 font-extrabold text-white transition hover:bg-now-700" href="/">
               العودة للمتاجر
@@ -155,7 +155,7 @@ export default async function StorePage({ params }: StorePageProps) {
           </div>
           <div className="relative order-2 flex flex-col justify-center p-5 sm:p-8 lg:order-1 lg:p-12">
             <span className="w-fit rounded-full bg-now-50 px-3 py-1.5 text-xs font-extrabold text-now-700">
-              متجر على NOW
+              متجر على چودي ستار
             </span>
             <h1 className="mt-4 text-3xl font-black leading-tight tracking-tight text-now-900 sm:text-4xl lg:text-5xl">
               {store.name}

@@ -184,14 +184,14 @@ export function CheckoutForm() {
       try {
         envelope = (await response.json()) as ApiEnvelope<{ id?: number }>;
       } catch {
-        throw new Error("استجابة غير صالحة من خدمة NOW");
+        throw new Error("استجابة غير صالحة من خدمة چودي ستار");
       }
 
       if (!response.ok || envelope.success === false) {
         throw new Error(envelope.message || "تعذر إنشاء الطلب. حاول مرة أخرى.");
       }
       if (!Number.isSafeInteger(envelope.data?.id) || !envelope.data?.id) {
-        throw new Error("لم يصل رقم الطلب من خدمة NOW.");
+        throw new Error("لم يصل رقم الطلب من خدمة چودي ستار.");
       }
 
       clearCart();

@@ -498,7 +498,7 @@ const AdminDashboardScreen = () => {
       >
         <View style={styles.header}>
           <View style={styles.headerText}>
-            <Text style={styles.brand}>NOW</Text>
+            <Text style={styles.brand}>چودي ستار</Text>
             <Text style={styles.title}>لوحة الإدارة</Text>
             <Text style={styles.subtitle}>مرحبًا {user?.name || 'مدير النظام'}</Text>
             {!isAdmin && <Text style={styles.roleBadge}>مشرف بصلاحيات محددة</Text>}

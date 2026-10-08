@@ -33,7 +33,7 @@ export function ProductCard({
             unoptimized={shouldUnoptimizeImage(imageUrl)}
           />
         ) : (
-          <span aria-hidden="true">NOW</span>
+          <span aria-hidden="true">GS</span>
         )}
       </div>
       <div className={styles.content}>

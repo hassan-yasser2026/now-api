@@ -204,7 +204,7 @@ const LoginScreen = ({ navigation, route }) => {
           </View>
 
           <Text style={styles.title}>
-            NOW
+            چودي ستار
           </Text>
 
           <Text style={styles.subtitle}>
@@ -224,7 +224,7 @@ const LoginScreen = ({ navigation, route }) => {
           <Text style={styles.welcomeSubtitle}>
             {isPartnerLogin
               ? 'ادخل لإدارة متجرك أو متابعة طلبات التوصيل'
-              : 'سجل دخولك علشان تكمل استخدام NOW'}
+              : 'سجل دخولك علشان تكمل استخدام چودي ستار'}
           </Text>
 
           {/* ====================================
@@ -406,7 +406,7 @@ const LoginScreen = ({ navigation, route }) => {
             />
 
             <Text style={styles.aboutText}>
-              حول تطبيق NOW
+              حول تطبيق چودي ستار
             </Text>
           </TouchableOpacity>
         </View>
@@ -417,7 +417,7 @@ const LoginScreen = ({ navigation, route }) => {
 
         <View style={styles.footer}>
           <Text style={styles.footerText}>
-            NOW © 2026
+            چودي ستار © 2026
           </Text>
 
           <Text style={styles.footerSubText}>

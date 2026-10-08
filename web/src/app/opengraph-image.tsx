@@ -1,6 +1,6 @@
 import { ImageResponse } from "next/og";
 
-export const alt = "NOW - Shop your favorite stores";
+export const alt = "چودي ستار - Goody Star. Shop your favorite stores.";
 export const size = { width: 1200, height: 630 };
 export const contentType = "image/png";
 
@@ -40,7 +40,7 @@ export default function OpenGraphImage() {
               fontWeight: 800,
             }}
           >
-            Shop online with NOW
+            Goody Star - چودي ستار
           </div>
           <div
             style={{
@@ -68,7 +68,7 @@ export default function OpenGraphImage() {
             width: 300,
           }}
         >
-          NOW
+          GS
         </div>
       </div>
     ),

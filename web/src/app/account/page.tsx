@@ -73,7 +73,7 @@ export default async function AccountPage() {
               />
             </div>
             <p className="mt-4 text-xs leading-6 text-now-900/45">
-              هذه البيانات المسجلة في حساب NOW. تعديل بيانات الملف الشخصي غير
+              هذه البيانات المسجلة في حساب چودي ستار. تعديل بيانات الملف الشخصي غير
               متاح من الموقع حاليًا.
             </p>
           </section>
@@ -117,7 +117,7 @@ export default async function AccountPage() {
               اختار من متاجرك المفضلة
             </h2>
             <p className="mt-1 text-sm leading-6 text-now-900/55">
-              المنتجات والأسعار المعروضة يتم تحديثها من خدمة NOW.
+              المنتجات والأسعار المعروضة يتم تحديثها من خدمة چودي ستار.
             </p>
           </div>
           <Link

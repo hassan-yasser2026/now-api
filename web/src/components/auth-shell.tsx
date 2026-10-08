@@ -24,31 +24,36 @@ export function AuthShell({
             <span className="absolute inset-28 rounded-full border border-white/10" />
           </div>
           <Link
-            aria-label="NOW - الصفحة الرئيسية"
+            aria-label="چودي ستار، Goody Star - الصفحة الرئيسية"
             className="inline-flex w-fit items-center gap-3 text-white"
             href="/"
           >
             <span aria-hidden="true" className="grid size-12 place-items-center rounded-2xl bg-white/10 text-xl font-black tracking-[-0.08em] ring-1 ring-white/15">
               <svg
                 aria-hidden="true"
-                className="size-6"
+                className="size-9"
                 fill="none"
                 focusable="false"
-                viewBox="0 0 24 24"
+                viewBox="0 0 48 48"
               >
                 <path
-                  d="M6 18V6l12 12V6"
-                  stroke="currentColor"
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth="2.5"
+                  d="m39 5 2.2 5.8L47 13l-5.8 2.2L39 21l-2.2-5.8L31 13l5.8-2.2L39 5Z"
+                  fill="#F4B942"
                 />
+                <text fill="white" fontFamily="Arial, sans-serif" fontSize="19" fontWeight="800" textAnchor="middle" x="21" y="32">
+                  GS
+                </text>
               </svg>
             </span>
-            <span className="text-3xl font-black tracking-[-0.08em]">NOW</span>
+            <span className="grid leading-tight">
+              <span className="text-2xl font-black">چودي ستار</span>
+              <span className="text-xs font-bold tracking-wide text-now-100">
+                Goody Star
+              </span>
+            </span>
           </Link>
           <div className="relative">
-            <p className="text-sm font-extrabold text-now-gold">حسابك في NOW</p>
+            <p className="text-sm font-extrabold text-now-gold">حسابك في چودي ستار</p>
             <p className="mt-4 max-w-sm text-4xl font-black leading-[1.35]">
               طلباتك المفضلة، أقرب وأسهل.
             </p>
@@ -64,28 +69,31 @@ export function AuthShell({
         <section className="flex min-w-0 flex-col justify-center p-5 sm:p-9 lg:p-12 xl:p-16">
           <div className="mb-8 flex items-center justify-between gap-3 lg:mb-10">
             <Link
-              aria-label="NOW - الصفحة الرئيسية"
+              aria-label="چودي ستار، Goody Star - الصفحة الرئيسية"
               className="inline-flex items-center gap-2 text-now-700 lg:hidden"
               href="/"
             >
               <span aria-hidden="true" className="grid size-10 place-items-center rounded-xl bg-now-600 text-lg font-black text-white">
                 <svg
                   aria-hidden="true"
-                  className="size-5"
+                  className="size-8"
                   fill="none"
                   focusable="false"
-                  viewBox="0 0 24 24"
+                  viewBox="0 0 48 48"
                 >
                   <path
-                    d="M6 18V6l12 12V6"
-                    stroke="currentColor"
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth="2.5"
+                    d="m39 5 2.2 5.8L47 13l-5.8 2.2L39 21l-2.2-5.8L31 13l5.8-2.2L39 5Z"
+                    fill="#F4B942"
                   />
+                  <text fill="white" fontFamily="Arial, sans-serif" fontSize="19" fontWeight="800" textAnchor="middle" x="21" y="32">
+                    GS
+                  </text>
                 </svg>
               </span>
-              <span className="text-2xl font-black tracking-[-0.08em]">NOW</span>
+              <span className="grid leading-tight">
+                <span className="text-lg font-black">چودي ستار</span>
+                <span className="text-[10px] font-bold tracking-wide">Goody Star</span>
+              </span>
             </Link>
             <Link
               className="inline-flex min-h-11 items-center rounded-xl px-3 text-xs font-extrabold text-now-700 transition hover:bg-now-50 sm:text-sm"
@@ -96,7 +104,7 @@ export function AuthShell({
           </div>
           <div className="mb-6">
             <p className="text-xs font-extrabold text-now-600 sm:text-sm">
-              حساب عميل NOW
+              حساب عميل چودي ستار
             </p>
             <h1 className="mt-2 text-3xl font-black tracking-tight text-now-900 sm:text-4xl">
               {title}
@@ -107,7 +115,7 @@ export function AuthShell({
           </div>
           {children}
           <p className="mt-8 text-center text-xs leading-6 text-now-900/40">
-            بمتابعة استخدامك، أنت تستخدم حساب العميل على NOW.
+            بمتابعة استخدامك، أنت تستخدم حساب العميل على چودي ستار.
           </p>
         </section>
       </div>

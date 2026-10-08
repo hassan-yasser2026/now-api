@@ -1,9 +1,9 @@
-// التكوينات العامة لتطبيق NOW
+// التكوينات العامة لتطبيق چودي ستار
 
 export const CONFIG = {
-  APP_NAME_AR: 'NOW',
-  APP_NAME_EN: 'NOW',
-  APP_NAME: 'NOW',
+  APP_NAME_AR: 'چودي ستار',
+  APP_NAME_EN: 'Goody Star',
+  APP_NAME: 'Goody Star (چودي ستار)',
 
   APP_VERSION: '1.0.0',
 

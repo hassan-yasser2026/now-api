@@ -183,7 +183,7 @@ export function OrderDetails({ orderId }: { orderId: number }) {
       try {
         envelope = (await response.json()) as OrderEnvelope;
       } catch {
-        throw new Error("استجابة غير صالحة من خدمة NOW");
+        throw new Error("استجابة غير صالحة من خدمة چودي ستار");
       }
       if (!response.ok || envelope.success === false) {
         throw new Error(envelope.message || "تعذر تحميل تفاصيل الطلب.");
@@ -288,7 +288,7 @@ export function OrderDetails({ orderId }: { orderId: number }) {
               <section className="flex flex-col gap-4 rounded-3xl border border-now-900/[0.06] bg-white p-5 shadow-[0_10px_32px_rgba(24,51,45,0.06)] sm:flex-row sm:items-center sm:justify-between sm:p-6">
                 <div>
                   <p className="text-xs font-extrabold text-now-600">
-                    {order.store?.name || "متجر NOW"}
+                    {order.store?.name || "متجر چودي ستار"}
                   </p>
                   <h2 className="mt-1 text-xl font-black text-now-900">
                     تفاصيل الطلب
@@ -309,7 +309,7 @@ export function OrderDetails({ orderId }: { orderId: number }) {
               <section className="rounded-3xl border border-now-900/[0.06] bg-white p-5 shadow-[0_10px_32px_rgba(24,51,45,0.06)] sm:p-6">
                 <div className="mb-4">
                   <p className="text-xs font-extrabold text-now-600">
-                    طلبك من {order.store?.name || "متجر NOW"}
+                    طلبك من {order.store?.name || "متجر چودي ستار"}
                   </p>
                   <h2 className="mt-1 text-lg font-black text-now-900 sm:text-xl">
                     المنتجات
@@ -395,7 +395,7 @@ export function OrderDetails({ orderId }: { orderId: number }) {
                 </strong>
               </div>
               <p className="text-xs leading-6 text-now-900/45">
-                تفاصيل المبلغ حسب البيانات الواردة من خدمة NOW.
+                تفاصيل المبلغ حسب البيانات الواردة من خدمة چودي ستار.
               </p>
               <div className="mt-5 border-t border-now-900/[0.07] pt-4">
                 <p className="text-xs text-now-900/45">آخر تحديث للحالة</p>

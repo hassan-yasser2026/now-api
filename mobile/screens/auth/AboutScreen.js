@@ -148,7 +148,7 @@ const AboutScreen = ({ navigation }) => {
         <View style={styles.headerTitleContainer}>
           <Text style={styles.headerTitle}>حول التطبيق</Text>
           <Text style={styles.headerSubtitle}>
-            كل ما تريد معرفته عن NOW
+            كل ما تريد معرفته عن چودي ستار
           </Text>
         </View>
 
@@ -213,7 +213,7 @@ const AboutScreen = ({ navigation }) => {
           </View>
 
           <Text style={styles.cardText}>
-            NOW هو تطبيق متعدد الأطراف يربط بين العميل
+            چودي ستار هو تطبيق متعدد الأطراف يربط بين العميل
             والبائع والمندوب في منصة واحدة، بهدف جعل تجربة
             الطلب والتوصيل أسهل وأسرع وأكثر تنظيمًا.
           </Text>
@@ -224,7 +224,7 @@ const AboutScreen = ({ navigation }) => {
             <View style={styles.cardHeaderIcon}>
               <Ionicons name="grid-outline" size={22} color={COLORS.primary} />
             </View>
-            <Text style={styles.cardTitle}>لوحات NOW</Text>
+            <Text style={styles.cardTitle}>لوحات چودي ستار</Text>
           </View>
           <Text style={styles.cardText}>كل لوحة مصممة لدور مختلف داخل المنصة:</Text>
           <View style={styles.featureList}>
@@ -269,7 +269,7 @@ const AboutScreen = ({ navigation }) => {
             </Text>
 
             <Text style={styles.securityText}>
-              نعمل على تطوير NOW باستمرار لتحسين الأمان
+              نعمل على تطوير چودي ستار باستمرار لتحسين الأمان
               وسرعة الاستخدام وجودة تجربة العملاء.
             </Text>
           </View>

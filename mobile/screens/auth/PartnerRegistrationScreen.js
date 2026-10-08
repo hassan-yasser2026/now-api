@@ -22,13 +22,13 @@ import { authService } from '../../services/authService';
 
 const PARTNER_ROLES = {
   vendor: {
-    title: 'بائع NOW',
+    title: 'بائع چودي ستار',
     subtitle: 'سجّل متجرك واعرض منتجاتك للعملاء',
     icon: 'storefront-outline',
     color: '#0B8FA3',
   },
   delivery: {
-    title: 'مندوب NOW',
+    title: 'مندوب چودي ستار',
     subtitle: 'انضم لفريق التوصيل وابدأ استلام الطلبات',
     icon: 'bicycle-outline',
     color: '#2563EB',
@@ -421,7 +421,7 @@ const PartnerRegistrationScreen = ({ navigation, route }) => {
             onPress={() => {
               if (key === 'home') navigation.goBack();
               else if (key === 'account' || key === 'orders') navigation.navigate('PartnerLogin');
-              else if (key === 'about') Alert.alert('عن NOW', 'تطبيق NOW للتوصيل');
+              else if (key === 'about') Alert.alert('عن چودي ستار', 'تطبيق چودي ستار للتوصيل');
             }}
             activeOpacity={0.65}
           >

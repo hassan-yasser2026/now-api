@@ -45,28 +45,39 @@ export function CustomerNavbar({
       <div className="mx-auto flex min-h-[72px] w-[min(1200px,calc(100%-32px))] items-center justify-between gap-4 sm:w-[min(1200px,calc(100%-48px))]">
         <Link
           href="/"
-          aria-label="NOW - الصفحة الرئيسية"
+          aria-label="چودي ستار، Goody Star - الصفحة الرئيسية"
           className="flex shrink-0 items-center gap-2 text-now-700"
         >
           <span aria-hidden="true" className="grid size-11 place-items-center rounded-2xl bg-now-600 text-white shadow-lg shadow-now-600/20">
             <svg
               aria-hidden="true"
-              className="size-6"
+              className="size-9"
               fill="none"
               focusable="false"
-              viewBox="0 0 24 24"
+              viewBox="0 0 48 48"
             >
               <path
-                d="M6 18V6l12 12V6"
-                stroke="currentColor"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth="2.5"
+                d="m39 5 2.2 5.8L47 13l-5.8 2.2L39 21l-2.2-5.8L31 13l5.8-2.2L39 5Z"
+                fill="#F4B942"
               />
+              <text
+                fill="white"
+                fontFamily="Arial, sans-serif"
+                fontSize="19"
+                fontWeight="800"
+                textAnchor="middle"
+                x="21"
+                y="32"
+              >
+                GS
+              </text>
             </svg>
           </span>
-          <span className="text-[1.75rem] font-black leading-none tracking-[-0.08em]">
-            NOW
+          <span className="grid leading-tight">
+            <span className="text-base font-black sm:text-lg">چودي ستار</span>
+            <span className="text-[10px] font-bold tracking-wide text-now-700 sm:text-xs">
+              Goody Star
+            </span>
           </span>
         </Link>
 

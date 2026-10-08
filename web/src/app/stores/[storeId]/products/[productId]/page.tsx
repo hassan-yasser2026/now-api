@@ -62,12 +62,12 @@ export async function generateMetadata({
       title: `${name} من ${store.name}`,
       description:
         product.description ||
-        `اطلب ${name} من ${store.name} أونلاين مع NOW بسعر ${formatPrice(product.price)}.`,
+        `اطلب ${name} من ${store.name} أونلاين مع چودي ستار بسعر ${formatPrice(product.price)}.`,
       alternates: {
         canonical: `/stores/${store.id}/products/${product.id}`,
       },
       openGraph: {
-        title: `${name} | ${store.name} - NOW`,
+        title: `${name} | ${store.name} - چودي ستار`,
         description:
           product.description || `اطلب ${name} أونلاين من ${store.name}.`,
         images: [{ url: getOpenGraphImageUrl(product.image) }],
@@ -80,7 +80,7 @@ export async function generateMetadata({
     };
   } catch (error) {
     console.error("Failed to load product metadata:", error);
-    return { title: "منتج NOW" };
+    return { title: "منتج چودي ستار" };
   }
 }
 
@@ -105,7 +105,7 @@ export default async function ProductPage({ params }: ProductPageProps) {
           <section className="rounded-3xl border border-now-900/[0.06] bg-white px-6 py-12 shadow-[0_14px_36px_rgba(29,63,52,0.08)] sm:px-10 sm:py-16" role="alert">
             <h1 className="text-2xl font-black text-now-900">تعذر تحميل المنتج</h1>
             <p className="mt-3 text-sm leading-7 text-now-700">
-              حصلت مشكلة في الاتصال بخدمة NOW. حاول مرة أخرى.
+              حصلت مشكلة في الاتصال بخدمة چودي ستار. حاول مرة أخرى.
             </p>
             <Link className="mt-6 inline-flex min-h-12 items-center justify-center rounded-xl bg-now-600 px-6 font-extrabold text-white transition hover:bg-now-700" href="/">
               العودة للمتاجر
@@ -297,7 +297,7 @@ export default async function ProductPage({ params }: ProductPageProps) {
                     >
                       <div className="flex items-center justify-between gap-3">
                         <strong className="text-sm font-extrabold text-now-900">
-                          {review.customerName || "عميل NOW"}
+                          {review.customerName || "عميل چودي ستار"}
                         </strong>
                         <span className="rounded-lg bg-amber-50 px-2 py-1 text-xs font-extrabold text-amber-800">
                           ★ {review.stars}/5

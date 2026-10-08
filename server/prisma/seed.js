@@ -122,16 +122,16 @@ async function upsertDemoStore(tx, vendorId) {
   const store = await tx.store.upsert({
     where: { vendorId },
     update: {
-      name: 'متجر NOW التجريبي',
-      description: 'متجر تجريبي لاختبار تطبيق NOW',
+      name: 'متجر چودي ستار التجريبي',
+      description: 'متجر تجريبي لاختبار تطبيق چودي ستار',
       isOpen: true,
       isActive: true,
       approvalStatus: 'APPROVED',
     },
     create: {
       vendorId,
-      name: 'متجر NOW التجريبي',
-      description: 'متجر تجريبي لاختبار تطبيق NOW',
+      name: 'متجر چودي ستار التجريبي',
+      description: 'متجر تجريبي لاختبار تطبيق چودي ستار',
       isOpen: true,
       isActive: true,
       approvalStatus: 'APPROVED',

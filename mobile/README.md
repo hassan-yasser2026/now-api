@@ -1,15 +1,15 @@
-# NOW Delivery Mobile App
+# Goody Star Mobile App
 
 ## إعدادات التطبيق الأساسية
 
-- اسم التطبيق: NOW Delivery
-- slug: now-delivery
+- اسم التطبيق: Goody Star (چودي ستار)
+- slug: goody-star
 - package Android: com.now.delivery
 - bundle iOS: com.now.delivery
 - الاتجاه: portrait
 - النمط: automatic
-- الأيقونة: `./assets/images/icon.png`
-- شاشة البداية: `./assets/images/splash-icon.png`
+- الأيقونة: `./assets/images/goody-star-icon.png`
+- شاشة البداية: `./assets/images/goody-star-splash.png`
 
 ## التشغيل المحلي
 
