@@ -5,6 +5,8 @@ import CustomerNavigator from './CustomerNavigator';
 import VendorNavigator from './VendorNavigator';
 import DeliveryNavigator from './DeliveryNavigator';
 import AdminWebOnlyScreen from '../screens/auth/AdminWebOnlyScreen';
+import RoleMismatchScreen from '../screens/auth/RoleMismatchScreen';
+import { APP_ROLE } from '../constants/appRole';
 import Loading from '../components/Loading';
 
 const RootNavigator = () => {
@@ -32,6 +34,10 @@ const RootNavigator = () => {
 
   if (isAuthenticated && (role === 'admin' || role === 'sub_admin')) {
     return <AdminWebOnlyScreen />;
+  }
+
+  if (isAuthenticated && role !== APP_ROLE) {
+    return <RoleMismatchScreen />;
   }
 
   const getNavigator = () => {

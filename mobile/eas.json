@@ -17,6 +17,42 @@
         "simulator": false
       }
     },
+    "customer": {
+      "extends": "preview",
+      "env": {
+        "EXPO_PUBLIC_APP_ROLE": "customer"
+      }
+    },
+    "vendor": {
+      "extends": "preview",
+      "env": {
+        "EXPO_PUBLIC_APP_ROLE": "vendor"
+      }
+    },
+    "delivery": {
+      "extends": "preview",
+      "env": {
+        "EXPO_PUBLIC_APP_ROLE": "delivery"
+      }
+    },
+    "customer-production": {
+      "extends": "production",
+      "env": {
+        "EXPO_PUBLIC_APP_ROLE": "customer"
+      }
+    },
+    "vendor-production": {
+      "extends": "production",
+      "env": {
+        "EXPO_PUBLIC_APP_ROLE": "vendor"
+      }
+    },
+    "delivery-production": {
+      "extends": "production",
+      "env": {
+        "EXPO_PUBLIC_APP_ROLE": "delivery"
+      }
+    },
     "production": {
       "autoIncrement": false,
       "android": {

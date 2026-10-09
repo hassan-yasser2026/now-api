@@ -108,6 +108,7 @@ const labels: Record<string, string> = {
   IN_PROGRESS: "قيد المتابعة",
   CLOSED: "مغلقة",
   APPROVED: "معتمد",
+  REJECTED: "مرفوض",
   PENDING_ADMIN_REVIEW: "بانتظار المراجعة",
 };
 
@@ -415,6 +416,48 @@ function AppShell({
     }
   }
 
+  async function runSubmissionAction(record: RecordItem, action: "approve" | "reject") {
+    const id = record.id;
+    if (id === undefined || id === null) return;
+    let rejectionReason = "";
+    if (action === "reject") {
+      const enteredReason = window.prompt("اكتب سبب رفض طلب الشريك (إلزامي، بحد أقصى 500 حرف):");
+      if (enteredReason === null) return;
+      rejectionReason = enteredReason.trim();
+      if (!rejectionReason) {
+        setActionError(true);
+        setActionMessage("سبب الرفض مطلوب.");
+        return;
+      }
+      if (rejectionReason.length > 500) {
+        setActionError(true);
+        setActionMessage("سبب الرفض يجب ألا يتجاوز 500 حرف.");
+        return;
+      }
+    }
+
+    setActionMessage("");
+    setActionError(false);
+    setLoading(true);
+    try {
+      const response = await fetch(`/api/admin/submissions/partner_user/${id}/${action}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(action === "reject" ? { rejectionReason } : {}),
+      });
+      const result = await response.json();
+      if (!response.ok) throw new Error(result.message || "تعذر تحديث طلب الشريك.");
+      setActionMessage(action === "approve" ? "تم اعتماد طلب الشريك." : "تم رفض طلب الشريك وحفظ السبب.");
+      await loadActive();
+    } catch (cause) {
+      setActionError(true);
+      setActionMessage(cause instanceof Error ? cause.message : "تعذر تحديث طلب الشريك.");
+    } finally {
+      setLoading(false);
+      window.setTimeout(() => setActionMessage(""), 4500);
+    }
+  }
+
   const handleLogout = async () => {
     await fetch("/api/session", { method: "DELETE" });
     onLogout();
@@ -489,6 +532,7 @@ function AppShell({
               error={error}
               loading={loading}
               onAction={runRecordAction}
+              onSubmissionAction={runSubmissionAction}
               onPageChange={setPage}
               page={page}
               pageSize={25}
@@ -719,6 +763,7 @@ function DataSection({
   error,
   loading,
   onAction,
+  onSubmissionAction,
   onPageChange,
   page,
   pageSize,
@@ -734,6 +779,7 @@ function DataSection({
   error: string;
   loading: boolean;
   onAction: (record: RecordItem, action: "user-toggle" | "store-toggle" | "store-open-toggle" | "product-toggle") => void;
+  onSubmissionAction: (record: RecordItem, action: "approve" | "reject") => void;
   onPageChange: (page: number) => void;
   page: number;
   pageSize: number;
@@ -746,6 +792,8 @@ function DataSection({
   const columns = columnsFor(active);
   const totalPages = Math.max(1, Math.ceil(records.length / pageSize));
   const pageRows = records.slice((page - 1) * pageSize, page * pageSize);
+  const partnerRows = pageRows.filter((row) => row.submissionType === "partner_user");
+  const otherSubmissionRows = pageRows.filter((row) => row.submissionType !== "partner_user");
   const can = (permission: string) => user.role === "admin"
     || (user.permissions || []).includes(permission)
     || (permissionAliases[permission] || []).some((alias) => (user.permissions || []).includes(alias));
@@ -758,7 +806,31 @@ function DataSection({
       {error && <div className="notice error-notice table-error"><span>!</span><div><strong>تعذر تحميل القسم</strong><p>{error}</p></div></div>}
       {actionMessage && <div className={`notice action-notice ${actionError ? "error-notice" : ""}`} role="status"><span>{actionError ? "!" : "✓"}</span><div><strong>{actionMessage}</strong></div></div>}
       <div className="table-scroll">
-        <RecordTable active={active} can={can} columns={columns} empty={error ? "لا يمكن عرض البيانات لهذا الحساب." : search ? "لا توجد نتائج تطابق بحثك." : "لا توجد بيانات لعرضها بعد."} loading={loading} onAction={onAction} rows={pageRows} />
+        {active === "submissions" ? (
+          <>
+            {partnerRows.map((row) => (
+              <PartnerSubmissionCard
+                key={String(row.id)}
+                canReview={can("stores.update")}
+                onAction={onSubmissionAction}
+                record={row}
+              />
+            ))}
+            {(otherSubmissionRows.length > 0 || partnerRows.length === 0) && (
+              <RecordTable
+                active={active}
+                can={can}
+                columns={columns}
+                empty={error ? "لا يمكن عرض البيانات لهذا الحساب." : search ? "لا توجد نتائج تطابق بحثك." : "لا توجد طلبات أخرى."}
+                loading={false}
+                onAction={onAction}
+                rows={otherSubmissionRows}
+              />
+            )}
+          </>
+        ) : (
+          <RecordTable active={active} can={can} columns={columns} empty={error ? "لا يمكن عرض البيانات لهذا الحساب." : search ? "لا توجد نتائج تطابق بحثك." : "لا توجد بيانات لعرضها بعد."} loading={loading} onAction={onAction} rows={pageRows} />
+        )}
       </div>
       <div className="table-foot">
         <span>{loading ? "جارٍ تحميل السجلات..." : records.length ? `عرض ${displayValue((page - 1) * pageSize + 1)}–${displayValue(Math.min(page * pageSize, records.length))} من ${displayValue(records.length)} سجل` : "لا توجد سجلات"}</span>
@@ -769,6 +841,118 @@ function DataSection({
         </div>
       </div>
     </section>
+  );
+}
+
+function PartnerSubmissionCard({
+  canReview,
+  onAction,
+  record,
+}: {
+  canReview: boolean;
+  onAction: (record: RecordItem, action: "approve" | "reject") => void;
+  record: RecordItem;
+}) {
+  const [documents, setDocuments] = useState<RecordItem | null>(null);
+  const [documentsLoading, setDocumentsLoading] = useState(false);
+  const [documentsError, setDocumentsError] = useState("");
+  const [documentsOpen, setDocumentsOpen] = useState(false);
+  const pending = record.approvalStatus === "PENDING_ADMIN_REVIEW";
+  const isDelivery = getField(record, "submissionRole") === "delivery";
+
+  async function toggleDocuments() {
+    if (documentsOpen) {
+      setDocumentsOpen(false);
+      return;
+    }
+    setDocumentsOpen(true);
+    if (documents) return;
+    setDocumentsLoading(true);
+    setDocumentsError("");
+    try {
+      const response = await fetch(`/api/admin/submissions/partner_user/${record.id}/documents`, {
+        cache: "no-store",
+      });
+      const body = await response.json();
+      if (!response.ok) throw new Error(body.message || "تعذر تحميل صور الشريك.");
+      setDocuments(apiPayload<RecordItem>(body));
+    } catch (cause) {
+      setDocumentsError(cause instanceof Error ? cause.message : "تعذر تحميل صور الشريك.");
+    } finally {
+      setDocumentsLoading(false);
+    }
+  }
+
+  const images: { key: string; label: string }[] = [
+    { key: "profileImage", label: "الصورة الشخصية" },
+    { key: "idImage", label: "صورة الهوية" },
+    ...(isDelivery
+      ? [
+          { key: "motorcycleImage", label: "صورة الدراجة" },
+          { key: "motorcycleCardImage", label: "بطاقة الدراجة" },
+        ]
+      : []),
+  ];
+
+  return (
+    <article className="submission-card">
+      <div className="submission-heading">
+        <div>
+          <span className="submission-kind">{isDelivery ? "مندوب توصيل" : "بائع"}</span>
+          <h3>{displayValue(getField(record, "name"))}</h3>
+          <p>{displayValue(getField(record, "store.name"))}</p>
+        </div>
+        <span className={`status-pill ${statusClass(record.approvalStatus)}`}>
+          {displayValue(record.approvalStatus)}
+        </span>
+      </div>
+      <div className="submission-fields">
+        <div><span>رقم الحساب</span><strong>#{displayValue(record.id)}</strong></div>
+        <div><span>الهاتف</span><strong dir="ltr">{displayValue(record.phone)}</strong></div>
+        <div><span>البريد الإلكتروني</span><strong>{displayValue(record.email)}</strong></div>
+        <div><span>الموقع المسجل</span><strong dir="ltr">{record.latitude == null || record.longitude == null ? "—" : `${record.latitude}, ${record.longitude}`}</strong></div>
+        <div><span>تاريخ التسجيل</span><strong>{displayValue(record.createdAt)}</strong></div>
+      </div>
+      {record.rejectionReason && (
+        <div className="submission-reason"><strong>سبب الرفض:</strong> {String(record.rejectionReason)}</div>
+      )}
+      <div className="submission-actions">
+        {canReview && (
+          <button className="row-action row-action-light" onClick={() => void toggleDocuments()}>
+            {documentsOpen ? "إخفاء الصور" : "عرض البيانات والصور"}
+          </button>
+        )}
+        {canReview && pending && (
+          <>
+            <button className="row-action" onClick={() => onAction(record, "approve")}>اعتماد الطلب</button>
+            <button className="row-action row-action-danger" onClick={() => onAction(record, "reject")}>رفض الطلب</button>
+          </>
+        )}
+      </div>
+      {documentsOpen && (
+        <div className="submission-documents">
+          {documentsLoading && <p>جارٍ تحميل الصور بأمان...</p>}
+          {documentsError && <p className="submission-error" role="alert">{documentsError}</p>}
+          {documents && (
+            <div className="submission-image-grid">
+              {images.map(({ key, label }) => {
+                const source = documents[key];
+                return (
+                  <figure key={key}>
+                    {typeof source === "string" && source ? (
+                      <Image alt={label} height={220} src={source} unoptimized width={300} />
+                    ) : (
+                      <div className="submission-image-missing">الصورة غير متاحة</div>
+                    )}
+                    <figcaption>{label}</figcaption>
+                  </figure>
+                );
+              })}
+            </div>
+          )}
+        </div>
+      )}
+    </article>
   );
 }
 

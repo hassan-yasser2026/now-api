@@ -424,7 +424,6 @@ const GuestAccountView = ({
       <View style={styles.guestAccountNav}>
         {[
           ['account', 'حسابي', 'person-outline'],
-          ['partner', 'انضم كشريك', 'hand-left-outline'],
           ['home', 'الرئيسية', 'home-outline'],
           ['orders', 'طلباتك', 'receipt-outline'],
           ['about', 'عني', 'information-circle-outline'],
@@ -434,7 +433,6 @@ const GuestAccountView = ({
             style={styles.guestNavItem}
             onPress={() => {
               if (key === 'home') navigation?.goBack?.();
-              if (key === 'partner') navigation?.navigate('PartnerRegistration');
               if (key === 'orders') navigation?.navigate('Login');
               if (key === 'about') navigation?.navigate('About');
             }}

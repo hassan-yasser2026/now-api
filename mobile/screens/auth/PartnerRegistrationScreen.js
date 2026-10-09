@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useRef, useState } from 'react';
 import * as ImagePicker from 'expo-image-picker';
 import * as Location from 'expo-location';
 import {
@@ -17,8 +17,15 @@ import { Ionicons } from '@expo/vector-icons';
 
 import { COLORS } from '../../constants/colors';
 import PhoneInput from '../../components/PhoneInput';
-import useAppStore from '../../store/appStore';
 import { authService } from '../../services/authService';
+import { SELLER_LEGAL_VERSION } from '../../constants/sellerLegalDocuments';
+
+const REQUIRED_SELLER_CONSENTS = [
+  { id: 'terms', documentId: 'terms', title: 'شروط استخدام التطبيق' },
+  { id: 'privacy', documentId: 'privacy', title: 'سياسة الخصوصية' },
+  { id: 'seller', documentId: 'seller', title: 'اتفاقية البائع والعمولات' },
+  { id: 'orders', documentId: 'orders', title: 'سياسة الطلبات والإلغاء والاسترجاع' },
+];
 
 const PARTNER_ROLES = {
   vendor: {
@@ -54,17 +61,38 @@ const optimizeWebImage = async (uri) => {
   }
 };
 
+const normalizeImageMimeType = (mimeType) => {
+  const normalized = typeof mimeType === 'string' ? mimeType.trim().toLowerCase() : '';
+  return ['image/jpeg', 'image/jpg', 'image/png', 'image/webp'].includes(normalized)
+    ? normalized
+    : 'image/jpeg';
+};
+
+const isSerializedImage = (value) =>
+  typeof value === 'string'
+  && /^data:image\/(?:jpeg|jpg|png|webp);base64,[A-Za-z0-9+/]+={0,2}$/i.test(value);
+
 const PartnerRegistrationScreen = ({ navigation, route }) => {
   const role = route?.params?.role === 'delivery' ? 'delivery' : 'vendor';
   const [name, setName] = useState('');
   const [phoneNational, setPhoneNational] = useState('');
   const [phoneE164, setPhoneE164] = useState('');
   const [phoneValid, setPhoneValid] = useState(false);
-  const [country, setCountry] = useState(useAppStore.getState().country);
+  const [country, setCountry] = useState('EG');
   const [email, setEmail] = useState('');
   const [storeName, setStoreName] = useState('');
   const [password, setPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+  const [step, setStep] = useState(1);
+  const [formError, setFormError] = useState('');
+  const [consents, setConsents] = useState({
+    terms: false,
+    privacy: false,
+    seller: false,
+    orders: false,
+  });
   const [profileImage, setProfileImage] = useState(null);
   const [idImage, setIdImage] = useState(null);
   const [motorcycleImage, setMotorcycleImage] = useState(null);
@@ -73,7 +101,19 @@ const PartnerRegistrationScreen = ({ navigation, route }) => {
   const [locationLabel, setLocationLabel] = useState('');
   const [locationLoading, setLocationLoading] = useState(false);
   const [loading, setLoading] = useState(false);
+  const submittingRef = useRef(false);
   const selectedRole = PARTNER_ROLES[role];
+
+  const encodeSelectedImage = async (asset) => {
+    if (Platform.OS === 'web') {
+      const optimized = await optimizeWebImage(asset.uri);
+      if (isSerializedImage(optimized)) return optimized;
+    }
+    if (typeof asset.base64 === 'string' && /^[A-Za-z0-9+/]+={0,2}$/.test(asset.base64)) {
+      return `data:${normalizeImageMimeType(asset.mimeType)};base64,${asset.base64}`;
+    }
+    throw new Error('تعذر تجهيز الصورة للرفع. اختر الصورة مرة أخرى.');
+  };
 
   const chooseImage = async (setImage, label) => {
     const permission = await ImagePicker.requestMediaLibraryPermissionsAsync();
@@ -83,10 +123,16 @@ const PartnerRegistrationScreen = ({ navigation, route }) => {
     }
     const result = await ImagePicker.launchImageLibraryAsync({
       mediaTypes: ['images'],
-      quality: 0.8,
+      quality: 0.65,
+      base64: true,
     });
     if (!result.canceled && result.assets?.[0]?.uri) {
-      setImage(await optimizeWebImage(result.assets[0].uri));
+      try {
+        setImage(await encodeSelectedImage(result.assets[0]));
+        setFormError('');
+      } catch (error) {
+        setFormError(error?.message || 'تعذر تجهيز الصورة للرفع. اختر الصورة مرة أخرى.');
+      }
     }
   };
 
@@ -95,7 +141,7 @@ const PartnerRegistrationScreen = ({ navigation, route }) => {
       setLocationLoading(true);
       const permission = await Location.requestForegroundPermissionsAsync();
       if (permission.status !== 'granted') {
-        Alert.alert('الصلاحية مطلوبة', 'اسمح للتطبيق بالوصول إلى موقعك أو اكتب العنوان يدويًا');
+        Alert.alert('الصلاحية مطلوبة', 'اسمح للتطبيق بالوصول إلى الموقع أو تابع دون تحديده الآن');
         return;
       }
       const position = await Location.getCurrentPositionAsync({});
@@ -110,37 +156,82 @@ const PartnerRegistrationScreen = ({ navigation, route }) => {
       ].filter(Boolean).join('، ');
       setLocationLabel(readableAddress || 'تم تحديد موقعك على الخريطة');
     } catch {
-      Alert.alert('تعذر تحديد الموقع', 'اكتب عنوانك يدويًا في خانة الموقع');
+      Alert.alert('تعذر تحديد الموقع', 'يمكنك المتابعة دون تحديد الموقع وإكمال بيانات المتجر لاحقًا.');
     } finally {
       setLocationLoading(false);
     }
   };
 
-  const handleSubmit = async () => {
-    if (!name.trim() || !phoneValid || password.length < 8) {
-      Alert.alert('تنبيه', 'الاسم والهاتف وكلمة مرور من 8 أحرف على الأقل مطلوبة');
-      return;
+  const validateAccount = () => {
+    if (!name.trim() || name.trim().length < 2) {
+      return 'اكتب الاسم الكامل لصاحب الحساب (حرفان على الأقل).';
     }
     if (role === 'vendor' && !storeName.trim()) {
-      Alert.alert('تنبيه', 'اسم المتجر مطلوب للبائع');
+      return 'اسم المتجر مطلوب.';
+    }
+    if (!phoneNational.trim() || !phoneValid) {
+      return 'رقم الهاتف غير صحيح. راجع الدولة ورقم الهاتف.';
+    }
+    if (password.length < 8) {
+      return 'كلمة المرور يجب أن تتكون من 8 أحرف على الأقل.';
+    }
+    if (password !== confirmPassword) {
+      return 'كلمتا المرور غير متطابقتين.';
+    }
+    if (email.trim() && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim())) {
+      return 'البريد الإلكتروني غير صحيح، أو اتركه فارغًا لأنه اختياري.';
+    }
+    return '';
+  };
+
+  const continueToReview = () => {
+    const error = validateAccount();
+    setFormError(error);
+    if (!error) setStep(2);
+  };
+
+  const submitRegistration = async () => {
+    if (loading || submittingRef.current) return;
+    setFormError('');
+    const accountError = validateAccount();
+    if (accountError) {
+      setFormError(accountError);
+      setStep(1);
+      return;
+    }
+    if (role === 'vendor' && REQUIRED_SELLER_CONSENTS.some(({ id }) => !consents[id])) {
+      setFormError('يجب الموافقة على المستندات الأربعة بشكل منفصل للمتابعة.');
       return;
     }
     if (
       !profileImage
       || !idImage
       || (role === 'delivery' && (!motorcycleImage || !motorcycleCardImage))
-      || !locationLabel.trim()
     ) {
-      Alert.alert(
-        'تنبيه',
+      setFormError(
         role === 'delivery'
-          ? 'الصورة الشخصية والبطاقة وصورة المتوسكل وبطاقة المتوسكل والعنوان أو الموقع مطلوبة لإكمال التسجيل'
-          : 'الصورة الشخصية والبطاقة والعنوان أو الموقع مطلوبة لإكمال التسجيل'
+          ? 'النظام الحالي يتطلب الصورة الشخصية وصورة البطاقة وصورة الدراجة وبطاقتها.'
+          : 'النظام الحالي يتطلب صورة شخصية وصورة بطاقة لإرسال طلب الشراكة للمراجعة.'
       );
+      return;
+    }
+    const requiredImages = role === 'delivery'
+      ? [profileImage, idImage, motorcycleImage, motorcycleCardImage]
+      : [profileImage, idImage];
+    if (requiredImages.some((image) => !isSerializedImage(image))) {
+      setFormError('تعذر تجهيز إحدى الصور للرفع. اختر الصور المطلوبة مرة أخرى.');
+      return;
+    }
+    const imageSize = [profileImage, idImage, motorcycleImage, motorcycleCardImage]
+      .filter(Boolean)
+      .reduce((total, image) => total + image.length, 0);
+    if (imageSize > 1_750_000) {
+      setFormError('حجم الصور كبير. اختر صورًا أصغر ثم أعد المحاولة.');
       return;
     }
 
     try {
+      submittingRef.current = true;
       setLoading(true);
       const register = role === 'vendor'
         ? authService.registerVendor
@@ -162,25 +253,26 @@ const PartnerRegistrationScreen = ({ navigation, route }) => {
       });
 
       if (!result?.success) {
-        Alert.alert('تعذر إنشاء الحساب', result?.message || 'حاول مرة أخرى');
+        setFormError(result?.message || 'تعذر إنشاء الحساب. حاول مرة أخرى.');
         return;
       }
 
       Alert.alert(
-        'تم استلام طلب التسجيل',
+        result.pendingApproval ? 'تم استلام طلبك للمراجعة' : 'تم إنشاء الحساب',
         result.pendingApproval
-          ? 'حسابك في انتظار مراجعة الإدارة لمدة تصل إلى 48 ساعة. ستتمكن من الدخول بعد الموافقة.'
-          : 'تم إنشاء حسابك بنجاح'
+          ? 'حسابك قيد مراجعة الإدارة. لن تتمكن من البيع قبل اعتماد الحساب والمتجر.'
+          : 'تم إنشاء الحساب بنجاح.'
       );
-      navigation.navigate('PartnerLogin');
+      navigation.navigate('PartnerLogin', { role });
     } catch (error) {
-      Alert.alert(
-        'خطأ',
+      console.error('PARTNER REGISTRATION SUBMIT ERROR:', error);
+      setFormError(
         error?.response?.data?.message
           || error?.message
-          || 'تعذر الاتصال بالخادم، حاول مرة أخرى'
+          || 'تعذر الاتصال بالخادم. تحقق من الإنترنت وحاول مرة أخرى.'
       );
     } finally {
+      submittingRef.current = false;
       setLoading(false);
     }
   };
@@ -209,115 +301,212 @@ const PartnerRegistrationScreen = ({ navigation, route }) => {
         keyboardShouldPersistTaps="handled"
       >
         <Text style={styles.title}>انضم كشريك</Text>
-        <Text style={styles.subtitle}>اختار نوع الحساب الذي تريد التسجيل به</Text>
+        <Text style={styles.subtitle}>أنشئ حساب متجرك في خطوتين</Text>
+        <View style={styles.stepIndicator}>
+          {[1, 2].map((item) => (
+            <View key={item} style={styles.stepItem}>
+              <View style={[styles.stepDot, item <= step && { backgroundColor: selectedRole.color }]}>
+                <Text style={[styles.stepNumber, item <= step && styles.stepNumberActive]}>{item}</Text>
+              </View>
+              <Text style={[styles.stepLabel, item === step && { color: selectedRole.color }]}>
+                {item === 1 ? 'بيانات الحساب' : 'المراجعة والموافقات'}
+              </Text>
+            </View>
+          ))}
+        </View>
 
         <View style={styles.roleCard}>
           <View style={[styles.roleIcon, { backgroundColor: `${selectedRole.color}18` }]}>
             <Ionicons name={selectedRole.icon} size={42} color={selectedRole.color} />
           </View>
           <Text style={styles.roleTitle}>{selectedRole.title}</Text>
-          <Text style={styles.roleSubtitle}>{selectedRole.subtitle}</Text>
+          <Text style={styles.roleSubtitle}>
+            {step === 1 ? selectedRole.subtitle : 'راجع المستندات واستكمل متطلبات إرسال طلب المراجعة'}
+          </Text>
 
           <View style={styles.form}>
-            <View style={styles.inputRow}>
-              <Ionicons name="person-outline" size={20} color={selectedRole.color} />
-              <TextInput
-                style={styles.input}
-                placeholder="الاسم الكامل"
-                placeholderTextColor={COLORS.textLight}
-                value={name}
-                onChangeText={setName}
-              />
-            </View>
-
-            {role === 'vendor' && (
-              <View style={styles.inputRow}>
-                <Ionicons name="storefront-outline" size={20} color={selectedRole.color} />
-                <TextInput
-                  style={styles.input}
-                  placeholder="اسم المتجر (إجباري)"
-                  placeholderTextColor={COLORS.textLight}
-                  value={storeName}
-                  onChangeText={setStoreName}
-                />
-              </View>
-            )}
-
-            <PhoneInput
-              value={phoneNational}
-              countryCode={country}
-              onChange={({ national, e164, isValid, countryCode }) => {
-                setPhoneNational(national);
-                setPhoneE164(e164);
-                setPhoneValid(isValid);
-                setCountry(countryCode);
-              }}
-            />
-
-            <View style={styles.inputRow}>
-              <Ionicons name="lock-closed-outline" size={20} color={selectedRole.color} />
-              <TextInput
-                style={styles.input}
-                placeholder="كلمة المرور"
-                placeholderTextColor={COLORS.textLight}
-                secureTextEntry={!showPassword}
-                value={password}
-                onChangeText={setPassword}
-              />
-              <TouchableOpacity onPress={() => setShowPassword((value) => !value)}>
-                <Ionicons
-                  name={showPassword ? 'eye-outline' : 'eye-off-outline'}
-                  size={20}
-                  color={COLORS.textSecondary}
-                />
-              </TouchableOpacity>
-            </View>
-
-            <View style={styles.inputRow}>
-              <Ionicons name="mail-outline" size={20} color={selectedRole.color} />
-              <TextInput
-                style={styles.input}
-                placeholder="البريد الإلكتروني (اختياري)"
-                placeholderTextColor={COLORS.textLight}
-                keyboardType="email-address"
-                autoCapitalize="none"
-                value={email}
-                onChangeText={setEmail}
-              />
-            </View>
-
-            <TouchableOpacity
-              style={styles.inputRow}
-              onPress={() => chooseImage(setProfileImage, 'الصورة الشخصية')}
-              activeOpacity={0.7}
-            >
-              <Ionicons
-                name={profileImage ? 'checkmark-circle-outline' : 'person-circle-outline'}
-                size={22}
-                color={selectedRole.color}
-              />
-              <Text style={[styles.actionText, profileImage && { color: selectedRole.color }]}>
-                {profileImage ? 'تم اختيار الصورة الشخصية' : 'الصورة الشخصية (إجباري)'}
-              </Text>
-            </TouchableOpacity>
-
-            <TouchableOpacity
-              style={styles.inputRow}
-              onPress={() => chooseImage(setIdImage, 'صورة البطاقة')}
-              activeOpacity={0.7}
-            >
-              <Ionicons
-                name={idImage ? 'checkmark-circle-outline' : 'camera-outline'}
-                size={22}
-                color={selectedRole.color}
-              />
-              <Text style={[styles.actionText, idImage && { color: selectedRole.color }]}>
-                {idImage ? 'تم اختيار صورة البطاقة' : 'صورة البطاقة (إجباري)'}
-              </Text>
-            </TouchableOpacity>
-
-            {role === 'delivery' && (
+            {step === 1 ? (
               <>
+                <Text style={styles.fieldLabel}>الاسم الكامل لصاحب الحساب *</Text>
+                <View style={styles.inputRow}>
+                  <Ionicons name="person-outline" size={20} color={selectedRole.color} />
+                  <TextInput
+                    accessibilityLabel="الاسم الكامل لصاحب الحساب"
+                    style={styles.input}
+                    placeholder="مثال: أحمد محمد"
+                    placeholderTextColor={COLORS.textLight}
+                    autoComplete="name"
+                    value={name}
+                    onChangeText={setName}
+                  />
+                </View>
+
+                {role === 'vendor' && (
+                  <>
+                    <Text style={styles.fieldLabel}>اسم المتجر *</Text>
+                    <View style={styles.inputRow}>
+                      <Ionicons name="storefront-outline" size={20} color={selectedRole.color} />
+                      <TextInput
+                        accessibilityLabel="اسم المتجر"
+                        style={styles.input}
+                        placeholder="الاسم الذي سيظهر للعملاء"
+                        placeholderTextColor={COLORS.textLight}
+                        value={storeName}
+                        onChangeText={setStoreName}
+                      />
+                    </View>
+                  </>
+                )}
+
+                <Text style={styles.fieldLabel}>رقم الهاتف *</Text>
+                <PhoneInput
+                  value={phoneNational}
+                  countryCode={country}
+                  onChange={({ national, e164, isValid, countryCode }) => {
+                    setPhoneNational(national);
+                    setPhoneE164(e164);
+                    setPhoneValid(isValid);
+                    setCountry(countryCode);
+                  }}
+                />
+
+                <Text style={styles.fieldLabel}>كلمة المرور *</Text>
+                <View style={styles.inputRow}>
+                  <Ionicons name="lock-closed-outline" size={20} color={selectedRole.color} />
+                  <TextInput
+                    accessibilityLabel="كلمة المرور"
+                    style={styles.input}
+                    placeholder="8 أحرف على الأقل"
+                    placeholderTextColor={COLORS.textLight}
+                    secureTextEntry={!showPassword}
+                    autoComplete="new-password"
+                    value={password}
+                    onChangeText={setPassword}
+                  />
+                  <TouchableOpacity
+                    accessibilityRole="button"
+                    accessibilityLabel={showPassword ? 'إخفاء كلمة المرور' : 'إظهار كلمة المرور'}
+                    onPress={() => setShowPassword((value) => !value)}
+                  >
+                    <Ionicons
+                      name={showPassword ? 'eye-outline' : 'eye-off-outline'}
+                      size={20}
+                      color={COLORS.textSecondary}
+                    />
+                  </TouchableOpacity>
+                </View>
+
+                <Text style={styles.fieldLabel}>تأكيد كلمة المرور *</Text>
+                <View style={styles.inputRow}>
+                  <Ionicons name="lock-closed-outline" size={20} color={selectedRole.color} />
+                  <TextInput
+                    accessibilityLabel="تأكيد كلمة المرور"
+                    style={styles.input}
+                    placeholder="أعد كتابة كلمة المرور"
+                    placeholderTextColor={COLORS.textLight}
+                    secureTextEntry={!showConfirmPassword}
+                    autoComplete="new-password"
+                    value={confirmPassword}
+                    onChangeText={setConfirmPassword}
+                  />
+                  <TouchableOpacity
+                    accessibilityRole="button"
+                    accessibilityLabel={showConfirmPassword ? 'إخفاء تأكيد كلمة المرور' : 'إظهار تأكيد كلمة المرور'}
+                    onPress={() => setShowConfirmPassword((value) => !value)}
+                  >
+                    <Ionicons
+                      name={showConfirmPassword ? 'eye-outline' : 'eye-off-outline'}
+                      size={20}
+                      color={COLORS.textSecondary}
+                    />
+                  </TouchableOpacity>
+                </View>
+
+                <Text style={styles.fieldLabel}>البريد الإلكتروني (اختياري)</Text>
+                <View style={styles.inputRow}>
+                  <Ionicons name="mail-outline" size={20} color={selectedRole.color} />
+                  <TextInput
+                    accessibilityLabel="البريد الإلكتروني اختياري"
+                    style={styles.input}
+                    placeholder="name@example.com"
+                    placeholderTextColor={COLORS.textLight}
+                    keyboardType="email-address"
+                    autoCapitalize="none"
+                    autoComplete="email"
+                    value={email}
+                    onChangeText={setEmail}
+                  />
+                </View>
+              </>
+            ) : (
+              <>
+                <View style={styles.noteCard}>
+                  <Ionicons name="information-circle-outline" size={21} color={COLORS.primary} />
+                  <Text style={styles.noteText}>
+                    التسجيل الحالي يحفظ اسم المتجر فقط، ولا يحفظ عنوانًا نصيًا أو تصنيف النشاط أو ساعات العمل. الإحداثيات الاختيارية تُرسل ضمن بيانات صاحب الحساب، وليست عنوانًا محفوظًا للمتجر.
+                  </Text>
+                </View>
+
+                <Text style={styles.sectionHeading}>مرفقات طلب المراجعة</Text>
+                <Text style={styles.helperText}>
+                  واجهة التسجيل الحالية والخادم يشترطان صورة شخصية وصورة بطاقة للشريك. لا ترفق مستندات ضريبية أو تجارية غير مطلوبة.
+                </Text>
+                <TouchableOpacity
+                  style={styles.inputRow}
+                  onPress={() => chooseImage(setProfileImage, 'الصورة الشخصية')}
+                  activeOpacity={0.7}
+                >
+                  <Ionicons
+                    name={profileImage ? 'checkmark-circle-outline' : 'person-circle-outline'}
+                    size={22}
+                    color={selectedRole.color}
+                  />
+                  <Text style={styles.actionText}>
+                    {profileImage ? 'تم اختيار الصورة الشخصية' : 'الصورة الشخصية (مطلوبة حاليًا بالنظام)'}
+                  </Text>
+                </TouchableOpacity>
+
+                <TouchableOpacity
+                  style={styles.inputRow}
+                  onPress={() => chooseImage(setIdImage, 'صورة البطاقة')}
+                  activeOpacity={0.7}
+                >
+                  <Ionicons
+                    name={idImage ? 'checkmark-circle-outline' : 'camera-outline'}
+                    size={22}
+                    color={selectedRole.color}
+                  />
+                  <Text style={styles.actionText}>
+                    {idImage ? 'تم اختيار صورة البطاقة' : 'صورة البطاقة (مطلوبة حاليًا بالنظام)'}
+                  </Text>
+                </TouchableOpacity>
+
+                <Text style={styles.sectionHeading}>موقع النشاط (اختياري الآن)</Text>
+                <TouchableOpacity
+                  accessibilityRole="button"
+                  accessibilityLabel="تحديد موقع النشاط اختياريًا"
+                  style={styles.inputRow}
+                  onPress={chooseLocation}
+                  disabled={locationLoading}
+                  activeOpacity={0.7}
+                >
+                  <Ionicons
+                    name={location ? 'checkmark-circle-outline' : 'location-outline'}
+                    size={22}
+                    color={selectedRole.color}
+                  />
+                  <Text style={styles.actionText}>
+                    {location ? locationLabel : 'يمكنك تحديد موقع النشاط'}
+                  </Text>
+                  {locationLoading ? (
+                    <ActivityIndicator size="small" color={selectedRole.color} />
+                  ) : (
+                    <Ionicons name="navigate-outline" size={22} color={selectedRole.color} />
+                  )}
+                </TouchableOpacity>
+
+                {role === 'delivery' && (
+                  <>
                 <TouchableOpacity
                   style={styles.inputRow}
                   onPress={() => chooseImage(setMotorcycleImage, 'صورة المتوسكل')}
@@ -349,51 +538,101 @@ const PartnerRegistrationScreen = ({ navigation, route }) => {
                       : 'صورة بطاقة المتوسكل (إجباري)'}
                   </Text>
                 </TouchableOpacity>
+                  </>
+                )}
+
+                {role === 'vendor' && (
+                  <View style={styles.legalSection}>
+                    <Text style={styles.sectionHeading}>الموافقات المطلوبة</Text>
+                    <Text style={styles.helperText}>
+                      اقرأ كل مستند، ثم اختر الموافقة المناسبة بنفسك. لا توجد موافقات محددة مسبقًا.
+                    </Text>
+                    {REQUIRED_SELLER_CONSENTS.map((consent) => (
+                      <View key={consent.id} style={styles.consentCard}>
+                        <TouchableOpacity
+                          accessibilityRole="checkbox"
+                          accessibilityState={{ checked: consents[consent.id] }}
+                          onPress={() => {
+                            setConsents((current) => ({
+                              ...current,
+                              [consent.id]: !current[consent.id],
+                            }));
+                            setFormError('');
+                          }}
+                          style={styles.consentToggle}
+                        >
+                          <Ionicons
+                            name={consents[consent.id] ? 'checkbox' : 'square-outline'}
+                            size={23}
+                            color={consents[consent.id] ? selectedRole.color : COLORS.textLight}
+                          />
+                          <Text style={styles.consentTitle}>{consent.title}</Text>
+                        </TouchableOpacity>
+                        <TouchableOpacity
+                          accessibilityRole="link"
+                          onPress={() => navigation.navigate('SellerLegalDocument', {
+                            documentId: consent.documentId,
+                          })}
+                          style={styles.documentLink}
+                        >
+                          <Text style={styles.documentLinkText}>قراءة المستند</Text>
+                          <Ionicons name="open-outline" size={15} color={selectedRole.color} />
+                        </TouchableOpacity>
+                      </View>
+                    ))}
+                    <Text style={styles.legalVersion}>
+                      إصدار المستندات: {SELLER_LEGAL_VERSION}
+                    </Text>
+                    <Text style={styles.legalNotice}>
+                      ملاحظة: الواجهة تفرض الموافقة قبل الإرسال، لكن الـBackend الحالي لا يحفظ إصدار المستند أو تاريخ الموافقة كسجل تدقيقي.
+                    </Text>
+                  </View>
+                )}
               </>
             )}
-
-            <View style={styles.inputRow}>
-              <Ionicons
-                name={location ? 'checkmark-circle-outline' : 'location-outline'}
-                size={22}
-                color={selectedRole.color}
-              />
-              <TextInput
-                style={styles.input}
-                placeholder="اكتب العنوان أو حدد موقعك"
-                placeholderTextColor={COLORS.textLight}
-                value={locationLabel}
-                onChangeText={(value) => {
-                  setLocationLabel(value);
-                  setLocation(null);
-                }}
-              />
-              <TouchableOpacity onPress={chooseLocation} disabled={locationLoading}>
-                {locationLoading ? (
-                  <ActivityIndicator size="small" color={selectedRole.color} />
-                ) : (
-                  <Ionicons name="navigate-outline" size={22} color={selectedRole.color} />
-                )}
-              </TouchableOpacity>
-            </View>
           </View>
         </View>
 
+        {formError ? (
+          <View accessibilityRole="alert" style={styles.errorCard}>
+            <Ionicons name="alert-circle-outline" size={20} color={COLORS.error} />
+            <Text style={styles.errorText}>{formError}</Text>
+          </View>
+        ) : null}
+
         <TouchableOpacity
           style={[styles.continueButton, { backgroundColor: selectedRole.color }]}
-          onPress={handleSubmit}
+          onPress={step === 1 ? continueToReview : submitRegistration}
           disabled={loading}
           activeOpacity={0.85}
         >
           {loading ? (
-            <ActivityIndicator color={COLORS.white} />
+            <>
+              <ActivityIndicator color={COLORS.white} />
+              <Text style={styles.continueText}>جارٍ إرسال الطلب...</Text>
+            </>
           ) : (
             <>
-              <Text style={styles.continueText}>إنشاء الحساب</Text>
-              <Ionicons name="arrow-back" size={20} color={COLORS.white} />
+              <Text style={styles.continueText}>
+                {step === 1 ? 'متابعة إلى المراجعة' : 'إرسال طلب التسجيل'}
+              </Text>
+              <Ionicons name={step === 1 ? 'arrow-back' : 'checkmark'} size={20} color={COLORS.white} />
             </>
           )}
         </TouchableOpacity>
+
+        {step === 2 && (
+          <TouchableOpacity
+            accessibilityRole="button"
+            onPress={() => {
+              setFormError('');
+              setStep(1);
+            }}
+            style={styles.backStepButton}
+          >
+            <Text style={styles.backStepText}>العودة لتعديل بيانات الحساب</Text>
+          </TouchableOpacity>
+        )}
 
         <TouchableOpacity
           style={styles.loginLink}
@@ -407,35 +646,6 @@ const PartnerRegistrationScreen = ({ navigation, route }) => {
         </TouchableOpacity>
       </ScrollView>
 
-      <View style={styles.bottomNav}>
-        {[
-          ['account', 'حسابي', 'person-outline'],
-          ['partner', 'انضم كشريك', 'hand-left-outline'],
-          ['home', 'الرئيسية', 'home-outline'],
-          ['orders', 'طلباتك', 'receipt-outline'],
-          ['about', 'عني', 'information-circle-outline'],
-        ].map(([key, label, icon]) => (
-          <TouchableOpacity
-            key={key}
-            style={styles.bottomNavItem}
-            onPress={() => {
-              if (key === 'home') navigation.goBack();
-              else if (key === 'account' || key === 'orders') navigation.navigate('PartnerLogin');
-              else if (key === 'about') Alert.alert('عن چودي ستار', 'تطبيق چودي ستار للتوصيل');
-            }}
-            activeOpacity={0.65}
-          >
-            <Ionicons
-              name={icon}
-              size={21}
-              color={key === 'partner' ? selectedRole.color : COLORS.textSecondary}
-            />
-            <Text style={[styles.bottomNavText, key === 'partner' && { color: selectedRole.color }]}>
-              {label}
-            </Text>
-          </TouchableOpacity>
-        ))}
-      </View>
     </SafeAreaView>
   );
 };
@@ -454,7 +664,28 @@ const styles = StyleSheet.create({
   logo: { fontSize: 34, fontWeight: '900', color: COLORS.primary },
   logoAccent: { color: COLORS.accent },
   contentScroll: { flex: 1 },
-  content: { flexGrow: 1, padding: 20, paddingBottom: 110 },
+  content: { flexGrow: 1, padding: 20, paddingBottom: 28 },
+  stepIndicator: {
+    width: '100%',
+    maxWidth: 520,
+    alignSelf: 'center',
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    marginTop: 20,
+    marginBottom: 4,
+  },
+  stepItem: { flex: 1, alignItems: 'center', gap: 7 },
+  stepDot: {
+    width: 30,
+    height: 30,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderRadius: 15,
+    backgroundColor: COLORS.border,
+  },
+  stepNumber: { color: COLORS.textSecondary, fontSize: 13, fontWeight: '800' },
+  stepNumberActive: { color: COLORS.white },
+  stepLabel: { color: COLORS.textSecondary, fontSize: 12, fontWeight: '700', textAlign: 'center' },
   title: {
     marginTop: 12,
     textAlign: 'center',
@@ -488,7 +719,10 @@ const styles = StyleSheet.create({
   activeTabText: { color: COLORS.white },
   roleCard: {
     alignItems: 'center',
-    marginTop: 24,
+    width: '100%',
+    maxWidth: 560,
+    alignSelf: 'center',
+    marginTop: 16,
     padding: 22,
     borderRadius: 22,
     backgroundColor: COLORS.white,
@@ -513,6 +747,35 @@ const styles = StyleSheet.create({
     color: COLORS.textSecondary,
   },
   form: { width: '100%', marginTop: 20, gap: 10 },
+  fieldLabel: {
+    marginTop: 4,
+    color: COLORS.textPrimary,
+    fontSize: 13,
+    fontWeight: '700',
+    textAlign: 'right',
+  },
+  sectionHeading: {
+    marginTop: 10,
+    color: COLORS.textPrimary,
+    fontSize: 15,
+    fontWeight: '800',
+    textAlign: 'right',
+  },
+  helperText: {
+    color: COLORS.textSecondary,
+    fontSize: 12,
+    lineHeight: 20,
+    textAlign: 'right',
+  },
+  noteCard: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: 9,
+    borderRadius: 12,
+    backgroundColor: COLORS.primaryLight,
+    padding: 12,
+  },
+  noteText: { flex: 1, color: COLORS.primaryDark, fontSize: 13, lineHeight: 21, textAlign: 'right' },
   inputRow: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -530,6 +793,45 @@ const styles = StyleSheet.create({
     textAlign: 'right',
   },
   actionText: { flex: 1, color: COLORS.textSecondary, fontSize: 15, textAlign: 'right' },
+  legalSection: { gap: 10, marginTop: 6 },
+  consentCard: {
+    borderWidth: 1,
+    borderColor: COLORS.border,
+    borderRadius: 13,
+    backgroundColor: COLORS.surface,
+    padding: 11,
+  },
+  consentToggle: { flexDirection: 'row', alignItems: 'center', gap: 9, minHeight: 36 },
+  consentTitle: { flex: 1, color: COLORS.textPrimary, fontSize: 13, fontWeight: '700', textAlign: 'right' },
+  documentLink: { flexDirection: 'row', alignItems: 'center', justifyContent: 'flex-start', gap: 5, marginTop: 8, paddingVertical: 4 },
+  documentLinkText: { color: COLORS.primary, fontSize: 12, fontWeight: '700' },
+  legalVersion: { color: COLORS.textLight, fontSize: 11, textAlign: 'right' },
+  legalNotice: {
+    borderRadius: 10,
+    backgroundColor: '#FFF9E9',
+    color: '#684A13',
+    fontSize: 11,
+    lineHeight: 18,
+    padding: 10,
+    textAlign: 'right',
+  },
+  errorCard: {
+    width: '100%',
+    maxWidth: 560,
+    alignSelf: 'center',
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: 8,
+    marginTop: 14,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: '#F1C7C7',
+    backgroundColor: '#FFF5F5',
+    padding: 12,
+  },
+  errorText: { flex: 1, color: COLORS.error, fontSize: 13, lineHeight: 21, textAlign: 'right' },
+  backStepButton: { alignItems: 'center', paddingVertical: 12 },
+  backStepText: { color: COLORS.primary, fontSize: 13, fontWeight: '700' },
   continueButton: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -549,30 +851,6 @@ const styles = StyleSheet.create({
   },
   loginPrompt: { color: COLORS.textSecondary, fontSize: 14 },
   loginLinkText: { fontSize: 14, fontWeight: '800' },
-  bottomNav: {
-    position: 'absolute',
-    left: 10,
-    right: 10,
-    bottom: 10,
-    height: 68,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-around',
-    paddingHorizontal: 5,
-    backgroundColor: COLORS.surface,
-    borderRadius: 20,
-    borderWidth: 1,
-    borderColor: COLORS.border,
-    elevation: 8,
-  },
-  bottomNavItem: {
-    flex: 1,
-    height: '100%',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: 3,
-  },
-  bottomNavText: { color: COLORS.textSecondary, fontSize: 10, fontWeight: '700', textAlign: 'center' },
 });
 
 export default PartnerRegistrationScreen;

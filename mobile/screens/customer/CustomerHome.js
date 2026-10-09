@@ -189,11 +189,6 @@ const CustomerHome = ({ navigation }) => {
       return;
     }
 
-    if (route === 'partner') {
-      navigation.navigate('PartnerEntry');
-      return;
-    }
-
     if (route === 'orders') {
       navigation.navigate(isGuest ? 'Login' : 'Orders');
       return;
@@ -390,7 +385,6 @@ const CustomerHome = ({ navigation }) => {
         <View style={styles.guestBottomNav}>
           {[
             { key: 'account', label: 'حسابي', icon: 'person-outline' },
-            { key: 'partner', label: 'انضم كشريك', icon: 'hand-left-outline' },
             { key: 'home', label: 'الرئيسية', icon: 'home', active: true },
             { key: 'orders', label: 'طلباتي', icon: 'receipt-outline' },
             { key: 'about', label: 'حول تطبيق چودي ستار', icon: 'information-circle-outline' },
@@ -401,7 +395,6 @@ const CustomerHome = ({ navigation }) => {
               accessibilityLabel={item.label}
               style={({ pressed }) => [
                 styles.guestBottomNavItem,
-                item.key === 'partner' && styles.partnerNavItem,
                 pressed && styles.guestBottomNavItemPressed,
               ]}
               onPress={() => handleBottomNavigation(item.key)}
@@ -409,12 +402,11 @@ const CustomerHome = ({ navigation }) => {
               <Ionicons
                 name={item.icon}
                 size={20}
-                color={item.key === 'partner' ? HOME_ACCENT : item.active ? HOME_ACCENT : COLORS.textSecondary}
+                color={item.active ? HOME_ACCENT : COLORS.textSecondary}
               />
               <Text style={[
                 styles.guestBottomNavLabel,
                 item.active && styles.guestBottomNavLabelActive,
-                item.key === 'partner' && styles.partnerNavLabel,
               ]}>
                 {item.label}
               </Text>
@@ -1057,11 +1049,6 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     gap: 3,
   },
-  partnerNavItem: {
-    marginVertical: 7,
-    borderRadius: 15,
-    backgroundColor: '#FFF1F7',
-  },
   guestBottomNavItemPressed: {
     opacity: 0.7,
     transform: [{ scale: 0.94 }],
@@ -1073,10 +1060,6 @@ const styles = StyleSheet.create({
     textAlign: 'center',
   },
   guestBottomNavLabelActive: {
-    color: HOME_ACCENT,
-    fontWeight: '900',
-  },
-  partnerNavLabel: {
     color: HOME_ACCENT,
     fontWeight: '900',
   },

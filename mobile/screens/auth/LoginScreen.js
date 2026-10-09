@@ -19,6 +19,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { COLORS } from '../../constants/colors';
 import { authService } from '../../services/authService';
 import useAppStore from '../../store/appStore';
+import { APP_ROLE } from '../../constants/appRole';
 import PhoneInput from '../../components/PhoneInput';
 import { toE164 } from '../../utils/validation';
 
@@ -109,6 +110,27 @@ const LoginScreen = ({ navigation, route }) => {
         return;
       }
 
+      const expectedRole = isPartnerLogin ? partnerRole || APP_ROLE : APP_ROLE;
+      const actualRole = String(result.user?.role || '').toLowerCase();
+      if (
+        expectedRole !== 'all'
+        && actualRole !== expectedRole
+        && actualRole !== 'admin'
+        && actualRole !== 'sub_admin'
+      ) {
+        await authService.logout();
+        const roleLabel = {
+          customer: 'العميل',
+          vendor: 'البائع',
+          delivery: 'المندوب',
+        }[actualRole] || 'مستخدم آخر';
+        Alert.alert(
+          'استخدم التطبيق المناسب',
+          `هذا الحساب خاص بدور ${roleLabel}. سجّل الدخول من تطبيق ${roleLabel} چودي ستار.`,
+        );
+        return;
+      }
+
       /*
         لا نعمل navigation يدوي هنا.
 
@@ -156,7 +178,7 @@ const LoginScreen = ({ navigation, route }) => {
   const handleRegister = () => {
     navigation.navigate(
       isPartnerLogin ? 'PartnerRegistration' : 'Register',
-      isPartnerLogin && partnerRole ? { role: partnerRole } : undefined
+      isPartnerLogin ? { role: partnerRole || APP_ROLE } : undefined
     );
   };
 
@@ -204,11 +226,19 @@ const LoginScreen = ({ navigation, route }) => {
           </View>
 
           <Text style={styles.title}>
-            چودي ستار
+            {APP_ROLE === 'vendor'
+              ? 'چودي ستار بائع'
+              : APP_ROLE === 'delivery'
+                ? 'چودي ستار مندوب'
+                : 'چودي ستار'}
           </Text>
 
           <Text style={styles.subtitle}>
-            كل طلباتك... في مكان واحد
+            {APP_ROLE === 'vendor'
+              ? 'إدارة متجرك وطلباتك بسهولة'
+              : APP_ROLE === 'delivery'
+                ? 'طلبات التوصيل والرحلات في مكان واحد'
+                : 'كل طلباتك... في مكان واحد'}
           </Text>
         </LinearGradient>
 
@@ -218,12 +248,16 @@ const LoginScreen = ({ navigation, route }) => {
 
         <View style={styles.formCard}>
           <Text style={styles.welcomeTitle}>
-            {isPartnerLogin ? 'تسجيل دخول الشريك' : 'أهلاً بيك 👋'}
+            {isPartnerLogin
+              ? `تسجيل دخول ${partnerRole === 'delivery' ? 'المندوب' : 'البائع'}`
+              : 'أهلاً بيك 👋'}
           </Text>
 
           <Text style={styles.welcomeSubtitle}>
             {isPartnerLogin
-              ? 'ادخل لإدارة متجرك أو متابعة طلبات التوصيل'
+              ? partnerRole === 'delivery'
+                ? 'ادخل لمتابعة طلبات التوصيل والرحلات'
+                : 'ادخل لإدارة متجرك وطلباتك'
               : 'سجل دخولك علشان تكمل استخدام چودي ستار'}
           </Text>
 
@@ -372,22 +406,24 @@ const LoginScreen = ({ navigation, route }) => {
               GUEST
           ==================================== */}
 
-          <TouchableOpacity
-            onPress={handleGuestMode}
-            disabled={loading}
-            style={styles.guestButton}
-            activeOpacity={0.7}
-          >
-            <Ionicons
-              name="bag-handle-outline"
-              size={20}
-              color={COLORS.primary}
-            />
+          {APP_ROLE === 'customer' && (
+            <TouchableOpacity
+              onPress={handleGuestMode}
+              disabled={loading}
+              style={styles.guestButton}
+              activeOpacity={0.7}
+            >
+              <Ionicons
+                name="bag-handle-outline"
+                size={20}
+                color={COLORS.primary}
+              />
 
-            <Text style={styles.guestText}>
-              تصفح كزائر
-            </Text>
-          </TouchableOpacity>
+              <Text style={styles.guestText}>
+                تصفح كزائر
+              </Text>
+            </TouchableOpacity>
+          )}
 
           {/* ====================================
               ABOUT

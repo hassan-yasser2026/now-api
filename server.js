@@ -947,6 +947,15 @@ app.post('/api/auth/login', authRateLimiter, async (req, res) => {
       );
     }
 
+    const passwordValid = await bcrypt.compare(password, user.password);
+    if (!passwordValid) {
+      return errorResponse(
+        res,
+        'رقم الهاتف أو كلمة المرور غير صحيحة',
+        401
+      );
+    }
+
     if (user.approvalStatus === SUBMISSION_STATUS.REJECTED) {
       return errorResponse(
         res,
@@ -998,19 +1007,6 @@ app.post('/api/auth/login', authRateLimiter, async (req, res) => {
         res,
         'الحساب غير نشط',
         403
-      );
-    }
-
-    const passwordValid = await bcrypt.compare(
-      password,
-      user.password
-    );
-
-    if (!passwordValid) {
-      return errorResponse(
-        res,
-        'كلمة المرور غير صحيحة',
-        401
       );
     }
 
@@ -1138,6 +1134,17 @@ app.post('/api/auth/register', authRateLimiter, async (req, res) => {
   const idImage = normalizeString(req.body.idImage);
   const motorcycleImage = normalizeString(req.body.motorcycleImage);
   const motorcycleCardImage = normalizeString(req.body.motorcycleCardImage);
+  const partnerImages = [profileImage, idImage, motorcycleImage, motorcycleCardImage].filter(Boolean);
+  const imageDataUriPattern = /^data:image\/(?:jpeg|jpg|png|webp);base64,[A-Za-z0-9+/]+={0,2}$/i;
+
+  if (role !== ROLES.CUSTOMER && (
+    partnerImages.some((image) =>
+      image.length > 1_750_000 || (image.startsWith('data:') && !imageDataUriPattern.test(image))
+    )
+    || partnerImages.reduce((total, image) => total + image.length, 0) > 1_750_000
+  )) {
+    return errorResponse(res, 'إحدى الصور غير صالحة أو يتجاوز حجم الصور المسموح', 400);
+  }
 
   if (!name || name.length < 2) {
     return errorResponse(
@@ -1325,10 +1332,6 @@ app.post('/api/auth/register', authRateLimiter, async (req, res) => {
               name: result.user.name,
               phone: result.user.phone,
               email: result.user.email,
-              profileImage: result.user.profileImage,
-              idImage: result.user.idImage,
-              motorcycleImage: result.user.motorcycleImage,
-              motorcycleCardImage: result.user.motorcycleCardImage,
               latitude: result.user.latitude == null ? null : Number(result.user.latitude),
               longitude: result.user.longitude == null ? null : Number(result.user.longitude),
               store: result.store
@@ -4984,10 +4987,6 @@ app.get(
             suspensionReason: true,
             suspendedUntil: true,
             rejectionReason: true,
-            profileImage: true,
-            idImage: true,
-            motorcycleImage: true,
-            motorcycleCardImage: true,
             latitude: true,
             longitude: true,
 
@@ -6009,13 +6008,32 @@ app.get(
         }),
         prisma.user.findMany({
           where: {
-            approvalStatus: SUBMISSION_STATUS.PENDING_ADMIN_REVIEW,
+            approvalStatus: {
+              in: [SUBMISSION_STATUS.PENDING_ADMIN_REVIEW, SUBMISSION_STATUS.REJECTED],
+            },
             deletedAt: null,
             role: { name: { in: [ROLES.VENDOR, ROLES.DELIVERY] } },
           },
-          include: {
+          select: {
+            id: true,
+            name: true,
+            phone: true,
+            email: true,
+            approvalStatus: true,
+            rejectionReason: true,
+            latitude: true,
+            longitude: true,
+            createdAt: true,
             role: { select: { name: true } },
-            store: { select: { id: true, name: true, image: true, approvalStatus: true } },
+            store: {
+              select: {
+                id: true,
+                name: true,
+                image: true,
+                approvalStatus: true,
+                rejectionReason: true,
+              },
+            },
             deliveryProfile: {
               select: { vehicleType: true, vehiclePlate: true, latitude: true, longitude: true },
             },
@@ -6040,6 +6058,8 @@ app.get(
           ? submissions
           : submissions.map((item) => ({
               ...item,
+              phone: item.submissionType === 'partner_user' ? null : item.phone,
+              email: item.submissionType === 'partner_user' ? null : item.email,
               vendor: item.vendor ? { ...item.vendor, phone: null } : item.vendor,
               store: item.store
                 ? {
@@ -6051,6 +6071,47 @@ app.get(
                 : item.store,
             }))
       );
+    } catch (error) {
+      return handlePrismaError(error, res);
+    }
+  }
+);
+
+app.get(
+  '/api/admin/submissions/partner_user/:id/documents',
+  authMiddleware,
+  adminPermissionMiddleware('stores.update'),
+  async (req, res) => {
+    const id = normalizeId(req.params.id);
+    if (!id) {
+      return errorResponse(res, 'بيانات الشريك غير صالحة', 400);
+    }
+
+    try {
+      const partner = await prisma.user.findFirst({
+        where: {
+          id,
+          deletedAt: null,
+          approvalStatus: {
+            in: [SUBMISSION_STATUS.PENDING_ADMIN_REVIEW, SUBMISSION_STATUS.REJECTED],
+          },
+          role: { name: { in: [ROLES.VENDOR, ROLES.DELIVERY] } },
+        },
+        select: {
+          id: true,
+          profileImage: true,
+          idImage: true,
+          motorcycleImage: true,
+          motorcycleCardImage: true,
+        },
+      });
+      if (!partner) {
+        return errorResponse(res, 'طلب الشريك غير موجود', 404);
+      }
+
+      res.set('Cache-Control', 'no-store, private');
+      res.set('Pragma', 'no-cache');
+      return successResponse(res, partner);
     } catch (error) {
       return handlePrismaError(error, res);
     }
@@ -6078,25 +6139,57 @@ const updateSubmission = async (req, res, status) => {
     let item;
     let vendorId;
     if (type === 'partner_user' || type === 'user') {
-      item = await prisma.user.update({
-        where: { id },
-        data: {
-          approvalStatus: status,
-          isActive: status === SUBMISSION_STATUS.APPROVED,
-          rejectionReason: status === SUBMISSION_STATUS.REJECTED ? rejectionReason : null,
+      const existingPartner = await prisma.user.findFirst({
+        where: {
+          id,
+          deletedAt: null,
+          role: { name: { in: [ROLES.VENDOR, ROLES.DELIVERY] } },
         },
-        include: { role: { select: { name: true } }, store: true },
+        select: { id: true, role: { select: { name: true } } },
       });
-      vendorId = item.id;
-      if (item.role?.name === ROLES.VENDOR && item.store) {
-        await prisma.store.update({
-          where: { id: item.store.id },
+      if (!existingPartner) {
+        return errorResponse(res, 'طلب الشريك غير موجود', 404);
+      }
+      item = await prisma.$transaction(async (tx) => {
+        await tx.user.update({
+          where: { id },
           data: {
             approvalStatus: status,
+            isActive: status === SUBMISSION_STATUS.APPROVED,
             rejectionReason: status === SUBMISSION_STATUS.REJECTED ? rejectionReason : null,
           },
         });
-      }
+        if (existingPartner.role.name === ROLES.VENDOR) {
+          await tx.store.updateMany({
+            where: { vendorId: id },
+            data: {
+              approvalStatus: status,
+              rejectionReason: status === SUBMISSION_STATUS.REJECTED ? rejectionReason : null,
+            },
+          });
+        }
+        return tx.user.findUnique({
+          where: { id },
+          select: {
+            id: true,
+            name: true,
+            phone: true,
+            email: true,
+            approvalStatus: true,
+            rejectionReason: true,
+            role: { select: { name: true } },
+            store: {
+              select: {
+                id: true,
+                name: true,
+                approvalStatus: true,
+                rejectionReason: true,
+              },
+            },
+          },
+        });
+      });
+      vendorId = item.id;
     } else if (type === 'store' || type === 'stores') {
       item = await prisma.store.update({ where: { id }, data });
       vendorId = item.vendorId;

@@ -17,6 +17,7 @@ const SKIP = new Set([
   'constants/countries.js',
   'constants/dictionary.js',
   'constants/i18n.js',
+  'constants/sellerLegalDocuments.js',
   'utils/translator.js',
   'utils/validation.js',
 ]);

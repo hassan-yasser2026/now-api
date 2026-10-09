@@ -1,17 +1,25 @@
 # Goody Star Mobile App
 
-## إعدادات التطبيق الأساسية
+## تطبيقات الأدوار
 
-- اسم التطبيق: Goody Star (چودي ستار)
-- slug: goody-star
-- package Android: com.now.delivery
-- bundle iOS: com.now.delivery
-- الاتجاه: portrait
-- النمط: automatic
-- الأيقونة: `./assets/images/goody-star-icon.png`
-- شاشة البداية: `./assets/images/goody-star-splash.png`
+المشروع ينتج ثلاثة تطبيقات مستقلة من نفس الكود والـAPI:
+
+| الدور | اسم التطبيق | Android package / iOS bundle |
+|---|---|---|
+| العميل | چودي ستار | `com.now.delivery` |
+| البائع | چودي ستار بائع | `com.now.delivery.vendor` |
+| المندوب | چودي ستار مندوب | `com.now.delivery.courier` |
+
+لكل تطبيق تسجيل دخول وتنقل مخصصان لدوره. لوحة الإدارة مستقلة على الويب.
 
 ## التشغيل المحلي
+
+افتراضيًا يعمل Expo بنسخة العميل. لاختيار نسخة أخرى:
+
+```powershell
+$env:EXPO_PUBLIC_APP_ROLE = "vendor" # أو delivery أو customer
+npx expo start
+```
 
 ```bash
 cd mobile
@@ -19,18 +27,29 @@ npm install
 npx expo start
 ```
 
-## إنشاء نسخة البناء
+## إنشاء نسخ التثبيت الداخلية
+
+ملفات `customer` و`vendor` و`delivery` تنتج نسخ Android داخلية قابلة للتثبيت:
+
+```bash
+npx eas build --platform android --profile customer
+npx eas build --platform android --profile vendor
+npx eas build --platform android --profile delivery
+```
+
+لإنشاء نسخ المتاجر استخدم ملفات `customer-production` أو `vendor-production`
+أو `delivery-production`.
 
 ### Android
 
 ```bash
-npx eas build --platform android
+npx eas build --platform android --profile customer
 ```
 
 ### iOS
 
 ```bash
-npx eas build --platform ios
+npx eas build --platform ios --profile customer-production
 ```
 
 ### Web
