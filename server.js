@@ -6803,6 +6803,17 @@ const startServer =
         '✅ Database connected'
       );
 
+      await prisma.role.createMany({
+        data: [
+          { name: ROLES.ADMIN, description: 'مدير عام' },
+          { name: ROLES.SUB_ADMIN, description: 'مدير فرعي' },
+          { name: ROLES.VENDOR, description: 'بائع' },
+          { name: ROLES.DELIVERY, description: 'مندوب' },
+          { name: ROLES.CUSTOMER, description: 'عميل' },
+        ],
+        skipDuplicates: true,
+      });
+
       await syncScheduledStoreStatuses();
       setInterval(syncScheduledStoreStatuses, 60 * 1000);
 
