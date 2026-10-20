@@ -9,18 +9,18 @@
   align-items: center;
   justify-content: space-between;
   margin: 0 auto;
-  border-bottom: 1px solid #e7eeec;
+  border-bottom: 1px solid #e5e9df;
 }
 
 .brand {
-  color: #087b87;
+  color: #126b57;
   font-size: 1.55rem;
   font-weight: 900;
   letter-spacing: -0.07em;
 }
 
 .backLink {
-  color: #087b87;
+  color: #126b57;
   font-weight: 700;
 }
 
@@ -39,13 +39,13 @@
 
 .eyebrow {
   margin-bottom: 7px;
-  color: #0a8792;
+  color: #126b57;
   font-size: 0.88rem;
   font-weight: 700;
 }
 
 .heading h1 {
-  color: #172d31;
+  color: #18332d;
   font-size: clamp(1.8rem, 5vw, 2.4rem);
 }
 
@@ -61,7 +61,7 @@
 
 .storeName {
   margin-bottom: 12px;
-  color: #315256;
+  color: #105647;
   font-weight: 700;
 }
 
@@ -75,7 +75,7 @@
   grid-template-columns: 88px minmax(0, 1fr) auto;
   align-items: center;
   gap: 16px;
-  border: 1px solid #e3ebea;
+  border: 1px solid #e5e9df;
   border-radius: 16px;
   padding: 14px;
   background: #fff;
@@ -89,8 +89,8 @@
   place-items: center;
   overflow: hidden;
   border-radius: 12px;
-  background: #e8f6f2;
-  color: #087b87;
+  background: #eff8f2;
+  color: #126b57;
   font-size: 0.85rem;
   font-weight: 900;
 }
@@ -105,7 +105,7 @@
 
 .itemInfo h2 {
   overflow: hidden;
-  color: #172d31;
+  color: #18332d;
   font-size: 1rem;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -113,7 +113,7 @@
 
 .itemInfo > p {
   margin-top: 6px;
-  color: #697d80;
+  color: #71817c;
   font-size: 0.9rem;
 }
 
@@ -122,7 +122,7 @@
   align-items: center;
   gap: 12px;
   margin-top: 10px;
-  color: #172d31;
+  color: #18332d;
   font-weight: 700;
 }
 
@@ -131,10 +131,10 @@
   width: 30px;
   height: 30px;
   place-items: center;
-  border: 1px solid #d9e7e4;
+  border: 1px solid #ddf3e8;
   border-radius: 8px;
   background: #fff;
-  color: #087b87;
+  color: #126b57;
   cursor: pointer;
   font-size: 1.1rem;
 }
@@ -143,7 +143,7 @@
   display: grid;
   justify-items: end;
   gap: 12px;
-  color: #087b87;
+  color: #126b57;
   text-align: left;
 }
 
@@ -151,7 +151,7 @@
   display: grid;
   gap: 12px;
   margin-top: 20px;
-  border: 1px solid #e3ebea;
+  border: 1px solid #e5e9df;
   border-radius: 16px;
   padding: 20px;
   background: #fff;
@@ -161,16 +161,16 @@
   display: flex;
   justify-content: space-between;
   gap: 16px;
-  color: #172d31;
+  color: #18332d;
   font-weight: 700;
 }
 
 .summary strong {
-  color: #087b87;
+  color: #126b57;
 }
 
 .summary p {
-  color: #697d80;
+  color: #71817c;
   font-size: 0.88rem;
   line-height: 1.7;
 }
@@ -182,7 +182,7 @@
   justify-content: center;
   border: 0;
   border-radius: 11px;
-  background: #087b87;
+  background: #126b57;
   color: #fff;
   font: inherit;
   font-weight: 800;
@@ -194,14 +194,14 @@
   align-content: center;
   justify-items: center;
   gap: 14px;
-  border: 1px solid #e3ebea;
+  border: 1px solid #e5e9df;
   border-radius: 18px;
   background: #fff;
-  color: #697d80;
+  color: #71817c;
 }
 
 .empty a {
-  color: #087b87;
+  color: #126b57;
   font-weight: 800;
 }
 

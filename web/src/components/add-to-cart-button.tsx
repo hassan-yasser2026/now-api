@@ -13,7 +13,7 @@ export function AddToCartButton({
   store: { id: number; name: string };
   product: MenuItem;
 }) {
-  const { addItem } = useCart();
+  const { addItem, isInitialized } = useCart();
   const { showToast } = useToast();
   const t = useTranslations("toast");
 
@@ -33,7 +33,12 @@ export function AddToCartButton({
 
   return (
     <div>
-      <UIButton className="min-h-12 w-full sm:min-h-14 sm:px-7 sm:text-base" type="button" onClick={add}>
+      <UIButton
+        className="min-h-12 w-full sm:min-h-14 sm:px-7 sm:text-base"
+        type="button"
+        onClick={add}
+        disabled={!isInitialized}
+      >
         {t("addToCart")}
       </UIButton>
     </div>

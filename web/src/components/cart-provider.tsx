@@ -35,6 +35,7 @@ export function getCartItemName(item: CartItem, locale: string) {
 type CartContextValue = {
   items: CartItem[];
   itemCount: number;
+  isInitialized: boolean;
   error: string;
   addItem: (
     store: { id: number; name: string },
@@ -90,10 +91,12 @@ function parseCart(serialized: string): CartItem[] {
 export function CartProvider({ children }: { children: ReactNode }) {
   const t = useTranslations("cart");
   const [items, setItems] = useState<CartItem[]>([]);
+  const [isInitialized, setIsInitialized] = useState(false);
   const [error, setError] = useState("");
 
   const saveItems = useCallback((nextItems: CartItem[]) => {
     setItems(nextItems);
+    setIsInitialized(true);
     try {
       if (nextItems.length > 0) {
         window.localStorage.setItem(CART_STORAGE_KEY, JSON.stringify(nextItems));
@@ -116,6 +119,8 @@ export function CartProvider({ children }: { children: ReactNode }) {
       console.error("Could not read the locally saved cart:", readError);
       setItems([]);
       setError(t("deviceLoadFailed"));
+    } finally {
+      setIsInitialized(true);
     }
   }, [t]);
 
@@ -210,13 +215,14 @@ export function CartProvider({ children }: { children: ReactNode }) {
     () => ({
       items,
       itemCount: items.reduce((count, item) => count + item.quantity, 0),
+      isInitialized,
       error,
       addItem,
       setQuantity,
       removeItem,
       clearCart,
     }),
-    [items, error, addItem, setQuantity, removeItem, clearCart],
+    [items, isInitialized, error, addItem, setQuantity, removeItem, clearCart],
   );
 
   return <CartContext.Provider value={value}>{children}</CartContext.Provider>;

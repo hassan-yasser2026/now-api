@@ -103,7 +103,14 @@ export default function CartPage() {
   const t = useTranslations("cart");
   const locale = useLocale();
   const common = useTranslations("common");
-  const { items, error, setQuantity, removeItem, clearCart } = useCart();
+  const {
+    items,
+    isInitialized,
+    error,
+    setQuantity,
+    removeItem,
+    clearCart,
+  } = useCart();
   const total = items.reduce((sum, item) => sum + item.price * item.quantity, 0);
 
   return (
@@ -144,7 +151,15 @@ export default function CartPage() {
           </p>
         )}
 
-        {items.length === 0 ? (
+        {!isInitialized ? (
+          <div
+            aria-label={common("loading")}
+            className="grid min-h-[320px] content-center gap-4 rounded-3xl border border-now-900/[0.06] bg-white p-6 shadow-sm"
+          >
+            <div className="h-6 w-40 animate-pulse rounded-lg bg-now-100" />
+            <div className="h-24 animate-pulse rounded-2xl bg-now-100" />
+          </div>
+        ) : items.length === 0 ? (
           <section className="grid min-h-[320px] content-center justify-items-center rounded-3xl border border-now-900/[0.06] bg-white px-6 py-12 text-center shadow-[0_12px_36px_rgba(24,51,45,0.06)]">
             <span className="grid size-16 place-items-center rounded-2xl bg-now-50 text-3xl text-now-600" aria-hidden="true">
               ♧

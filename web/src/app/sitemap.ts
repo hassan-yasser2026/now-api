@@ -1,8 +1,8 @@
 import type { MetadataRoute } from "next";
 import { getSiteUrl } from "@/lib/site-url";
-import { getStoreMenu, getStores } from "@/lib/api";
+import { getStores } from "@/lib/api";
 
-export const dynamic = "force-dynamic";
+export const revalidate = 3600;
 
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   const siteUrl = getSiteUrl();
@@ -51,8 +51,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
       },
     );
 
-    const menu = await getStoreMenu(store.id);
-    for (const product of menu) {
+    for (const product of store.menuItems || []) {
       if (!product.isAvailable) continue;
       const productPath = `/stores/${store.id}/products/${product.id}`;
       const productUrl = new URL(productPath, siteUrl).toString();

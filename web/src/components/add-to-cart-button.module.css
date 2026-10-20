@@ -9,7 +9,7 @@
   border: 0;
   border-radius: 12px;
   padding: 0 20px;
-  background: #087b87;
+  background: #126b57;
   color: #fff;
   cursor: pointer;
   font: inherit;
@@ -17,7 +17,7 @@
 }
 
 .message {
-  color: #315256;
+  color: #105647;
   font-size: 0.88rem;
   line-height: 1.6;
 }

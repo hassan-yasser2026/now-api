@@ -29,6 +29,8 @@ type ApiEnvelope<T> = {
   success?: boolean;
   data?: T;
   message?: string;
+  code?: string;
+  requiresConfirmation?: boolean;
 };
 
 function parseDeliveryInfo(value: string | null): DeliveryInfo {
@@ -69,7 +71,12 @@ export function CheckoutForm() {
   const router = useRouter();
   const locale = useLocale();
   const t = useTranslations("checkout");
-  const { items, error: cartError, clearCart } = useCart();
+  const {
+    items,
+    isInitialized: cartInitialized,
+    error: cartError,
+    clearCart,
+  } = useCart();
   const [delivery, setDelivery] = useState<DeliveryInfo>({
     address: "",
     latitude: null,
@@ -79,6 +86,7 @@ export function CheckoutForm() {
   const [locationBusy, setLocationBusy] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState("");
+  const [outOfRangeConfirmation, setOutOfRangeConfirmation] = useState(false);
 
   const subtotal = useMemo(
     () => items.reduce((sum, item) => sum + item.price * item.quantity, 0),
@@ -106,6 +114,7 @@ export function CheckoutForm() {
 
   function updateDelivery(next: DeliveryInfo) {
     setDelivery(next);
+    setOutOfRangeConfirmation(false);
     try {
       window.localStorage.setItem(DELIVERY_INFO_KEY, JSON.stringify(next));
       setError("");
@@ -145,8 +154,11 @@ export function CheckoutForm() {
     );
   }
 
-  async function submitOrder(event: FormEvent<HTMLFormElement>) {
-    event.preventDefault();
+  async function submitOrder(
+    allowOutOfRange = false,
+    event?: FormEvent<HTMLFormElement>,
+  ) {
+    event?.preventDefault();
     if (submitting) return;
 
     const cleanAddress = delivery.address.trim();
@@ -165,6 +177,7 @@ export function CheckoutForm() {
 
     setSubmitting(true);
     setError("");
+    setOutOfRangeConfirmation(false);
     try {
       const response = await fetch("/api/orders", {
         method: "POST",
@@ -175,6 +188,7 @@ export function CheckoutForm() {
           latitude: delivery.latitude,
           longitude: delivery.longitude,
           paymentMethod: "CASH_ON_DELIVERY",
+          ...(allowOutOfRange ? { allowOutOfRange: true } : {}),
           items: items.map((item) => ({
             menuItemId: item.productId,
             quantity: item.quantity,
@@ -187,6 +201,16 @@ export function CheckoutForm() {
         envelope = (await response.json()) as ApiEnvelope<{ id?: number }>;
       } catch {
         throw new Error(t("invalidResponse"));
+      }
+
+      if (
+        !allowOutOfRange &&
+        envelope.code === "OUT_OF_DELIVERY_RANGE" &&
+        envelope.requiresConfirmation
+      ) {
+        setOutOfRangeConfirmation(true);
+        setSubmitting(false);
+        return;
       }
 
       if (!response.ok || envelope.success === false) {
@@ -224,7 +248,7 @@ export function CheckoutForm() {
 
         <form
           className="grid items-start gap-6 lg:grid-cols-[minmax(0,1fr)_360px] lg:gap-8"
-          onSubmit={submitOrder}
+          onSubmit={(event) => submitOrder(false, event)}
         >
           <div className="lg:col-span-2">
             <p className="text-xs font-extrabold text-now-600 sm:text-sm">
@@ -247,7 +271,39 @@ export function CheckoutForm() {
             </p>
           )}
 
-          {!ready ? (
+          {outOfRangeConfirmation && (
+            <section
+              aria-labelledby="out-of-range-title"
+              className="grid gap-3 rounded-2xl border border-amber-300 bg-amber-50 p-4 lg:col-span-2"
+              role="alert"
+            >
+              <h2 className="font-extrabold text-amber-950" id="out-of-range-title">
+                {t("outOfRangeTitle")}
+              </h2>
+              <p className="text-sm leading-6 text-amber-900">
+                {t("outOfRangeDescription")}
+              </p>
+              <div className="flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">
+                <button
+                  className="inline-flex min-h-11 items-center justify-center rounded-xl border border-now-900/15 px-4 text-sm font-bold text-now-800"
+                  onClick={() => setOutOfRangeConfirmation(false)}
+                  type="button"
+                >
+                  {t("cancelOutOfRange")}
+                </button>
+                <button
+                  className="inline-flex min-h-11 items-center justify-center rounded-xl bg-now-600 px-4 text-sm font-extrabold text-white transition hover:bg-now-700 disabled:opacity-60"
+                  disabled={submitting}
+                  onClick={() => submitOrder(true)}
+                  type="button"
+                >
+                  {submitting ? t("confirming") : t("continueOutOfRange")}
+                </button>
+              </div>
+            </section>
+          )}
+
+          {!ready || !cartInitialized ? (
             <div
               aria-label={t("loading")}
               className="grid gap-4 lg:col-span-2 lg:grid-cols-[minmax(0,1fr)_360px]"

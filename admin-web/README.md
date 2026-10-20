@@ -14,6 +14,9 @@ npm run dev
 Open `http://localhost:3000`. The local development API can also be selected
 with `NOW_API_URL=http://localhost:5000/api`.
 
+Dashboard sections have direct, bookmarkable paths such as `/orders`,
+`/stores`, and `/reports`. Navigation supports browser back and forward.
+
 ## Deploy as a separate Vercel project
 
 Create or select the Vercel project linked to `admin-web/` and set its Root

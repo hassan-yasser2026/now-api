@@ -9,11 +9,11 @@
   min-height: 84px;
   align-items: center;
   gap: 16px;
-  border-bottom: 1px solid #e2eae5;
+  border-bottom: 1px solid #e5e9df;
 }
 
 .brand {
-  color: #147a68;
+  color: #126b57;
   font-size: 1.55rem;
   font-weight: 900;
   letter-spacing: -0.07em;
@@ -21,7 +21,7 @@
 
 .backLink {
   margin-right: auto;
-  color: #147a68;
+  color: #126b57;
   font-size: 0.92rem;
   font-weight: 700;
 }
@@ -43,7 +43,7 @@
   overflow: hidden;
   border-radius: 24px;
   background: linear-gradient(135deg, #e9f3e9, #c9e4d5);
-  color: #147a68;
+  color: #126b57;
   font-size: 4rem;
   font-weight: 900;
 }
@@ -54,7 +54,7 @@
 
 .storeName {
   margin-bottom: 12px;
-  color: #147a68;
+  color: #126b57;
   font-size: 0.95rem;
   font-weight: 700;
 }
@@ -66,7 +66,7 @@
 }
 
 .details h1 {
-  color: #172d31;
+  color: #18332d;
   font-size: clamp(2rem, 5vw, 3.2rem);
   font-weight: 800;
   letter-spacing: -0.045em;
@@ -74,7 +74,7 @@
 
 .description {
   margin-top: 16px;
-  color: #697d80;
+  color: #71817c;
   line-height: 1.9;
 }
 
@@ -87,7 +87,7 @@
 }
 
 .price {
-  color: #147a68;
+  color: #126b57;
   font-size: 1.5rem;
   font-weight: 800;
 }
@@ -137,7 +137,7 @@
   margin-top: 24px;
   border-radius: 12px;
   padding: 0 20px;
-  background: #147a68;
+  background: #126b57;
   color: #fff;
   font-weight: 700;
 }
@@ -160,7 +160,7 @@
 
 .reviews h2 {
   margin-bottom: 18px;
-  color: #172d31;
+  color: #18332d;
   font-size: 1.4rem;
 }
 
@@ -173,14 +173,14 @@
 .review {
   display: grid;
   gap: 8px;
-  border: 1px solid #e2eae5;
+  border: 1px solid #e5e9df;
   border-radius: 14px;
   padding: 16px;
   background: #fff;
 }
 
 .review strong {
-  color: #183330;
+  color: #18332d;
 }
 
 .review span {
@@ -190,30 +190,30 @@
 }
 
 .review p {
-  color: #697d80;
+  color: #71817c;
   line-height: 1.7;
 }
 
 .errorState {
   width: min(680px, calc(100% - 40px));
   margin: 80px auto;
-  border: 1px solid #e3ebea;
+  border: 1px solid #e5e9df;
   border-radius: 18px;
   padding: 42px 20px;
   background: #fff;
-  color: #697d80;
+  color: #71817c;
   line-height: 1.8;
   text-align: center;
 }
 
 .errorState h1 {
-  color: #172d31;
+  color: #18332d;
 }
 
 .errorState a {
   display: inline-block;
   margin-top: 16px;
-  color: #147a68;
+  color: #126b57;
   font-weight: 700;
 }
 

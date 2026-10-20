@@ -106,7 +106,10 @@ export default async function StorePage({ params }: StorePageProps) {
   if (!storePage) notFound();
 
   const { store, menu } = storePage;
-  const products = menu.filter((item) => item.isAvailable);
+  const products = menu;
+  const availableProductCount = products.filter(
+    (item) => item.isAvailable,
+  ).length;
   const imageUrl = getSafeImageUrl(store.image);
   const structuredData = {
     "@context": "https://schema.org",
@@ -141,64 +144,54 @@ export default async function StorePage({ params }: StorePageProps) {
           ]}
         />
 
-        <section className="relative isolate grid overflow-hidden rounded-[28px] border border-now-900/[0.05] bg-white shadow-[0_18px_55px_rgba(24,51,45,0.08)] sm:rounded-[36px] lg:min-h-[360px] lg:grid-cols-[.9fr_1.1fr]">
-          <div className="relative order-1 min-h-56 overflow-hidden bg-gradient-to-br from-now-100 via-emerald-50 to-now-100 sm:min-h-72 lg:order-2 lg:min-h-[360px]">
+        <section
+          className="flex items-center gap-3 rounded-[20px] border border-now-900/[0.06] bg-white p-3 shadow-[0_4px_18px_rgba(24,51,45,0.06)] sm:gap-4 sm:p-4"
+          dir={locale === "ar" ? "rtl" : "ltr"}
+        >
+          <div className="relative size-[72px] shrink-0 overflow-hidden rounded-2xl bg-gradient-to-br from-now-100 to-emerald-50 sm:size-20">
             {imageUrl ? (
               <Image
                 src={imageUrl}
                 alt={t("imageAlt", { name: store.name })}
                 className="object-cover"
                 fill
-                sizes="(max-width: 1023px) 100vw, 55vw"
+                sizes="80px"
                 unoptimized={shouldUnoptimizeImage(imageUrl)}
               />
             ) : (
-              <div className="absolute inset-0 grid place-items-center bg-[radial-gradient(circle_at_25%_25%,rgba(255,255,255,.9),transparent_40%),linear-gradient(135deg,#ddf3e8,#afdcc8)]">
-                <span className="grid size-36 place-items-center rounded-[2.5rem] border border-white/80 bg-white/55 text-7xl font-black text-now-600 shadow-xl backdrop-blur sm:size-44 sm:text-8xl">
-                  {store.name.slice(0, 1)}
-                </span>
-              </div>
+              <span className="absolute inset-0 grid place-items-center text-3xl font-black text-now-600">
+                {store.name.slice(0, 1)}
+              </span>
             )}
-            <div className="absolute inset-x-0 bottom-0 h-28 bg-gradient-to-t from-now-900/35 to-transparent" />
-            <span className={`absolute right-4 top-4 inline-flex min-h-9 items-center gap-2 rounded-full border border-white/70 px-4 text-xs font-extrabold shadow-sm backdrop-blur sm:right-6 sm:top-6 sm:text-sm ${store.isOpen ? "bg-emerald-50/95 text-emerald-800" : "bg-white/95 text-now-900"}`}>
-              <span className={`size-2 rounded-full ${store.isOpen ? "bg-emerald-500" : "bg-now-900/35"}`} />
-              {store.isOpen ? t("open") : t("closed")}
-            </span>
           </div>
-          <div className="relative order-2 flex flex-col justify-center p-5 sm:p-8 lg:order-1 lg:p-12">
-            <span className="w-fit rounded-full bg-now-50 px-3 py-1.5 text-xs font-extrabold text-now-700">
-              {t("onGoodyStar")}
-            </span>
-            <h1 className="mt-4 text-3xl font-black leading-tight tracking-tight text-now-900 sm:text-4xl lg:text-5xl">
-              {store.name}
-            </h1>
-            <p className="mt-3 max-w-xl text-sm leading-7 text-now-700 sm:mt-4 sm:text-base sm:leading-8">
-              {store.description || t("browseDescription")}
-            </p>
-            <div className="mt-5 flex flex-wrap items-center gap-3">
-              {Number(store.ratingAverage) > 0 && (
-                <span className="inline-flex min-h-10 items-center gap-2 rounded-xl bg-amber-50 px-3 text-sm font-extrabold text-amber-800">
-                  <span aria-hidden="true">★</span>
-                  {Number(store.ratingAverage).toFixed(1)}
-                  {Number(store.ratingCount) > 0 && (
-                    <span className="text-xs font-semibold text-amber-900">
-                      {t("ratingCount", { count: Number(store.ratingCount) })}
-                    </span>
-                  )}
-                </span>
-              )}
-              <span className="inline-flex min-h-10 items-center rounded-xl bg-now-50 px-3 text-sm font-bold text-now-700">
-                {t("availableProductCount", { count: products.length })}
+          <div className="min-w-0 flex-1">
+            <div className="flex flex-wrap items-center gap-2">
+              <h1 className="truncate text-lg font-black text-now-900 sm:text-xl">
+                {store.name}
+              </h1>
+              <span className={`inline-flex min-h-7 shrink-0 items-center gap-1.5 rounded-full px-2.5 text-[10px] font-extrabold sm:text-xs ${store.isOpen ? "bg-emerald-50 text-emerald-800" : "bg-now-50 text-now-700"}`}>
+                <span className={`size-1.5 rounded-full ${store.isOpen ? "bg-emerald-500" : "bg-now-900/35"}`} />
+                {store.isOpen ? t("open") : t("closed")}
               </span>
             </div>
-            <a className="mt-6 inline-flex min-h-12 w-full items-center justify-center gap-2 rounded-xl bg-now-600 px-5 text-sm font-extrabold text-white shadow-md shadow-now-600/20 transition hover:-translate-y-0.5 hover:bg-now-700 sm:w-fit sm:px-6" href="#menu">
-              {t("browseMenu")} <span aria-hidden="true">↓</span>
-            </a>
+            <p className="mt-1 line-clamp-2 text-xs leading-5 text-now-700 sm:text-sm">
+              {store.description || t("browseDescription")}
+            </p>
+            <div className="mt-2 flex flex-wrap items-center gap-2">
+              {Number(store.ratingAverage) > 0 && (
+                <span className="inline-flex items-center gap-1 rounded-lg bg-amber-50 px-2 py-1 text-[10px] font-extrabold text-amber-800">
+                  ★ {Number(store.ratingAverage).toFixed(1)}
+                </span>
+              )}
+              <span className="inline-flex items-center rounded-lg bg-now-50 px-2 py-1 text-[10px] font-bold text-now-700">
+                {t("availableProductCount", { count: availableProductCount })}
+              </span>
+            </div>
           </div>
         </section>
 
-        <section className="pb-16 pt-12 sm:pb-20 sm:pt-16" id="menu">
-          <div className="mb-6 flex items-end justify-between gap-3 sm:mb-8">
+        <section className="pb-16 pt-7 sm:pb-20 sm:pt-9" id="menu">
+          <div className="mb-4 flex items-end justify-between gap-3 sm:mb-5">
             <div>
               <p className="text-xs font-extrabold text-now-600 sm:text-sm">{t("chooseOrder")}</p>
               <h2 className="mt-1 text-2xl font-black tracking-tight text-now-900 sm:text-3xl">
@@ -206,10 +199,14 @@ export default async function StorePage({ params }: StorePageProps) {
               </h2>
             </div>
             <span className="pb-1 text-xs font-bold text-now-700 sm:text-sm">
-              {t("availableProductCount", { count: products.length })}
+              {t("availableProductCount", { count: availableProductCount })}
             </span>
           </div>
-          <StoreCatalog storeId={store.id} products={products} />
+          <StoreCatalog
+            storeId={store.id}
+            storeName={store.name}
+            products={products}
+          />
         </section>
       </main>
       <HomepageFooter />

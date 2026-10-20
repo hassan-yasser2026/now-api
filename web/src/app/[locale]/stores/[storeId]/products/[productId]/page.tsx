@@ -8,6 +8,7 @@ import { AddToCartButton } from "@/components/add-to-cart-button";
 import { Breadcrumbs } from "@/components/breadcrumbs";
 import { CustomerNavbar } from "@/components/customer-navbar";
 import { HomepageFooter } from "@/components/homepage-footer";
+import { ProductFavoriteButton } from "@/components/product-favorite-button";
 import {
   formatPrice,
   getOpenGraphImageUrl,
@@ -193,6 +194,11 @@ export default async function ProductPage({ params }: ProductPageProps) {
 
         <article className="grid overflow-hidden rounded-[28px] border border-now-900/[0.06] bg-white shadow-[0_18px_55px_rgba(24,51,45,0.08)] sm:rounded-[36px] lg:grid-cols-2">
           <div className="relative order-1 aspect-square max-h-[620px] overflow-hidden bg-gradient-to-br from-now-100 via-emerald-50 to-now-100 lg:order-2">
+            <ProductFavoriteButton
+              className="absolute left-4 top-4 z-10 sm:left-6 sm:top-6"
+              productId={product.id}
+              storeId={store.id}
+            />
             {imageUrl ? (
               <Image
                 src={imageUrl}

@@ -28,6 +28,7 @@ export async function POST(request: Request) {
     latitude?: unknown;
     longitude?: unknown;
     paymentMethod?: unknown;
+    allowOutOfRange?: unknown;
   };
   try {
     body = await request.json();
@@ -77,6 +78,7 @@ export async function POST(request: Request) {
     !Number.isFinite(body.longitude) ||
     Number(body.longitude) < -180 ||
     Number(body.longitude) > 180 ||
+    (body.allowOutOfRange !== undefined && typeof body.allowOutOfRange !== "boolean") ||
     body.paymentMethod !== "CASH_ON_DELIVERY"
   ) {
     return NextResponse.json(
@@ -125,6 +127,7 @@ export async function POST(request: Request) {
         latitude: Number(body.latitude),
         longitude: Number(body.longitude),
         paymentMethod: "CASH_ON_DELIVERY",
+        ...(body.allowOutOfRange === true ? { allowOutOfRange: true } : {}),
       }),
       cache: "no-store",
     });
@@ -142,6 +145,8 @@ export async function POST(request: Request) {
       {
         success: false,
         message: apiErrorMessage(envelope, upstream.status),
+        ...(envelope.code ? { code: envelope.code } : {}),
+        ...(envelope.requiresConfirmation ? { requiresConfirmation: true } : {}),
       },
       { status: upstream.status },
     );

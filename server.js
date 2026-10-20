@@ -365,7 +365,7 @@ const ADMIN_PERMISSION_ALIASES = {
   'products.read': ['stores.read'],
   'products.write': ['stores.update'],
   'ratings.read': ['reports.read'],
-  'ratings.delete': ['ratings.write', 'reports.read'],
+  'ratings.delete': ['ratings.write'],
   'complaints.read': ['reports.read'],
   'support.read': ['complaints.read', 'reports.read'],
   'support.reply': ['complaints.write', 'complaints.read', 'reports.read'],
@@ -1639,7 +1639,7 @@ app.get('/api/stores', async (req, res) => {
           },
           orderBy: { createdAt: 'desc' },
         },
-        ratings: { select: { stars: true } },
+        ratings: { where: { menuItemId: null }, select: { stars: true } },
       },
       orderBy: {
         id: 'desc',
@@ -1758,7 +1758,7 @@ app.get(
             },
             orderBy: { createdAt: 'desc' },
           },
-          ratings: { select: { stars: true } },
+          ratings: { where: { menuItemId: null }, select: { stars: true } },
         },
       });
 
@@ -2640,7 +2640,7 @@ const orderInclude = {
       name: true,
       latitude: true,
       longitude: true,
-      ratings: { select: { stars: true } },
+      ratings: { where: { menuItemId: null }, select: { stars: true } },
     },
   },
 
@@ -3409,7 +3409,14 @@ app.post('/api/support/sessions', authMiddleware, async (req, res) => {
   try {
     if (orderId) {
       const order = await prisma.order.findFirst({
-        where: { id: orderId, customerId: req.user.userId },
+        where: {
+          id: orderId,
+          OR: [
+            { customerId: req.user.userId },
+            { deliveryId: req.user.userId },
+            { store: { vendorId: req.user.userId } },
+          ],
+        },
         select: { id: true },
       });
       if (!order) return errorResponse(res, 'الطلب غير موجود أو غير تابع لحسابك', 404);
@@ -3542,7 +3549,11 @@ app.patch('/api/admin/support/sessions/:id/status', authMiddleware, adminPermiss
   if (!id || !status) return errorResponse(res, 'حالة المحادثة غير صالحة', 422);
   try {
     const session = await prisma.chatSession.update({ where: { id }, data: { status }, include: { messages: { orderBy: { createdAt: 'asc' } } } });
-    await auditAdminAction(req, 'SUPPORT_STATUS_UPDATE', 'ChatSession', id, { status: supportStatusFromDb(status) });
+    try {
+      await auditAdminAction(req, 'SUPPORT_STATUS_UPDATE', 'ChatSession', id, { status: supportStatusFromDb(status) });
+    } catch (auditError) {
+      console.error('SUPPORT STATUS AUDIT ERROR:', auditError);
+    }
     return successResponse(res, formatSupportSession(session));
   } catch (error) {
     return handlePrismaError(error, res);
@@ -4086,7 +4097,7 @@ app.get(
   async (req, res) => {
     try {
       const ratings = await prisma.rating.findMany({
-        where: { order: { deliveryId: req.user.userId } },
+        where: { menuItemId: null, order: { deliveryId: req.user.userId } },
         include: {
           customer: { select: { name: true } },
           order: { select: { id: true } },
@@ -6025,19 +6036,40 @@ app.get(
             rejectionReason: true,
             latitude: true,
             longitude: true,
+            isActive: true,
+            phoneVerified: true,
             createdAt: true,
+            updatedAt: true,
             role: { select: { name: true } },
             store: {
               select: {
                 id: true,
                 name: true,
+                description: true,
                 image: true,
+                isOpen: true,
+                isActive: true,
+                latitude: true,
+                longitude: true,
+                operatingHours: true,
                 approvalStatus: true,
                 rejectionReason: true,
+                createdAt: true,
+                updatedAt: true,
+                category: { select: { name: true } },
               },
             },
             deliveryProfile: {
-              select: { vehicleType: true, vehiclePlate: true, latitude: true, longitude: true },
+              select: {
+                id: true,
+                status: true,
+                vehicleType: true,
+                vehiclePlate: true,
+                latitude: true,
+                longitude: true,
+                createdAt: true,
+                updatedAt: true,
+              },
             },
           },
           orderBy: { createdAt: 'asc' },
@@ -6105,6 +6137,7 @@ app.get(
           idImage: true,
           motorcycleImage: true,
           motorcycleCardImage: true,
+          store: { select: { image: true } },
         },
       });
       if (!partner) {

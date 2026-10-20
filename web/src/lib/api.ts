@@ -52,10 +52,17 @@ export type Store = {
   menuItems: MenuItem[];
 };
 
-async function getApiData<T>(path: string): Promise<T> {
+async function getApiData<T>(
+  path: string,
+  query: Record<string, string> = {},
+): Promise<T> {
   // Scope Next's data cache per deployment while retaining 60-second revalidation.
+  const searchParams = new URLSearchParams({
+    _webDeployment: deploymentCacheKey,
+    ...query,
+  });
   const response = await fetch(
-    `${API_BASE_URL}${path}?_webDeployment=${encodeURIComponent(deploymentCacheKey)}`,
+    `${API_BASE_URL}${path}?${searchParams}`,
     {
       headers: { Accept: "application/json" },
       next: { revalidate: 60 },
@@ -87,7 +94,7 @@ async function getApiData<T>(path: string): Promise<T> {
 }
 
 export async function getStores(): Promise<Store[]> {
-  const stores = await getApiData<Store[]>("/stores");
+  const stores = await getApiData<Store[]>("/stores", { includeClosed: "true" });
   if (!Array.isArray(stores)) {
     throw new Error("استجابة المتاجر من الخادم غير صحيحة");
   }

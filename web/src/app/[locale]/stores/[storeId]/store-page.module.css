@@ -9,18 +9,18 @@
   min-height: 84px;
   align-items: center;
   justify-content: space-between;
-  border-bottom: 1px solid #e2eae5;
+  border-bottom: 1px solid #e5e9df;
 }
 
 .brand {
-  color: #147a68;
+  color: #126b57;
   font-size: 1.55rem;
   font-weight: 900;
   letter-spacing: -0.07em;
 }
 
 .backLink {
-  color: #147a68;
+  color: #126b57;
   font-size: 0.95rem;
   font-weight: 700;
 }
@@ -45,7 +45,7 @@
     radial-gradient(circle at 50% 50%, rgb(255 255 255 / 60%) 0 15%, transparent 15.5%),
     radial-gradient(circle at 50% 50%, transparent 0 28%, rgb(255 255 255 / 30%) 28.5% 29%, transparent 29.5%),
     linear-gradient(135deg, #e9f3e9, #c9e4d5);
-  color: #147a68;
+  color: #126b57;
   font-size: 4rem;
   font-weight: 900;
 }
@@ -56,13 +56,13 @@
 
 .eyebrow {
   margin-bottom: 9px;
-  color: #147a68;
+  color: #126b57;
   font-size: 0.88rem;
   font-weight: 700;
 }
 
 .storeIntro h1 {
-  color: #183330;
+  color: #18332d;
   font-size: clamp(2rem, 5vw, 3.2rem);
   font-weight: 800;
   letter-spacing: -0.045em;
@@ -112,7 +112,7 @@
 }
 
 .menuHeading h2 {
-  color: #183330;
+  color: #18332d;
   font-size: clamp(1.5rem, 4vw, 2rem);
   font-weight: 800;
 }
@@ -130,11 +130,11 @@
 
 .emptyState,
 .errorState {
-  border: 1px solid #e2eae5;
+  border: 1px solid #e5e9df;
   border-radius: 18px;
   padding: 42px 20px;
   background: #fff;
-  color: #697d80;
+  color: #71817c;
   line-height: 1.8;
   text-align: center;
 }
@@ -145,13 +145,13 @@
 }
 
 .errorState h1 {
-  color: #183330;
+  color: #18332d;
 }
 
 .errorState a {
   display: inline-block;
   margin-top: 16px;
-  color: #147a68;
+  color: #126b57;
   font-weight: 700;
 }
 

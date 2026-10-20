@@ -9,18 +9,18 @@
   align-items: center;
   justify-content: space-between;
   margin: 0 auto;
-  border-bottom: 1px solid #e7eeec;
+  border-bottom: 1px solid #e5e9df;
 }
 
 .brand {
-  color: #087b87;
+  color: #126b57;
   font-size: 1.5rem;
   font-weight: 900;
   letter-spacing: -0.07em;
 }
 
 .backLink {
-  color: #087b87;
+  color: #126b57;
   font-weight: 700;
 }
 
@@ -31,21 +31,21 @@
 
 .eyebrow {
   margin-bottom: 7px;
-  color: #0a8792;
+  color: #126b57;
   font-size: 0.9rem;
   font-weight: 700;
 }
 
 .content h1 {
   margin-bottom: 20px;
-  color: #172d31;
+  color: #18332d;
   font-size: clamp(1.8rem, 5vw, 2.4rem);
 }
 
 .card {
   display: grid;
   gap: 22px;
-  border: 1px solid #e3ebea;
+  border: 1px solid #e5e9df;
   border-radius: 16px;
   padding: 20px;
   background: #fff;
@@ -59,21 +59,21 @@
 }
 
 .storeName {
-  color: #172d31;
+  color: #18332d;
   font-size: 1.05rem;
   font-weight: 800;
 }
 
 .muted {
   margin-top: 6px;
-  color: #697d80;
+  color: #71817c;
   font-size: 0.86rem;
 }
 
 .status {
   border-radius: 999px;
   padding: 9px 12px;
-  background: #e8f6f2;
+  background: #eff8f2;
   color: #08704e;
   font-size: 0.84rem;
   font-weight: 800;
@@ -90,7 +90,7 @@
 }
 
 .section h2 {
-  color: #172d31;
+  color: #18332d;
   font-size: 1rem;
 }
 
@@ -109,7 +109,7 @@
 
 .items strong,
 .section strong {
-  color: #087b87;
+  color: #126b57;
   white-space: nowrap;
 }
 
@@ -126,7 +126,7 @@
   justify-content: space-between;
   gap: 12px;
   margin-top: 14px;
-  color: #697d80;
+  color: #71817c;
   font-size: 0.84rem;
 }
 
@@ -135,15 +135,15 @@
   border: 0;
   border-radius: 9px;
   padding: 9px 12px;
-  background: #e8f6f2;
-  color: #087b87;
+  background: #eff8f2;
+  color: #126b57;
   cursor: pointer;
   font: inherit;
   font-weight: 800;
 }
 
 .info {
-  color: #697d80;
+  color: #71817c;
 }
 
 .error,
@@ -164,7 +164,7 @@
 }
 
 .error a {
-  color: #087b87;
+  color: #126b57;
   font-weight: 700;
 }
 

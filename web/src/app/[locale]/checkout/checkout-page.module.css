@@ -9,18 +9,18 @@
   align-items: center;
   justify-content: space-between;
   margin: 0 auto;
-  border-bottom: 1px solid #e7eeec;
+  border-bottom: 1px solid #e5e9df;
 }
 
 .brand {
-  color: #087b87;
+  color: #126b57;
   font-size: 1.5rem;
   font-weight: 900;
   letter-spacing: -0.07em;
 }
 
 .backLink {
-  color: #087b87;
+  color: #126b57;
   font-weight: 700;
 }
 
@@ -37,13 +37,13 @@
 
 .eyebrow {
   margin-bottom: 8px;
-  color: #0a8792;
+  color: #126b57;
   font-size: 0.9rem;
   font-weight: 700;
 }
 
 .heading h1 {
-  color: #172d31;
+  color: #18332d;
   font-size: clamp(1.9rem, 5vw, 2.5rem);
 }
 
@@ -52,7 +52,7 @@
 .empty {
   display: grid;
   gap: 14px;
-  border: 1px solid #e3ebea;
+  border: 1px solid #e5e9df;
   border-radius: 16px;
   padding: 20px;
   background: #fff;
@@ -61,12 +61,12 @@
 .section h2,
 .summary h2,
 .empty h2 {
-  color: #172d31;
+  color: #18332d;
   font-size: 1.12rem;
 }
 
 .storeName {
-  color: #697d80;
+  color: #71817c;
   font-size: 0.9rem;
 }
 
@@ -95,8 +95,8 @@
   place-items: center;
   overflow: hidden;
   border-radius: 10px;
-  background: #e8f6f2;
-  color: #087b87;
+  background: #eff8f2;
+  color: #126b57;
   font-size: 0.75rem;
   font-weight: 900;
 }
@@ -106,18 +106,18 @@
 }
 
 .item h3 {
-  color: #172d31;
+  color: #18332d;
   font-size: 0.95rem;
 }
 
 .item p {
   margin-top: 5px;
-  color: #697d80;
+  color: #71817c;
   font-size: 0.86rem;
 }
 
 .item > strong {
-  color: #087b87;
+  color: #126b57;
   font-size: 0.9rem;
   white-space: nowrap;
 }
@@ -125,7 +125,7 @@
 .field {
   display: grid;
   gap: 8px;
-  color: #315256;
+  color: #105647;
   font-size: 0.9rem;
   font-weight: 700;
 }
@@ -133,17 +133,17 @@
 .field textarea {
   width: 100%;
   resize: vertical;
-  border: 1px solid #d9e7e4;
+  border: 1px solid #ddf3e8;
   border-radius: 10px;
   padding: 12px;
-  color: #172d31;
+  color: #18332d;
   font: inherit;
   font-weight: 400;
   line-height: 1.7;
 }
 
 .field textarea:focus {
-  border-color: #087b87;
+  border-color: #126b57;
   outline: 2px solid rgb(8 123 135 / 14%);
 }
 
@@ -156,11 +156,11 @@
 
 .locationButton {
   min-height: 42px;
-  border: 1px solid #087b87;
+  border: 1px solid #126b57;
   border-radius: 10px;
   padding: 0 14px;
   background: #fff;
-  color: #087b87;
+  color: #126b57;
   cursor: pointer;
   font: inherit;
   font-size: 0.88rem;
@@ -179,12 +179,12 @@
 }
 
 .locationHint {
-  color: #697d80;
+  color: #71817c;
 }
 
 .info,
 .summary p {
-  color: #697d80;
+  color: #71817c;
   font-size: 0.86rem;
   line-height: 1.7;
 }
@@ -205,12 +205,12 @@
 }
 
 .payment strong {
-  color: #172d31;
+  color: #18332d;
   font-size: 0.94rem;
 }
 
 .payment small {
-  color: #697d80;
+  color: #71817c;
   line-height: 1.5;
 }
 
@@ -218,7 +218,7 @@
   width: 18px;
   height: 18px;
   flex: 0 0 auto;
-  border: 5px solid #087b87;
+  border: 5px solid #126b57;
   border-radius: 50%;
   background: #fff;
 }
@@ -227,12 +227,12 @@
   display: flex;
   justify-content: space-between;
   gap: 14px;
-  color: #315256;
+  color: #105647;
   font-size: 0.92rem;
 }
 
 .summary > div strong {
-  color: #087b87;
+  color: #126b57;
   text-align: left;
 }
 
@@ -240,7 +240,7 @@
   min-height: 50px;
   border: 0;
   border-radius: 11px;
-  background: #087b87;
+  background: #126b57;
   color: #fff;
   cursor: pointer;
   font: inherit;
@@ -255,7 +255,7 @@
 .empty {
   justify-items: center;
   padding: 36px 20px;
-  color: #697d80;
+  color: #71817c;
   text-align: center;
 }
 
@@ -264,7 +264,7 @@
 }
 
 .empty a {
-  color: #087b87;
+  color: #126b57;
   font-weight: 800;
 }
 

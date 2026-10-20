@@ -52,21 +52,31 @@ type DashboardData = {
   recentOrders?: RecordItem[];
   recentUsers?: RecordItem[];
 };
+type ReportSummary = {
+  totalOrders?: number;
+  revenue?: number;
+  commissions?: number;
+  newUsers?: number;
+  activeStores?: number;
+  topStores?: RecordItem[];
+  topItems?: RecordItem[];
+};
+type AdminPermission = { name: string; label: string };
 
-const sections: { id: SectionKey; label: string; icon: string; path: string }[] = [
-  { id: "dashboard", label: "الرئيسية", icon: "⌂", path: "dashboard" },
-  { id: "orders", label: "الطلبات", icon: "▤", path: "orders" },
-  { id: "stores", label: "المتاجر", icon: "▦", path: "stores" },
-  { id: "users", label: "المستخدمون", icon: "♙", path: "users" },
-  { id: "products", label: "المنتجات", icon: "◇", path: "products" },
-  { id: "payments", label: "المدفوعات", icon: "◈", path: "payments" },
-  { id: "offers", label: "العروض", icon: "✳", path: "offers" },
-  { id: "support", label: "الدعم والمحادثات", icon: "☏", path: "support/sessions" },
-  { id: "submissions", label: "طلبات الشركاء", icon: "⇧", path: "submissions" },
-  { id: "delivery", label: "التوصيل", icon: "➤", path: "delivery" },
-  { id: "reports", label: "التقارير", icon: "▥", path: "reports" },
-  { id: "audit-log", label: "سجل العمليات", icon: "◷", path: "audit-log" },
-  { id: "sub-admins", label: "المشرفون", icon: "♧", path: "sub-admins" },
+const sections: { id: SectionKey; label: string; icon: string; path: string; route: string }[] = [
+  { id: "dashboard", label: "الرئيسية", icon: "⌂", path: "dashboard", route: "/dashboard" },
+  { id: "orders", label: "الطلبات", icon: "▤", path: "orders", route: "/orders" },
+  { id: "stores", label: "المتاجر", icon: "▦", path: "stores", route: "/stores" },
+  { id: "users", label: "المستخدمون", icon: "♙", path: "users", route: "/users" },
+  { id: "products", label: "المنتجات", icon: "◇", path: "products", route: "/products" },
+  { id: "payments", label: "المدفوعات", icon: "◈", path: "payments", route: "/payments" },
+  { id: "offers", label: "العروض", icon: "✳", path: "offers", route: "/offers" },
+  { id: "support", label: "الدعم والمحادثات", icon: "☏", path: "support/sessions", route: "/support" },
+  { id: "submissions", label: "طلبات الشركاء", icon: "⇧", path: "submissions", route: "/submissions" },
+  { id: "delivery", label: "التوصيل", icon: "➤", path: "delivery", route: "/delivery" },
+  { id: "reports", label: "التقارير", icon: "▥", path: "reports", route: "/reports" },
+  { id: "audit-log", label: "سجل العمليات", icon: "◷", path: "audit-log", route: "/audit-log" },
+  { id: "sub-admins", label: "المشرفون", icon: "♧", path: "sub-admins", route: "/sub-admins" },
 ];
 const sectionPermissions: Partial<Record<SectionKey, string>> = {
   dashboard: "reports.read",
@@ -110,6 +120,11 @@ const labels: Record<string, string> = {
   APPROVED: "معتمد",
   REJECTED: "مرفوض",
   PENDING_ADMIN_REVIEW: "بانتظار المراجعة",
+  ONLINE: "متصل",
+  OFFLINE: "غير متصل",
+  AVAILABLE: "متاح",
+  BUSY: "مشغول",
+  CASH_ON_DELIVERY: "الدفع عند الاستلام",
 };
 
 const sectionTitle = (id: SectionKey) =>
@@ -126,6 +141,9 @@ function displayValue(value: RecordValue): string {
   if (value === null || value === undefined || value === "") return "—";
   if (typeof value === "boolean") return value ? "نعم" : "لا";
   if (typeof value === "number") return new Intl.NumberFormat("ar-EG").format(value);
+  if (Array.isArray(value)) {
+    return value.map(displayValue).filter((item) => item !== "—").join("، ") || "—";
+  }
   if (typeof value === "string") {
     if (labels[value]) return labels[value];
     if (/^\d{4}-\d{2}-\d{2}T/.test(value)) {
@@ -262,7 +280,10 @@ function AppShell({
   onLogout: () => void;
 }) {
   const [active, setActive] = useState<SectionKey>("dashboard");
+  const [routeReady, setRouteReady] = useState(false);
   const [dashboard, setDashboard] = useState<DashboardData | null>(null);
+  const [reportSummary, setReportSummary] = useState<ReportSummary | null>(null);
+  const [permissionCatalog, setPermissionCatalog] = useState<AdminPermission[]>([]);
   const [records, setRecords] = useState<RecordItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
@@ -290,6 +311,25 @@ function AppShell({
     ? active
     : allowedSections[0]?.id || "dashboard";
 
+  useEffect(() => {
+    const syncSectionFromPath = () => {
+      const section = sections.find((item) => item.route === window.location.pathname);
+      setActive(section?.id || "dashboard");
+      setRouteReady(true);
+    };
+    syncSectionFromPath();
+    window.addEventListener("popstate", syncSectionFromPath);
+    return () => window.removeEventListener("popstate", syncSectionFromPath);
+  }, []);
+
+  useEffect(() => {
+    if (!routeReady) return;
+    const section = sections.find((item) => item.id === activeSection);
+    if (section && window.location.pathname !== section.route) {
+      window.history.replaceState({ section: activeSection }, "", section.route);
+    }
+  }, [activeSection, routeReady]);
+
   const loadActive = useCallback(async (silent = false) => {
     if (!silent) setLoading(true);
     setError("");
@@ -306,8 +346,25 @@ function AppShell({
       const payload: unknown = apiPayload(body);
       if (activeSection === "dashboard") {
         setDashboard((payload || {}) as DashboardData);
+        setReportSummary(null);
+        setPermissionCatalog([]);
+        setRecords([]);
+      } else if (activeSection === "reports") {
+        setReportSummary((payload || {}) as ReportSummary);
+        setPermissionCatalog([]);
         setRecords([]);
       } else {
+        setReportSummary(null);
+        if (activeSection === "sub-admins") {
+          const permissionsResponse = await fetch("/api/admin/permissions", { cache: "no-store" });
+          const permissionsBody = await permissionsResponse.json();
+          if (!permissionsResponse.ok) {
+            throw new Error(permissionsBody.message || "تعذر تحميل صلاحيات المشرفين.");
+          }
+          setPermissionCatalog(apiPayload<AdminPermission[]>(permissionsBody) || []);
+        } else {
+          setPermissionCatalog([]);
+        }
         const list = Array.isArray(payload)
           ? payload
           : payload && typeof payload === "object"
@@ -321,6 +378,8 @@ function AppShell({
       setError(cause instanceof Error ? cause.message : "تعذر تحميل البيانات.");
       if (!silent) {
         setDashboard(null);
+        setReportSummary(null);
+        setPermissionCatalog([]);
         setRecords([]);
       }
     } finally {
@@ -329,16 +388,18 @@ function AppShell({
   }, [activeSection]);
 
   useEffect(() => {
+    if (!routeReady) return;
     const timer = window.setTimeout(() => void loadActive(), 0);
     return () => window.clearTimeout(timer);
-  }, [loadActive]);
+  }, [loadActive, routeReady]);
 
   useEffect(() => {
+    if (!routeReady) return;
     const timer = window.setInterval(() => {
       if (document.visibilityState === "visible") void loadActive(true);
     }, 60_000);
     return () => window.clearInterval(timer);
-  }, [loadActive]);
+  }, [loadActive, routeReady]);
 
   useEffect(() => {
     const handleShortcut = (event: KeyboardEvent) => {
@@ -364,6 +425,10 @@ function AppShell({
   }, [records, search]);
 
   function selectSection(id: SectionKey) {
+    const section = sections.find((item) => item.id === id);
+    if (section && window.location.pathname !== section.route) {
+      window.history.pushState({ section: id }, "", section.route);
+    }
     setActive(id);
     setSearch("");
     setPage(1);
@@ -385,6 +450,17 @@ function AppShell({
         : action === "store-open-toggle"
           ? isOpen ? "إغلاق المتجر" : "فتح المتجر"
           : isAvailable ? "إخفاء المنتج" : "إتاحة المنتج";
+    let suspensionReason = "";
+    if (action === "user-toggle" && isActive) {
+      const enteredReason = window.prompt("اكتب سبب تعطيل الحساب (إلزامي، بحد أقصى 500 حرف):");
+      if (enteredReason === null) return;
+      suspensionReason = enteredReason.trim();
+      if (!suspensionReason || suspensionReason.length > 500) {
+        setActionError(true);
+        setActionMessage(suspensionReason ? "سبب التعطيل يجب ألا يتجاوز 500 حرف." : "سبب تعطيل الحساب مطلوب.");
+        return;
+      }
+    }
     if (!window.confirm(`هل تريد ${actionTitle}؟`)) return;
 
     setActionMessage("");
@@ -392,7 +468,7 @@ function AppShell({
     setLoading(true);
     try {
       const request = action === "user-toggle"
-        ? { path: `users/${id}/${isActive ? "suspend" : "activate"}`, method: "PATCH", body: isActive ? { reason: "إجراء إداري" } : {} }
+        ? { path: `users/${id}/${isActive ? "suspend" : "activate"}`, method: "PATCH", body: isActive ? { reason: suspensionReason } : {} }
         : action === "store-toggle"
           ? { path: `stores/${id}/${isActive ? "suspend" : "activate"}`, method: "PATCH", body: {} }
           : action === "store-open-toggle"
@@ -416,14 +492,15 @@ function AppShell({
     }
   }
 
-  async function runSubmissionAction(record: RecordItem, action: "approve" | "reject") {
+  async function runSubmissionAction(
+    record: RecordItem,
+    action: "approve" | "reject",
+    rejectionReason = "",
+  ) {
     const id = record.id;
     if (id === undefined || id === null) return;
-    let rejectionReason = "";
     if (action === "reject") {
-      const enteredReason = window.prompt("اكتب سبب رفض طلب الشريك (إلزامي، بحد أقصى 500 حرف):");
-      if (enteredReason === null) return;
-      rejectionReason = enteredReason.trim();
+      rejectionReason = rejectionReason.trim();
       if (!rejectionReason) {
         setActionError(true);
         setActionMessage("سبب الرفض مطلوب.");
@@ -452,6 +529,76 @@ function AppShell({
     } catch (cause) {
       setActionError(true);
       setActionMessage(cause instanceof Error ? cause.message : "تعذر تحديث طلب الشريك.");
+    } finally {
+      setLoading(false);
+      window.setTimeout(() => setActionMessage(""), 4500);
+    }
+  }
+
+  async function runSupportAction(
+    record: RecordItem,
+    action: "reply" | "status",
+    value: string,
+  ) {
+    const id = record.id;
+    if (id === undefined || id === null) return;
+    const isReply = action === "reply";
+    const message = value.trim();
+    if (isReply && (!message || message.length > 2000)) {
+      setActionError(true);
+      setActionMessage("اكتب رسالة دعم لا تتجاوز 2000 حرفًا.");
+      return;
+    }
+    const body = isReply ? { message } : { status: value };
+
+    setActionMessage("");
+    setActionError(false);
+    setLoading(true);
+    try {
+      const response = await fetch(
+        `/api/admin/support/sessions/${id}${isReply ? "/messages" : "/status"}`,
+        {
+          method: isReply ? "POST" : "PATCH",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(body),
+        },
+      );
+      const result = await response.json();
+      if (!response.ok) throw new Error(result.message || "تعذر تحديث المحادثة.");
+      setActionMessage(isReply ? "تم إرسال الرد." : "تم تحديث حالة المحادثة.");
+      await loadActive();
+    } catch (cause) {
+      setActionError(true);
+      setActionMessage(cause instanceof Error ? cause.message : "تعذر تحديث المحادثة.");
+    } finally {
+      setLoading(false);
+      window.setTimeout(() => setActionMessage(""), 4500);
+    }
+  }
+
+  async function createSubAdmin(data: {
+    name: string;
+    phone: string;
+    email: string;
+    password: string;
+    permissions: string[];
+  }) {
+    setActionMessage("");
+    setActionError(false);
+    setLoading(true);
+    try {
+      const response = await fetch("/api/admin/sub-admins", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(data),
+      });
+      const result = await response.json();
+      if (!response.ok) throw new Error(result.message || "تعذر إنشاء حساب المشرف.");
+      setActionMessage("تم إنشاء حساب المشرف.");
+      await loadActive();
+    } catch (cause) {
+      setActionError(true);
+      setActionMessage(cause instanceof Error ? cause.message : "تعذر إنشاء حساب المشرف.");
     } finally {
       setLoading(false);
       window.setTimeout(() => setActionMessage(""), 4500);
@@ -531,6 +678,10 @@ function AppShell({
               actionMessage={actionMessage}
               error={error}
               loading={loading}
+              reportSummary={reportSummary}
+              permissionCatalog={permissionCatalog}
+              onCreateSubAdmin={createSubAdmin}
+              onSupportAction={runSupportAction}
               onAction={runRecordAction}
               onSubmissionAction={runSubmissionAction}
               onPageChange={setPage}
@@ -728,17 +879,34 @@ function columnsFor(active: SectionKey): Column[] {
     offers: [
       { key: "id", label: "الرقم" },
       { key: "title", label: "العرض" },
-      { key: "discountPercentage", label: "الخصم" },
+      { key: "discountType", label: "نوع الخصم" },
+      { key: "discountValue", label: "قيمة الخصم" },
       { key: "isActive", label: "نشط" },
-      { key: "startDate", label: "البداية" },
-      { key: "endDate", label: "النهاية" },
+      { key: "startsAt", label: "البداية" },
+      { key: "endsAt", label: "النهاية" },
     ],
     support: [
-      { key: "id", label: "الرقم" },
-      { key: "subject", label: "الموضوع" },
-      { key: "user.name", label: "صاحب الطلب" },
+      { key: "id", label: "رقم المحادثة" },
+      { key: "order.id", label: "رقم الطلب" },
+      { key: "user.name", label: "صاحب المحادثة" },
       { key: "status", label: "الحالة" },
       { key: "updatedAt", label: "آخر تحديث" },
+    ],
+    delivery: [
+      { key: "id", label: "الرقم" },
+      { key: "name", label: "اسم المندوب" },
+      { key: "phone", label: "الهاتف" },
+      { key: "approvalStatus", label: "حالة الاعتماد" },
+      { key: "deliveryProfile.status", label: "حالة التوصيل" },
+      { key: "_count.deliveries", label: "الطلبات المسندة" },
+    ],
+    "sub-admins": [
+      { key: "id", label: "الرقم" },
+      { key: "name", label: "الاسم" },
+      { key: "phone", label: "الهاتف" },
+      { key: "email", label: "البريد الإلكتروني" },
+      { key: "isActive", label: "نشط" },
+      { key: "permissions", label: "الصلاحيات" },
     ],
     "audit-log": [
       { key: "id", label: "الرقم" },
@@ -756,12 +924,213 @@ function columnsFor(active: SectionKey): Column[] {
   ];
 }
 
+function ReportsSection({
+  error,
+  loading,
+  report,
+}: {
+  error: string;
+  loading: boolean;
+  report: ReportSummary | null;
+}) {
+  const metrics = [
+    { label: "إجمالي الطلبات", value: report?.totalOrders, icon: "▤", tone: "green" },
+    { label: "الإيرادات", value: report?.revenue, icon: "↗", tone: "blue", currency: true },
+    { label: "العمولات", value: report?.commissions, icon: "◈", tone: "purple", currency: true },
+    { label: "المستخدمون الجدد", value: report?.newUsers, icon: "♙", tone: "orange" },
+    { label: "المتاجر النشطة", value: report?.activeStores, icon: "▦", tone: "green" },
+  ];
+
+  return (
+    <div className="reports-view">
+      {error && <div className="notice error-notice" role="alert"><span>!</span><div><strong>تعذر تحميل التقارير</strong><p>{error}</p></div></div>}
+      <div className="report-metric-grid">
+        {metrics.map((metric) => (
+          <article className={`report-metric report-metric-${metric.tone}`} key={metric.label}>
+            <span className="report-metric-icon" aria-hidden="true">{metric.icon}</span>
+            <span className="report-metric-label">{metric.label}</span>
+            <strong>{loading ? <span className="skeleton skeleton-number" /> : displayValue(metric.value)}{metric.currency && !loading ? <small> ج.م</small> : null}</strong>
+          </article>
+        ))}
+      </div>
+      <div className="reports-table-grid">
+        <section className="panel report-table-panel">
+          <div className="panel-heading"><div><h2>أفضل المتاجر</h2><p>المتاجر الأعلى حسب عدد الطلبات</p></div></div>
+          <RecordTable
+            columns={[
+              { key: "id", label: "رقم المتجر" },
+              { key: "name", label: "اسم المتجر" },
+              { key: "orders", label: "عدد الطلبات" },
+            ]}
+            empty="لا توجد بيانات متاجر في هذه الفترة."
+            loading={loading}
+            rows={report?.topStores || []}
+          />
+        </section>
+        <section className="panel report-table-panel">
+          <div className="panel-heading"><div><h2>المنتجات الأكثر طلبًا</h2><p>المنتجات الأعلى حسب الكمية المباعة</p></div></div>
+          <RecordTable
+            columns={[
+              { key: "id", label: "رقم المنتج" },
+              { key: "name", label: "اسم المنتج" },
+              { key: "quantity", label: "الكمية" },
+            ]}
+            empty="لا توجد بيانات منتجات في هذه الفترة."
+            loading={loading}
+            rows={report?.topItems || []}
+          />
+        </section>
+      </div>
+    </div>
+  );
+}
+
+function SupportSection({
+  actionError,
+  actionMessage,
+  canReply,
+  canUpdateStatus,
+  error,
+  loading,
+  onAction,
+  sessions,
+}: {
+  actionError: boolean;
+  actionMessage: string;
+  canReply: boolean;
+  canUpdateStatus: boolean;
+  error: string;
+  loading: boolean;
+  onAction: (record: RecordItem, action: "reply" | "status", value: string) => void;
+  sessions: RecordItem[];
+}) {
+  return (
+    <section className="panel support-panel">
+      <div className="data-toolbar">
+        <div><h2>محادثات الدعم</h2><p>راجع رسائل العملاء وتابع المحادثات المفتوحة.</p></div>
+      </div>
+      {error && <div className="notice error-notice table-error" role="alert"><span>!</span><div><strong>تعذر تحميل المحادثات</strong><p>{error}</p></div></div>}
+      {actionMessage && <div className={`notice action-notice ${actionError ? "error-notice" : ""}`} role="status"><span>{actionError ? "!" : "✓"}</span><div><strong>{actionMessage}</strong></div></div>}
+      {loading && sessions.length === 0
+        ? <div className="table-loading">{[1, 2, 3].map((line) => <div className="loading-row" key={line}><span /><span /><span /></div>)}</div>
+        : sessions.length
+          ? <div className="support-session-list">{sessions.map((session) => (
+              <SupportSessionCard
+                canReply={canReply}
+                canUpdateStatus={canUpdateStatus}
+                key={String(session.id)}
+                onAction={onAction}
+                session={session}
+              />
+            ))}</div>
+          : <div className="table-empty"><span>☏</span><strong>{error ? "تعذر عرض المحادثات." : "لا توجد محادثات دعم."}</strong><small>ستظهر المحادثات هنا عند ورودها.</small></div>}
+    </section>
+  );
+}
+
+function SupportSessionCard({
+  canReply,
+  canUpdateStatus,
+  onAction,
+  session,
+}: {
+  canReply: boolean;
+  canUpdateStatus: boolean;
+  onAction: (record: RecordItem, action: "reply" | "status", value: string) => void;
+  session: RecordItem;
+}) {
+  const [expanded, setExpanded] = useState(false);
+  const [message, setMessage] = useState("");
+  const status = String(session.status || "OPEN");
+  const messages = Array.isArray(session.messages)
+    ? session.messages.filter(
+        (item): item is RecordItem => !!item && typeof item === "object" && !Array.isArray(item),
+      )
+    : [];
+  const nextStatus = status === "CLOSED" ? "OPEN" : status === "OPEN" ? "IN_PROGRESS" : "CLOSED";
+  const statusAction = status === "CLOSED" ? "إعادة فتح المحادثة" : status === "OPEN" ? "بدء المتابعة" : "إغلاق المحادثة";
+
+  return (
+    <article className="support-session-card">
+      <div className="support-session-heading">
+        <div>
+          <span className="support-session-id">محادثة #{displayValue(session.id)}</span>
+          <h3>{displayValue(getField(session, "user.name"))}</h3>
+          <p>
+            {getField(session, "order.id") != null
+              ? `طلب رقم ${displayValue(getField(session, "order.id"))} • `
+              : ""}
+            آخر تحديث {displayValue(session.updatedAt)}
+          </p>
+        </div>
+        <span className={`status-pill ${statusClass(status)}`}>{displayValue(status)}</span>
+      </div>
+      {messages.length > 0 && (
+        <p className="support-last-message">
+          <strong>آخر رسالة:</strong> {displayValue(getField(messages[messages.length - 1], "message"))}
+        </p>
+      )}
+      <div className="support-session-actions">
+        <button className="row-action row-action-light" onClick={() => setExpanded((current) => !current)}>
+          {expanded ? "إخفاء المحادثة" : `عرض المحادثة (${displayValue(messages.length)})`}
+        </button>
+        {canUpdateStatus && (
+          <button className="row-action row-action-light" onClick={() => onAction(session, "status", nextStatus)}>
+            {statusAction}
+          </button>
+        )}
+      </div>
+      {expanded && (
+        <div className="support-conversation">
+          <div className="support-message-list">
+            {messages.length
+              ? messages.map((item, index) => {
+                  const sender = String(item.sender || "");
+                  return (
+                    <div className={`support-message ${sender === "ADMIN" || sender === "SUBADMIN" ? "support-message-admin" : ""}`} key={String(item.id ?? index)}>
+                      <div><strong>{sender === "ADMIN" || sender === "SUBADMIN" ? "الإدارة" : "العميل"}</strong><time>{displayValue(item.createdAt)}</time></div>
+                      <p>{displayValue(item.message)}</p>
+                    </div>
+                  );
+                })
+              : <p className="support-no-messages">لا توجد رسائل في هذه المحادثة.</p>}
+          </div>
+          {canReply && status !== "CLOSED" && (
+            <form className="support-reply-form" onSubmit={(event) => {
+              event.preventDefault();
+              const reply = message.trim();
+              if (!reply || reply.length > 2000) return;
+              onAction(session, "reply", reply);
+              setMessage("");
+            }}>
+              <label htmlFor={`support-reply-${session.id}`}>الرد على العميل</label>
+              <textarea
+                id={`support-reply-${session.id}`}
+                maxLength={2000}
+                onChange={(event) => setMessage(event.target.value)}
+                placeholder="اكتب ردًا واضحًا ومفيدًا..."
+                required
+                value={message}
+              />
+              <div><small>{message.length}/2000</small><button className="row-action" disabled={!message.trim()} type="submit">إرسال الرد</button></div>
+            </form>
+          )}
+        </div>
+      )}
+    </article>
+  );
+}
+
 function DataSection({
   active,
   actionError,
   actionMessage,
   error,
   loading,
+  onSupportAction,
+  reportSummary,
+  permissionCatalog,
+  onCreateSubAdmin,
   onAction,
   onSubmissionAction,
   onPageChange,
@@ -778,6 +1147,16 @@ function DataSection({
   actionMessage: string;
   error: string;
   loading: boolean;
+  onSupportAction: (record: RecordItem, action: "reply" | "status", value: string) => void;
+  reportSummary: ReportSummary | null;
+  permissionCatalog: AdminPermission[];
+  onCreateSubAdmin: (data: {
+    name: string;
+    phone: string;
+    email: string;
+    password: string;
+    permissions: string[];
+  }) => void;
   onAction: (record: RecordItem, action: "user-toggle" | "store-toggle" | "store-open-toggle" | "product-toggle") => void;
   onSubmissionAction: (record: RecordItem, action: "approve" | "reject") => void;
   onPageChange: (page: number) => void;
@@ -789,6 +1168,7 @@ function DataSection({
   setSearch: (value: string) => void;
   user: User;
 }) {
+  const [createSubAdminOpen, setCreateSubAdminOpen] = useState(false);
   const columns = columnsFor(active);
   const totalPages = Math.max(1, Math.ceil(records.length / pageSize));
   const pageRows = records.slice((page - 1) * pageSize, page * pageSize);
@@ -797,12 +1177,50 @@ function DataSection({
   const can = (permission: string) => user.role === "admin"
     || (user.permissions || []).includes(permission)
     || (permissionAliases[permission] || []).some((alias) => (user.permissions || []).includes(alias));
+  if (active === "reports") {
+    return (
+      <ReportsSection
+        error={error}
+        loading={loading}
+        report={reportSummary}
+      />
+    );
+  }
+  if (active === "support") {
+    return (
+      <SupportSection
+        actionError={actionError}
+        actionMessage={actionMessage}
+        canReply={can("support.reply")}
+        canUpdateStatus={can("support.status")}
+        error={error}
+        loading={loading}
+        onAction={onSupportAction}
+        sessions={records}
+      />
+    );
+  }
   return (
     <section className="panel data-panel">
       <div className="data-toolbar">
         <div><h2>{sectionTitle(active)}</h2><p>البيانات المحدثة من نظام چودي ستار مباشرة.</p></div>
-        <label className="search-box"><span>⌕</span><input ref={searchInput} onChange={(event) => setSearch(event.target.value)} placeholder="ابحث في النتائج..." value={search} /><kbd>Ctrl K</kbd></label>
+        <div className="data-toolbar-actions">
+          {active === "sub-admins" && user.role === "admin" && (
+            <button className="primary-button create-sub-admin-toggle" onClick={() => setCreateSubAdminOpen((open) => !open)}>
+              {createSubAdminOpen ? "إلغاء" : "+ إضافة مشرف"}
+            </button>
+          )}
+          <label className="search-box"><span>⌕</span><input ref={searchInput} onChange={(event) => setSearch(event.target.value)} placeholder="ابحث في النتائج..." value={search} /><kbd>Ctrl K</kbd></label>
+        </div>
       </div>
+      {active === "sub-admins" && createSubAdminOpen && user.role === "admin" && (
+        <SubAdminCreateForm
+          loading={loading}
+          onCancel={() => setCreateSubAdminOpen(false)}
+          onSubmit={onCreateSubAdmin}
+          permissions={permissionCatalog}
+        />
+      )}
       {error && <div className="notice error-notice table-error"><span>!</span><div><strong>تعذر تحميل القسم</strong><p>{error}</p></div></div>}
       {actionMessage && <div className={`notice action-notice ${actionError ? "error-notice" : ""}`} role="status"><span>{actionError ? "!" : "✓"}</span><div><strong>{actionMessage}</strong></div></div>}
       <div className="table-scroll">
@@ -844,19 +1262,87 @@ function DataSection({
   );
 }
 
+function SubAdminCreateForm({
+  loading,
+  onCancel,
+  onSubmit,
+  permissions,
+}: {
+  loading: boolean;
+  onCancel: () => void;
+  onSubmit: (data: {
+    name: string;
+    phone: string;
+    email: string;
+    password: string;
+    permissions: string[];
+  }) => void;
+  permissions: AdminPermission[];
+}) {
+  const [name, setName] = useState("");
+  const [phone, setPhone] = useState("");
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [selectedPermissions, setSelectedPermissions] = useState<string[]>([]);
+
+  function togglePermission(permission: string) {
+    setSelectedPermissions((current) => current.includes(permission)
+      ? current.filter((item) => item !== permission)
+      : [...current, permission]);
+  }
+
+  return (
+    <form className="sub-admin-form" onSubmit={(event) => {
+      event.preventDefault();
+      onSubmit({ name: name.trim(), phone: phone.trim(), email: email.trim(), password, permissions: selectedPermissions });
+    }}>
+      <div className="sub-admin-form-heading">
+        <div><h3>إنشاء حساب مشرف</h3><p>اختر أقل مجموعة صلاحيات يحتاجها المشرف لأداء مهامه.</p></div>
+        <button className="text-button" onClick={onCancel} type="button">إلغاء</button>
+      </div>
+      <div className="sub-admin-fields">
+        <label>الاسم<input autoComplete="name" onChange={(event) => setName(event.target.value)} required value={name} /></label>
+        <label>رقم الهاتف<input autoComplete="tel" inputMode="tel" onChange={(event) => setPhone(event.target.value)} required value={phone} /></label>
+        <label>البريد الإلكتروني<input autoComplete="email" onChange={(event) => setEmail(event.target.value)} type="email" value={email} /></label>
+        <label>كلمة المرور<input autoComplete="new-password" minLength={8} onChange={(event) => setPassword(event.target.value)} required type="password" value={password} /></label>
+      </div>
+      <fieldset className="permission-fieldset">
+        <legend>الصلاحيات</legend>
+        <div className="permission-grid">
+          {permissions.map((permission) => (
+            <label key={permission.name}>
+              <input checked={selectedPermissions.includes(permission.name)} onChange={() => togglePermission(permission.name)} type="checkbox" />
+              <span>{permission.label}</span>
+            </label>
+          ))}
+        </div>
+        {permissions.length === 0 && <p className="permission-error">تعذر تحميل قائمة الصلاحيات. حدّث الصفحة وحاول مرة أخرى.</p>}
+      </fieldset>
+      <div className="sub-admin-form-footer">
+        <small>{displayValue(selectedPermissions.length)} صلاحية محددة</small>
+        <button className="primary-button" disabled={loading || selectedPermissions.length === 0 || permissions.length === 0} type="submit">
+          {loading ? "جارٍ الحفظ..." : "إنشاء حساب المشرف"}
+        </button>
+      </div>
+    </form>
+  );
+}
+
 function PartnerSubmissionCard({
   canReview,
   onAction,
   record,
 }: {
   canReview: boolean;
-  onAction: (record: RecordItem, action: "approve" | "reject") => void;
+  onAction: (record: RecordItem, action: "approve" | "reject", rejectionReason?: string) => void;
   record: RecordItem;
 }) {
   const [documents, setDocuments] = useState<RecordItem | null>(null);
   const [documentsLoading, setDocumentsLoading] = useState(false);
   const [documentsError, setDocumentsError] = useState("");
   const [documentsOpen, setDocumentsOpen] = useState(false);
+  const [rejecting, setRejecting] = useState(false);
+  const [rejectionReason, setRejectionReason] = useState("");
   const pending = record.approvalStatus === "PENDING_ADMIN_REVIEW";
   const isDelivery = getField(record, "submissionRole") === "delivery";
 
@@ -891,8 +1377,62 @@ function PartnerSubmissionCard({
           { key: "motorcycleImage", label: "صورة الدراجة" },
           { key: "motorcycleCardImage", label: "بطاقة الدراجة" },
         ]
-      : []),
+      : [{ key: "store.image", label: "صورة المتجر" }]),
   ];
+  const details: { label: string; value: RecordValue; direction?: "ltr" }[] = [
+    { label: "رقم الحساب", value: `#${displayValue(record.id)}`, direction: "ltr" },
+    { label: "رقم الهاتف", value: record.phone, direction: "ltr" },
+    { label: "البريد الإلكتروني", value: record.email, direction: "ltr" },
+    { label: "حالة الحساب", value: record.isActive },
+    { label: "تأكيد الهاتف", value: record.phoneVerified },
+    { label: "حالة الطلب", value: record.approvalStatus },
+    { label: "تاريخ التسجيل", value: record.createdAt },
+    { label: "آخر تحديث", value: record.updatedAt },
+    {
+      label: "موقع التسجيل",
+      value: record.latitude == null || record.longitude == null
+        ? null
+        : `${record.latitude}, ${record.longitude}`,
+      direction: "ltr",
+    },
+  ];
+  const storeDetails = [
+    { label: "رقم المتجر", value: displayValue(getField(record, "store.id")) },
+    { label: "اسم المتجر", value: displayValue(getField(record, "store.name")) },
+    { label: "التصنيف", value: displayValue(getField(record, "store.category.name")) },
+    { label: "وصف المتجر", value: displayValue(getField(record, "store.description")) },
+    { label: "حالة اعتماد المتجر", value: displayValue(getField(record, "store.approvalStatus")) },
+    { label: "المتجر نشط", value: displayValue(getField(record, "store.isActive")) },
+    { label: "المتجر مفتوح", value: displayValue(getField(record, "store.isOpen")) },
+    {
+      label: "موقع المتجر",
+      value: getField(record, "store.latitude") == null || getField(record, "store.longitude") == null
+        ? "—"
+        : `${displayValue(getField(record, "store.latitude"))}, ${displayValue(getField(record, "store.longitude"))}`,
+    },
+    { label: "مواعيد العمل", value: formatDetail(getField(record, "store.operatingHours")) },
+    { label: "تاريخ إنشاء المتجر", value: displayValue(getField(record, "store.createdAt")) },
+    { label: "آخر تحديث للمتجر", value: displayValue(getField(record, "store.updatedAt")) },
+  ];
+  const deliveryDetails = [
+    { label: "رقم ملف التوصيل", value: displayValue(getField(record, "deliveryProfile.id")) },
+    { label: "حالة المندوب", value: displayValue(getField(record, "deliveryProfile.status")) },
+    { label: "نوع المركبة", value: displayValue(getField(record, "deliveryProfile.vehicleType")) },
+    { label: "رقم اللوحة", value: displayValue(getField(record, "deliveryProfile.vehiclePlate")) },
+    {
+      label: "موقع المندوب",
+      value: getField(record, "deliveryProfile.latitude") == null || getField(record, "deliveryProfile.longitude") == null
+        ? "—"
+        : `${displayValue(getField(record, "deliveryProfile.latitude"))}, ${displayValue(getField(record, "deliveryProfile.longitude"))}`,
+    },
+    { label: "تاريخ إنشاء ملف التوصيل", value: displayValue(getField(record, "deliveryProfile.createdAt")) },
+    { label: "آخر تحديث لملف التوصيل", value: displayValue(getField(record, "deliveryProfile.updatedAt")) },
+  ];
+
+  function formatDetail(value: RecordValue) {
+    if (value && typeof value === "object") return JSON.stringify(value);
+    return displayValue(value);
+  }
 
   return (
     <article className="submission-card">
@@ -907,11 +1447,23 @@ function PartnerSubmissionCard({
         </span>
       </div>
       <div className="submission-fields">
-        <div><span>رقم الحساب</span><strong>#{displayValue(record.id)}</strong></div>
-        <div><span>الهاتف</span><strong dir="ltr">{displayValue(record.phone)}</strong></div>
-        <div><span>البريد الإلكتروني</span><strong>{displayValue(record.email)}</strong></div>
-        <div><span>الموقع المسجل</span><strong dir="ltr">{record.latitude == null || record.longitude == null ? "—" : `${record.latitude}, ${record.longitude}`}</strong></div>
-        <div><span>تاريخ التسجيل</span><strong>{displayValue(record.createdAt)}</strong></div>
+        {details.map(({ label, value, direction }) => (
+          <div key={label}>
+            <span>{label}</span>
+            {label === "رقم الهاتف" && typeof value === "string" && value ? (
+              <a dir="ltr" href={`tel:${value}`}>{value}</a>
+            ) : (
+              <strong dir={direction}>{formatDetail(value)}</strong>
+            )}
+          </div>
+        ))}
+        {isDelivery
+          ? deliveryDetails.map(({ label, value }) => (
+              <div key={label}><span>{label}</span><strong>{value}</strong></div>
+            ))
+          : storeDetails.map(({ label, value }) => (
+              <div key={label}><span>{label}</span><strong>{value}</strong></div>
+            ))}
       </div>
       {record.rejectionReason && (
         <div className="submission-reason"><strong>سبب الرفض:</strong> {String(record.rejectionReason)}</div>
@@ -924,11 +1476,34 @@ function PartnerSubmissionCard({
         )}
         {canReview && pending && (
           <>
-            <button className="row-action" onClick={() => onAction(record, "approve")}>اعتماد الطلب</button>
-            <button className="row-action row-action-danger" onClick={() => onAction(record, "reject")}>رفض الطلب</button>
+            <button className="row-action" disabled={rejecting} onClick={() => onAction(record, "approve")}>اعتماد الطلب</button>
+            <button className="row-action row-action-danger" onClick={() => { setRejecting((current) => !current); setRejectionReason(""); }}>
+              {rejecting ? "إلغاء الرفض" : "رفض الطلب"}
+            </button>
           </>
         )}
       </div>
+      {rejecting && pending && canReview && (
+        <form className="submission-rejection-form" onSubmit={(event) => {
+          event.preventDefault();
+          onAction(record, "reject", rejectionReason);
+          setRejecting(false);
+        }}>
+          <label htmlFor={`rejection-reason-${record.id}`}>سبب رفض الطلب <span>إلزامي</span></label>
+          <textarea
+            id={`rejection-reason-${record.id}`}
+            maxLength={500}
+            onChange={(event) => setRejectionReason(event.target.value)}
+            placeholder="اكتب سببًا واضحًا ليتمكن مقدم الطلب من معالجة المشكلة..."
+            required
+            value={rejectionReason}
+          />
+          <div className="submission-rejection-footer">
+            <small>{rejectionReason.length}/500</small>
+            <button className="row-action row-action-danger" disabled={!rejectionReason.trim()} type="submit">تأكيد الرفض وإرسال السبب</button>
+          </div>
+        </form>
+      )}
       {documentsOpen && (
         <div className="submission-documents">
           {documentsLoading && <p>جارٍ تحميل الصور بأمان...</p>}
@@ -936,11 +1511,13 @@ function PartnerSubmissionCard({
           {documents && (
             <div className="submission-image-grid">
               {images.map(({ key, label }) => {
-                const source = documents[key];
+                const source = getField(documents, key);
                 return (
                   <figure key={key}>
                     {typeof source === "string" && source ? (
-                      <Image alt={label} height={220} src={source} unoptimized width={300} />
+                      <a href={source} rel="noreferrer" target="_blank" title="فتح الصورة بالحجم الكامل">
+                        <Image alt={label} height={220} src={source} unoptimized width={300} />
+                      </a>
                     ) : (
                       <div className="submission-image-missing">الصورة غير متاحة</div>
                     )}
